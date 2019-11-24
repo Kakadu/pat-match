@@ -264,6 +264,20 @@ and check1line scr clause res =
       ; (clause === Pattern.wc ()) &&& (res === Std.Bool.truo)
       ])
 
+module IR = struct
+  type ('tag, 'fieldnum, 'rhs, 'self) t =
+    | IfTag of 'tag * 'self * 'self * 'self
+    | Field of 'fieldnum * 'self
+    | RHSInt of 'rhs
+    [@@deriving gt ~options:{gmap}]
+
+  include OCanren.Fmap4(struct
+    type nonrec ('tag, 'fieldnum, 'rhs, 'self) t = ('tag, 'fieldnum, 'rhs, 'self) t
+    let fmap eta = GT.(gmap t) eta
+  end)
+end
+
+
 
 let example1: (Pattern.ground * int) list =
   [ ppair pnil  pwc, 1

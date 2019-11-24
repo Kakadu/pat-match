@@ -15,5 +15,5 @@
   (modules main)
   (flags (-rectypes))
   (libraries ocanren)
-  (preprocess (pps ocanren.ppx ppxlib.metaquot))
+  (preprocess (pps ocanren.ppx GT.ppx))
 )
