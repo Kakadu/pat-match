@@ -195,17 +195,18 @@ let make_pattern_generator pats =
   loop 0 generator_0
 
 module Expr = struct
-  type ('name, 'self) expr = EConstr of 'name * 'self
+  type ('name, 'self) t = EConstr of 'name * 'self
+    [@@deriving gt ~options:{ gmap; fmt }
+    ]
 
   module F = OCanren.Fmap2(struct
-    type ('a,'b) t = ('a, 'b) expr
-    let fmap f g = function
-      | EConstr (name, xs) -> EConstr (f name, g xs)
+    type nonrec ('a,'b) t = ('a, 'b) t
+    let fmap eta = GT.gmap t eta
   end)
   include F
 
-  type ground = (constr_name, ground OCanren.Std.List.ground) expr
-  type elogic = (constr_name logic, elogic OCanren.Std.List.logic) expr logic
+  type ground = (constr_name, ground OCanren.Std.List.ground) t
+  type elogic = (constr_name logic, elogic OCanren.Std.List.logic) t logic
   type injected = (ground, elogic) OCanren.injected
 
   let constr s xs : injected = inj @@ distrib (EConstr (s, xs))
@@ -213,12 +214,16 @@ module Expr = struct
   let rec reifier : _ -> injected -> elogic = fun env x ->
     reify OCanren.reify (OCanren.Std.List.reify reifier) env x
 
-  let rec prj : _ -> injected -> ground = fun env x ->
-    prjc (OCanren.prjc (fun _ -> assert false))
-      (OCanren.Std.List.prjc (prj) (fun _ -> assert false))
+  let rec prjc : _ -> injected -> ground = fun env x ->
+    F.prjc (OCanren.prjc (fun _ -> assert false))
+      (OCanren.Std.List.prjc prjc (fun _ -> assert false))
       (fun _ -> assert false)
       env x
 
+  let rec pp fmt e = GT.fmt t (GT.fmt GT.string) (GT.fmt Std.List.ground pp) fmt e
+  let rec pp_logic fmt e =
+    GT.fmt OCanren.logic
+      (GT.fmt t (GT.fmt GT.string) (GT.fmt Std.List.logic pp_logic)) fmt e
 end
 
 let rec list_zipo cond xs ys res =
@@ -269,7 +274,7 @@ module IR = struct
     | IfTag of 'tag * 'self * 'self * 'self
     | Field of 'fieldnum * 'self
     | E of 'expr
-    | RHSInt of 'rhs
+    (* | RHSInt of 'rhs *)
     [@@deriving gt ~options:{ gmap }
     ]
 
@@ -278,14 +283,14 @@ module IR = struct
     let fmap eta = GT.(gmap t) eta
   end)
 
-  type ground = (constr_name, Nat.ground, Expr.ground, Expr.ground, ground) t
-  type logic  = (constr_name OCanren.logic, Expr.logic, int OCanren.logic, Expr.elogic, logic) t OCanren.logic
+  type ground = (constr_name,               Std.Nat.ground, Expr.ground, Expr.ground, ground) t
+  type logic  = (constr_name OCanren.logic, Std.Nat.logic, Expr.elogic,  Expr.elogic, logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
   let field idx x = inj @@ distrib @@ Field (idx, x)
   let e expr = inj @@ distrib @@ E expr
-  let int n = inj @@ distrib @@ RHSInt n
+  (* let int n = inj @@ distrib @@ RHSInt n *)
 end
 
 let () = ()
@@ -303,10 +308,16 @@ let rec ntho xs idx rez =
         (ntho tl prev rez)
     ]
 
-let rec evalIR e res =
+let rec evalIR : IR.injected -> Expr.injected -> _ = fun e res ->
   conde
-    [ fresh (tag scru1 th el)
-        (e === IR.iftag tag scru1 th el)
+    [ fresh (tag scru1 thenb elseb temp etag eargs)
+        (e === IR.iftag tag scru1 thenb elseb)
+        (evalIR scru1 temp)
+        (temp === Expr.constr etag eargs)
+        (conde
+          [ (etag === tag) &&& (evalIR thenb res)
+          ; (etag =/= tag) &&& (evalIR elseb res)
+          ])
     ; fresh (idx x temp cname cargs)
         (e === IR.field idx x)
         (evalIR x temp)
@@ -314,10 +325,7 @@ let rec evalIR e res =
         (ntho cargs idx res)
     ; fresh (exp)
         (e === IR.e exp)
-        (e === res)
-    ; fresh (n)
-        (e === IR.int n)
-        (e === res)
+        (exp === res)
     ]
 
 let example1: (Pattern.ground * int) list =
@@ -330,6 +338,20 @@ let example1: (Pattern.ground * int) list =
 let () =
   assert (Pattern.check_arity @@
     PConstr ("ROOT", OCanren.Std.List.of_list id @@ List.map fst example1))
+
+let test_evalIR () =
+  let eval =
+    let s : IR.injected =
+      IR.field (Std.Nat.one) @@ IR.e @@
+      Expr.constr (inj@@lift "Cons") (Std.List.list [Expr.leaf "Nil"; Expr.leaf "Nil2"])
+    in
+    evalIR s
+  in
+  let () = run one eval (fun r -> r#prjc Expr.prjc)
+    |> OCanren.Stream.take ~n:(-1)
+    |> GT.fmt GT.list Expr.pp Format.std_formatter
+  in
+  Format.printf "\n%!"
 
 let test_generator () =
   let generator = make_pattern_generator @@ List.map fst example1 in
@@ -418,7 +440,7 @@ let main =
   (* testEvalPM2 ();
   testEvalPM3 (); *)
   testEvalPM1 ();
-
+  test_evalIR ()
 
 
 
