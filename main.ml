@@ -76,7 +76,7 @@ module Pattern = struct
     | PWildCard -> 1
     | PConstr (_, Nil) -> 1
     | PConstr (_, xs) ->
-        foldl (fun acc p -> max acc (helper p)) (-1000) xs
+        (GT.foldl ground) (fun acc p -> max acc (helper p)) (-1000) xs
     in
     helper pat
 
@@ -94,7 +94,7 @@ module Pattern = struct
             | _ -> raise Bad
             | exception Not_found -> M.add name arity acc
           in
-          OCanren.Std.List.foldl (fun acc p -> helper acc p) acc xs
+          GT.foldl OCanren.Std.List.ground (fun acc p -> helper acc p) acc xs
     in
     try Base.Result.Ok (helper M.empty pat)
     with Bad -> Base.Result.Error ()
@@ -152,9 +152,9 @@ module Clauses = struct
   let caml_to_ground ps : ground =
     List.fold_right (fun x acc -> Std.List.Cons (x,acc)) ps Std.List.Nil
   let clauses : ground -> injected = fun cs ->
-    Std.List.foldr (fun (p,rhs) acc ->
+    GT.foldr OCanren.Std.List.ground (fun acc (p,rhs) ->
       Std.List.cons (Std.Pair.pair (Pattern.pattern p) (inj@@lift rhs)) acc
-    ) cs (Std.List.nil ())
+    ) (Std.List.nil ()) cs
 
 end
 
@@ -265,19 +265,60 @@ and check1line scr clause res =
       ])
 
 module IR = struct
-  type ('tag, 'fieldnum, 'rhs, 'self) t =
+  type ('tag, 'fieldnum, 'rhs, 'expr, 'self) t =
     | IfTag of 'tag * 'self * 'self * 'self
     | Field of 'fieldnum * 'self
+    | E of 'expr
     | RHSInt of 'rhs
-    [@@deriving gt ~options:{gmap}]
+    [@@deriving gt ~options:{ gmap }
+    ]
 
-  include OCanren.Fmap4(struct
-    type nonrec ('tag, 'fieldnum, 'rhs, 'self) t = ('tag, 'fieldnum, 'rhs, 'self) t
+  include OCanren.Fmap5(struct
+    type nonrec ('tag, 'fieldnum, 'rhs, 'expr, 'self) t = ('tag, 'fieldnum, 'rhs, 'expr, 'self) t
     let fmap eta = GT.(gmap t) eta
   end)
+
+  type ground = (constr_name, Nat.ground, Expr.ground, Expr.ground, ground) t
+  type logic  = (constr_name OCanren.logic, Expr.logic, int OCanren.logic, Expr.elogic, logic) t OCanren.logic
+  type injected = (ground, logic) OCanren.injected
+
+  let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
+  let field idx x = inj @@ distrib @@ Field (idx, x)
+  let e expr = inj @@ distrib @@ E expr
+  let int n = inj @@ distrib @@ RHSInt n
 end
 
+let () = ()
 
+(* zero -- return 1st element, empty list -- no answer *)
+let rec ntho xs idx rez =
+  conde
+    [ (xs === Std.List.nil ()) &&& failure
+    ; fresh (tl)
+        (idx === Std.Nat.zero)
+        (xs === Std.List.cons rez tl)
+    ; fresh (x prev h tl)
+        (idx === Std.Nat.succ prev)
+        (xs === Std.List.cons h tl)
+        (ntho tl prev rez)
+    ]
+
+let rec evalIR e res =
+  conde
+    [ fresh (tag scru1 th el)
+        (e === IR.iftag tag scru1 th el)
+    ; fresh (idx x temp cname cargs)
+        (e === IR.field idx x)
+        (evalIR x temp)
+        (temp === Expr.constr cname cargs)
+        (ntho cargs idx res)
+    ; fresh (exp)
+        (e === IR.e exp)
+        (e === res)
+    ; fresh (n)
+        (e === IR.int n)
+        (e === res)
+    ]
 
 let example1: (Pattern.ground * int) list =
   [ ppair pnil  pwc, 1
