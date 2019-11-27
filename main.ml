@@ -20,7 +20,9 @@ open Base.Fn
   fresh (s)
     candidates s ps &&& evalPM pswitch s n &&& evalIR 〚ps〛 s n
 *)
-type constr_name = string
+type constr_name = GT.string
+  [@@deriving gt ~options:{fmt}
+  ]
 let pp_constr_name fmt = Format.fprintf fmt "%S"
 
 module Pattern = struct
@@ -145,13 +147,13 @@ type match_clauses = (Pattern.ground * int) list
 module Clauses = struct
   open OCanren
 
-  type ground = (Pattern.ground * int) Std.List.ground
-  type logic  = (Pattern.plogic, int OCanren.logic) OCanren.Std.Pair.logic OCanren.Std.List.logic
-  type injected = (ground, logic) OCanren.injected
+  type 'a ground = (Pattern.ground * 'a) Std.List.ground
+  type 'b logic  = (Pattern.plogic, 'b) OCanren.Std.Pair.logic OCanren.Std.List.logic
+  type ('a, 'b) injected = ('a ground, 'b logic) OCanren.injected
 
-  let caml_to_ground ps : ground =
+  let caml_to_ground ps : _ ground =
     List.fold_right (fun x acc -> Std.List.Cons (x,acc)) ps Std.List.Nil
-  let clauses : ground -> injected = fun cs ->
+  let clauses : _ ground -> _ injected = fun cs ->
     GT.foldr OCanren.Std.List.ground (fun acc (p,rhs) ->
       Std.List.cons (Std.Pair.pair (Pattern.pattern p) (inj@@lift rhs)) acc
     ) (Std.List.nil ()) cs
@@ -206,7 +208,11 @@ module Expr = struct
   include F
 
   type ground = (constr_name, ground OCanren.Std.List.ground) t
+    [@@deriving gt ~options:{fmt}
+    ]
   type elogic = (constr_name logic, elogic OCanren.Std.List.logic) t logic
+    [@@deriving gt ~options:{fmt}
+    ]
   type injected = (ground, elogic) OCanren.injected
 
   let constr s xs : injected = inj @@ distrib (EConstr (s, xs))
@@ -275,22 +281,50 @@ module IR = struct
     | Field of 'fieldnum * 'self
     | E of 'expr
     | Failure
-    [@@deriving gt ~options:{ gmap }
+    [@@deriving gt ~options:{ gmap; fmt }
     ]
 
-  include OCanren.Fmap5(struct
+  module F = OCanren.Fmap5(struct
     type nonrec ('tag, 'fieldnum, 'rhs, 'expr, 'self) t = ('tag, 'fieldnum, 'rhs, 'expr, 'self) t
     let fmap eta = GT.(gmap t) eta
   end)
+  include F
 
   type ground = (constr_name,               Std.Nat.ground, Expr.ground, Expr.ground, ground) t
+    [@@deriving gt ~options:{fmt}
+    ]
   type logic  = (constr_name OCanren.logic, Std.Nat.logic, Expr.elogic,  Expr.elogic, logic) t OCanren.logic
+    [@@deriving gt ~options:{fmt}
+    ]
   type injected = (ground, logic) OCanren.injected
+
+  let pp eta = GT.fmt ground eta
+  let pp_logic eta = GT.fmt logic eta
+
 
   let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
   let field idx x = inj @@ distrib @@ Field (idx, x)
-  let e expr = inj @@ distrib @@ E expr
-  let fail : IR.injected = inj @@ distrib @@ Failure
+  let expr e = inj @@ distrib @@ E e
+  let fail : injected = inj @@ distrib @@ Failure
+
+  let rec prj onvar env (ir: injected) =
+    prjc (OCanren.prjc (fun _ -> assert false))
+      (Std.Nat.prjc (fun _ -> assert false))
+      Expr.prjc
+      Expr.prjc
+      (prj onvar)
+      (fun _ -> assert false)
+      env
+      ir
+
+  let rec reify env (ir: injected) =
+    F.reify OCanren.reify
+      Std.Nat.reify
+      Expr.reifier
+      Expr.reifier
+      reify
+      env
+      ir
 end
 
 let () = ()
@@ -324,43 +358,70 @@ let rec evalIR : IR.injected -> Expr.injected -> _ = fun e res ->
         (temp === Expr.constr cname cargs)
         (ntho cargs idx res)
     ; fresh (exp)
-        (e === IR.e exp)
+        (e === IR.expr exp)
         (exp === res)
     ]
 
-let compile_patterns scru clauses ir =
+let rec compile_patterns scru clauses onfail ir =
   let open Std.List in
   conde
-    [ (clauses === nil ()) &&& failure
-    ; fresh (patsH rhsH ctl line1res)
+    [ (clauses === nil ()) &&& (ir === onfail)
+    ; fresh (patsH rhsH ctl cont)
         (clauses === (Std.Pair.pair patsH rhsH)%ctl)
-        (check1line s patsH line1res)
-        (conde
-          [ (line1res === Std.Bool.truo) &&& (rhs === rhsH)
-          ; (line1res === Std.Bool.falso) &&& (evalPM s ctl rhs)
-          ]
-        )
+        (compile1line scru patsH rhsH cont ir)
+        (compile_patterns scru ctl onfail cont)
     ]
 and compile1line s pats thenE elseE res =
-  res === IR.expr (Expr.leaf "NOT_IMPLEMENTED")
-
-
+  conde
+    [ fresh (ptag pargs checkinside)
+        (pats === Pattern.constr ptag pargs)
+        (res === IR.iftag ptag s checkinside elseE)
+        (fresh (hack1)
+          (Std.List.foldro (fun p acc rez -> compile1line (IR.field Std.Nat.zero s) p acc elseE rez)
+            thenE pargs res)
+        )
+    ; (pats === Pattern.wc ()) &&& (res === thenE)
+    ]
 
 let example1: (Pattern.ground * int) list =
   [ ppair pnil  pwc, 1
   ; ppair pwc  pnil, 2
   ; ppair (pcons pwc pwc) pwc, 3
-  (* ; PConstr ("Nil", [pwc]), 4 *)
   ]
 
 let () =
   assert (Pattern.check_arity @@
     PConstr ("ROOT", OCanren.Std.List.of_list id @@ List.map fst example1))
 
+let test_compile () =
+  let evalPM rhs =
+    let example: (Pattern.ground * _) list =
+      [
+        (* pwc ,            IR.expr (Expr.leaf "X")
+      ;  *)
+        pnil, IR.expr (Expr.leaf "qwer")
+        (* ppair pwc  pwc, IR.expr (Expr.leaf "Y") *)
+      (* ; ppair pwc  pnil, IR.expr (Expr.leaf "Z") *)
+      ]
+    in
+    let ex = List.map (fun (p,rhs) -> Std.Pair.pair (Pattern.pattern p) rhs) example in
+    let ex = Std.List.list ex in
+    Fresh.one (fun s -> compile_patterns s ex IR.fail rhs)
+  in
+  (* let () = run one evalPM (fun r -> r#prjc (IR.prj (fun _ -> assert false)))
+    |> OCanren.Stream.take ~n:(-1)
+    |> GT.(fmt list (IR.pp)) Format.std_formatter
+  in *)
+  let () = run one evalPM (fun r -> r#reify IR.reify)
+    |> OCanren.Stream.take ~n:(-1)
+    |> GT.(fmt list IR.pp_logic) Format.std_formatter
+  in
+  Format.printf "\n%!"
+
 let test_evalIR () =
   let eval =
     let s : IR.injected =
-      IR.field (Std.Nat.one) @@ IR.e @@
+      IR.field (Std.Nat.one) @@ IR.expr @@
       Expr.constr (inj@@lift "Cons") (Std.List.list [Expr.leaf "Nil"; Expr.leaf "Nil2"])
     in
     evalIR s
@@ -478,8 +539,11 @@ let main =
   (* testEvalPM2 ();
   testEvalPM3 (); *)
   testEvalPM1 ();
-  test_evalIR ()
-  testAll ();
+  test_evalIR ();
+  test_compile ();
+  (* testAll (); *)
+  ()
+
 
 
 (*
