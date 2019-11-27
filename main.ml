@@ -39,7 +39,6 @@ module Pattern = struct
   type plogic = (string OCanren.logic, plogic OCanren.Std.List.logic) t OCanren.logic
   type injected = (ground, plogic) OCanren.injected
 
-
   let rec reifier : _ -> injected -> plogic = fun env x ->
     reify OCanren.reify (OCanren.Std.List.reify reifier) env x
 
@@ -134,9 +133,10 @@ module Pattern = struct
 end
 
 open Pattern
-let ppair a b  : Pattern.ground= PConstr ("Pair", OCanren.Std.List.of_list id [a; b])
-let pnil       : Pattern.ground= PConstr ("Nil",  OCanren.Std.List.of_list id [])
-let pcons a b  : Pattern.ground= PConstr ("Cons", OCanren.Std.List.of_list id [a; b])
+let pleaf s : ground = PConstr (s, OCanren.Std.List.of_list id [])
+let ppair a b  : Pattern.ground = PConstr ("Pair", OCanren.Std.List.of_list id [a; b])
+let pnil       : Pattern.ground = PConstr ("Nil",  OCanren.Std.List.of_list id [])
+let pcons a b  : Pattern.ground = PConstr ("Cons", OCanren.Std.List.of_list id [a; b])
 let pconstr s xs : Pattern.ground = PConstr (s, OCanren.Std.List.of_list id xs)
 let pwc        = PWildCard
 
@@ -244,17 +244,17 @@ let rec list_zipo cond xs ys res =
 
 let rec evalPM s clauses rhs =
   let open Std.List in
-    (conde
-      [ (clauses === nil ()) &&& failure
-      ; fresh (patsH rhsH ctl line1res)
-          (clauses === (Std.Pair.pair patsH rhsH)%ctl)
-          (check1line s patsH line1res)
-          (conde
-            [ (line1res === Std.Bool.truo) &&& (rhs === rhsH)
-            ; (line1res === Std.Bool.falso) &&& (evalPM s ctl rhs)
-            ]
-          )
-      ])
+  conde
+    [ (clauses === nil ()) &&& failure
+    ; fresh (patsH rhsH ctl line1res)
+        (clauses === (Std.Pair.pair patsH rhsH)%ctl)
+        (check1line s patsH line1res)
+        (conde
+          [ (line1res === Std.Bool.truo) &&& (rhs === rhsH)
+          ; (line1res === Std.Bool.falso) &&& (evalPM s ctl rhs)
+          ]
+        )
+    ]
 
 
 and check1line scr clause res =
@@ -274,7 +274,7 @@ module IR = struct
     | IfTag of 'tag * 'self * 'self * 'self
     | Field of 'fieldnum * 'self
     | E of 'expr
-    (* | RHSInt of 'rhs *)
+    | Failure
     [@@deriving gt ~options:{ gmap }
     ]
 
@@ -290,7 +290,7 @@ module IR = struct
   let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
   let field idx x = inj @@ distrib @@ Field (idx, x)
   let e expr = inj @@ distrib @@ E expr
-  (* let int n = inj @@ distrib @@ RHSInt n *)
+  let fail : IR.injected = inj @@ distrib @@ Failure
 end
 
 let () = ()
@@ -327,6 +327,24 @@ let rec evalIR : IR.injected -> Expr.injected -> _ = fun e res ->
         (e === IR.e exp)
         (exp === res)
     ]
+
+let compile_patterns scru clauses ir =
+  let open Std.List in
+  conde
+    [ (clauses === nil ()) &&& failure
+    ; fresh (patsH rhsH ctl line1res)
+        (clauses === (Std.Pair.pair patsH rhsH)%ctl)
+        (check1line s patsH line1res)
+        (conde
+          [ (line1res === Std.Bool.truo) &&& (rhs === rhsH)
+          ; (line1res === Std.Bool.falso) &&& (evalPM s ctl rhs)
+          ]
+        )
+    ]
+and compile1line s pats thenE elseE res =
+  res === IR.expr (Expr.leaf "NOT_IMPLEMENTED")
+
+
 
 let example1: (Pattern.ground * int) list =
   [ ppair pnil  pwc, 1
@@ -436,12 +454,32 @@ let testEvalPM3 () =
   in
   Format.printf "\n%!"
 
+let testAll () =
+  ()
+  (* let evalPM progIR =
+    let example1: (Pattern.ground * _) list =
+      [ ppair pnil  pwc, Expr.leaf "X"
+      ; ppair pwc  pnil, Expr.leaf "Y"
+      ; ppair (pcons pwc pwc) pwc, Expr.leaf "Z"
+      ]
+    in
+    fresh (scru)
+      (make_pattern_generator (List.map fst example1) scru)
+      (evalPM scru Clauses.(clauses @@ caml_to_ground example1) progIR)
+      (evalIR)
+  in
+  let () = run one evalPM (fun r -> r#prjc (OCanren.prjc (fun _ -> assert false)))
+    |> OCanren.Stream.take ~n:(-1)
+    |> GT.(fmt list (fmt int)) Format.std_formatter
+  in
+  Format.printf "\n%!" *)
+
 let main =
   (* testEvalPM2 ();
   testEvalPM3 (); *)
   testEvalPM1 ();
   test_evalIR ()
-
+  testAll ();
 
 
 (*
