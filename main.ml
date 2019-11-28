@@ -1,5 +1,9 @@
 open Base.Fn
 
+let () =
+  Format.pp_set_margin Format.std_formatter 120;
+  Format.pp_set_max_indent Format.std_formatter 2000
+
 (*
  `s` -- scrutinee
  `ps` -- list of patterns
@@ -378,7 +382,7 @@ and compile1line s pats thenE elseE res =
         (res === IR.iftag ptag s checkinside elseE)
         (fresh (hack1)
           (Std.List.foldro (fun p acc rez -> compile1line (IR.field Std.Nat.zero s) p acc elseE rez)
-            thenE pargs res)
+            thenE pargs checkinside)
         )
     ; (pats === Pattern.wc ()) &&& (res === thenE)
     ]
@@ -396,12 +400,8 @@ let () =
 let test_compile () =
   let evalPM rhs =
     let example: (Pattern.ground * _) list =
-      [
-        (* pwc ,            IR.expr (Expr.leaf "X")
-      ;  *)
-        pnil, IR.expr (Expr.leaf "qwer")
-        (* ppair pwc  pwc, IR.expr (Expr.leaf "Y") *)
-      (* ; ppair pwc  pnil, IR.expr (Expr.leaf "Z") *)
+      [ ppair pnil pwc,  IR.expr (Expr.leaf "Y")
+      ; ppair pwc  pnil, IR.expr (Expr.leaf "Z")
       ]
     in
     let ex = List.map (fun (p,rhs) -> Std.Pair.pair (Pattern.pattern p) rhs) example in
