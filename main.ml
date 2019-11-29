@@ -205,6 +205,25 @@ module Expr = struct
     [@@deriving gt ~options:{ gmap; fmt }
     ]
 
+  class ['name,'self,'extra_t] my_fmt_t_t fname  fself  fself_t = object
+      inherit
+        [ Format.formatter,'name
+        , unit,Format.formatter,'self
+        ,unit,Format.formatter,'extra_t,unit] t_t
+      constraint 'extra_t = ('name, 'self) t
+      method c_EConstr fmt _ name xs =
+        Format.fprintf fmt "@[(econstr@ %a@ (%a))@]" fname
+          name fself xs
+    end
+
+    let t = { t with GT.plugins =
+      object
+        method fmt fname fself inh0 subj =
+            GT.transform_gc gcata_t (new my_fmt_t_t fname fself) inh0 subj
+        method gmap = t.plugins#gmap
+      end
+    }
+
   module F = OCanren.Fmap2(struct
     type nonrec ('a,'b) t = ('a, 'b) t
     let fmap eta = GT.gmap t eta
@@ -288,6 +307,29 @@ module IR = struct
     [@@deriving gt ~options:{ gmap; fmt }
     ]
 
+  class ['tag,'fieldnum,'rhs,'expr,'self,'extra_t] my_fmt_t_t ftag ffieldnum frhs  fexpr  fself  fself_t =
+    object
+      inherit
+        ['tag,'fieldnum,'rhs,'expr,'self,'extra_t] fmt_t_t ftag  ffieldnum frhs fexpr fself fself_t
+      constraint 'extra_t = ('tag, 'fieldnum, 'rhs, 'expr, 'self) t
+      method! c_IfTag fmt _ t sc th el =
+        Format.fprintf fmt "@[(@[if (tag %a = %a)@]@ @[then %a@]@ @[else %a@])@]"
+            fself sc
+            ftag  t
+            fself th
+            fself el
+
+      method c_Field fmt _ n x = Format.fprintf fmt "@[(field@ %a@ %a)@]" ffieldnum n  fself x
+
+      method c_E fmt _ _x__025_ = Format.fprintf fmt "@[(%a)@]" fexpr _x__025_
+      method c_Failure fmt _ = Format.fprintf fmt "fail"
+    end
+
+  let t = { t with GT.plugins = object method gmap = t.plugins#gmap
+    method fmt f1 f2 f3 f4 f5 fmt x =
+      GT.transform t (new my_fmt_t_t f1 f2 f3 f4 f5) fmt x
+  end}
+
   module F = OCanren.Fmap5(struct
     type nonrec ('tag, 'fieldnum, 'rhs, 'expr, 'self) t = ('tag, 'fieldnum, 'rhs, 'expr, 'self) t
     let fmap eta = GT.(gmap t) eta
@@ -303,7 +345,18 @@ module IR = struct
   type injected = (ground, logic) OCanren.injected
 
   let pp eta = GT.fmt ground eta
-  let pp_logic eta = GT.fmt logic eta
+  let pp_logic fmt l = GT.fmt logic fmt l
+    (* GT.transform logic (fun fself ->
+      object
+        inherit [logic] fmt_logic_t fself
+        method! c_IfTag _ fmt t sc th el =
+          Format.fprintf fmt "(if (tag %a = %a) then %a else %a)"
+            (GT.fmt Expr.elogic) sc
+            (GT.fmt GT.string)  t
+            (GT.fmt Expr.elogic) th
+            (GT.fmt Expr.elogic) el
+      end)
+      fmt l *)
 
 
   let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
