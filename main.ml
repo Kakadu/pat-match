@@ -27,7 +27,7 @@ let () =
 type constr_name = GT.string
   [@@deriving gt ~options:{fmt}
   ]
-let pp_constr_name fmt = Format.fprintf fmt "%S"
+let pp_constr_name fmt = Format.fprintf fmt "%s"
 
 module Pattern = struct
   type ('name, 'xs) t  = PWildCard
@@ -212,7 +212,7 @@ module Expr = struct
         ,unit,Format.formatter,'extra_t,unit] t_t
       constraint 'extra_t = ('name, 'self) t
       method c_EConstr fmt _ name xs =
-        Format.fprintf fmt "@[(econstr@ %a@ (%a))@]" fname
+        Format.fprintf fmt "@[(%a@ (%a))@]" fname
           name fself xs
     end
 
@@ -251,9 +251,53 @@ module Expr = struct
 
   let rec pp fmt e = GT.fmt t (GT.fmt GT.string) (GT.fmt Std.List.ground pp) fmt e
   let rec pp_logic fmt e =
-    GT.fmt OCanren.logic
-      (GT.fmt t (GT.fmt GT.string) (GT.fmt Std.List.logic pp_logic)) fmt e
+    let rec helper fmt = function
+      | EConstr (name, xs) ->
+        Format.fprintf fmt "@[(%a@ (%a))@]"
+          (GT.fmt OCanren.logic pp_constr_name) name
+          (GT.fmt Std.List.logic pp_logic) xs
+    in
+    GT.fmt OCanren.logic helper fmt e
+
+  let elogic = { elogic with GT.plugins = object
+      method fmt = pp_logic
+  end }
 end
+
+let make_expr_generator pats =
+  let height = List.fold_left (fun acc p -> max acc (Pattern.height p)) 0  pats in
+  let arity_map =
+    let default_name = ":HACK" in
+    match Pattern.get_arities (PConstr (default_name, Std.List.of_list id pats)) with
+    | Ok ar   -> ArityMap.remove default_name ar
+    | Error _ -> failwith "bad arities"
+  in
+  let add_freshes n pregoal =
+    let rec helper acc n =
+      if n = 0 then pregoal acc
+      else OCanren.Fresh.one (fun q -> helper (q::acc) (n-1))
+    in
+    helper [] n
+  in
+  let generator_0 _ = fresh (q) (q === q)  in
+  let rec loop prev_size (prev_size_gen : Expr.injected -> goal) =
+    if prev_size > height then prev_size_gen
+    else
+      let next_gen =
+        ArityMap.to_seq arity_map |>
+        Seq.map (fun (name,c) q ->
+          add_freshes c (fun vars ->
+            List.fold_left (fun acc v -> acc &&& prev_size_gen v)
+              (q === Expr.constr (inj@@lift name) (Std.List.list vars))
+              vars
+            )
+        )  |> List.of_seq |> (fun xs q -> conde @@ List.map (fun g -> g q) xs)
+      in
+      loop (prev_size+1) next_gen
+  in
+  (* generator_0 *)
+  loop 0 generator_0
+
 
 let rec list_zipo cond xs ys res =
   let open Std.List in
@@ -321,7 +365,7 @@ module IR = struct
 
       method c_Field fmt _ n x = Format.fprintf fmt "@[(field@ %a@ %a)@]" ffieldnum n  fself x
 
-      method c_E fmt _ _x__025_ = Format.fprintf fmt "@[(%a)@]" fexpr _x__025_
+      method c_E fmt _ _x__025_ = Format.fprintf fmt "%a" fexpr _x__025_
       method c_Failure fmt _ = Format.fprintf fmt "fail"
     end
 
@@ -346,18 +390,6 @@ module IR = struct
 
   let pp eta = GT.fmt ground eta
   let pp_logic fmt l = GT.fmt logic fmt l
-    (* GT.transform logic (fun fself ->
-      object
-        inherit [logic] fmt_logic_t fself
-        method! c_IfTag _ fmt t sc th el =
-          Format.fprintf fmt "(if (tag %a = %a) then %a else %a)"
-            (GT.fmt Expr.elogic) sc
-            (GT.fmt GT.string)  t
-            (GT.fmt Expr.elogic) th
-            (GT.fmt Expr.elogic) el
-      end)
-      fmt l *)
-
 
   let iftag tag scru then_ else_ = inj @@ distrib @@ IfTag (tag, scru, then_, else_)
   let field idx x = inj @@ distrib @@ Field (idx, x)
@@ -419,7 +451,20 @@ let rec evalIR : IR.injected -> Expr.injected -> _ = fun e res ->
         (exp === res)
     ]
 
-let rec compile_patterns scru clauses onfail ir =
+let rec foldrio f a xs r =
+  let open Std.List in
+  let rec helper i acc xs r =
+    conde
+      [ (xs === nil ()) &&& (acc === r)
+      ; fresh (h t a')
+          (xs === h % t)
+          (f i h a' r)
+          (helper (Std.Nat.succ i) acc t a')
+    ]
+  in
+  helper Std.Nat.zero a xs r
+
+let rec compile_patterns scru (clauses: (IR.ground, _) Clauses.injected) (onfail: IR.injected) (ir : IR.injected) =
   let open Std.List in
   conde
     [ (clauses === nil ()) &&& (ir === onfail)
@@ -434,7 +479,7 @@ and compile1line s pats thenE elseE res =
         (pats === Pattern.constr ptag pargs)
         (res === IR.iftag ptag s checkinside elseE)
         (fresh (hack1)
-          (Std.List.foldro (fun p acc rez -> compile1line (IR.field Std.Nat.zero s) p acc elseE rez)
+          (foldrio (fun i p acc rez -> compile1line (IR.field i s) p acc elseE rez)
             thenE pargs checkinside)
         )
     ; (pats === Pattern.wc ()) &&& (res === thenE)
@@ -454,8 +499,10 @@ let test_compile () =
   let evalPM rhs =
     let example: (Pattern.ground * _) list =
       [ ppair pnil pwc,  IR.expr (Expr.leaf "Y")
-      ; ppair pwc  pnil, IR.expr (Expr.leaf "Z")
+      (* ; ppair pwc  pnil, IR.expr (Expr.leaf "Z") *)
+      ; pnil, IR.expr (Expr.leaf "Z")
       ]
+
     in
     let ex = List.map (fun (p,rhs) -> Std.Pair.pair (Pattern.pattern p) rhs) example in
     let ex = Std.List.list ex in
@@ -569,30 +616,40 @@ let testEvalPM3 () =
   Format.printf "\n%!"
 
 let testAll () =
-  ()
-  (* let evalPM progIR =
-    let example1: (Pattern.ground * _) list =
-      [ ppair pnil  pwc, Expr.leaf "X"
-      ; ppair pwc  pnil, Expr.leaf "Y"
-      ; ppair (pcons pwc pwc) pwc, Expr.leaf "Z"
+  let evalPM optimizedIR =
+    let example1: (Pattern.ground * IR.injected) list =
+      [ ppair pnil  pwc,           IR.expr @@ Expr.leaf "X"
+      ; ppair pwc  pnil,           IR.expr @@ Expr.leaf "Y"
+      ; ppair (pcons pwc pwc) pwc, IR.expr @@ Expr.leaf "Z"
       ]
     in
-    fresh (scru)
-      (make_pattern_generator (List.map fst example1) scru)
-      (evalPM scru Clauses.(clauses @@ caml_to_ground example1) progIR)
-      (evalIR)
+
+    let example2 =
+      Std.List.list @@
+      List.map (fun (p, ir) -> Std.Pair.pair (Pattern.pattern p) ir) example1
+    in
+
+    fresh (scru compiledIR resIR)
+      (make_expr_generator (List.map fst example1) scru)
+      (* (evalPM scru Clauses.(clauses @@ caml_to_ground example1) progIR) *)
+      (compile_patterns (IR.expr scru)
+        example2
+        IR.fail compiledIR)
+      (evalIR compiledIR  resIR)
+      (evalIR optimizedIR resIR)
+      (* (compiledIR === resIR) *)
   in
-  let () = run one evalPM (fun r -> r#prjc (OCanren.prjc (fun _ -> assert false)))
-    |> OCanren.Stream.take ~n:(-1)
-    |> GT.(fmt list (fmt int)) Format.std_formatter
+  let () = run one evalPM (fun r -> r#reify IR.reify)
+    |> OCanren.Stream.take ~n:(1)
+    |> GT.(fmt list) IR.pp_logic Format.std_formatter
   in
-  Format.printf "\n%!" *)
+  Format.printf "\n%!"
 
 let main =
   (* testEvalPM2 ();
   testEvalPM3 (); *)
-  testEvalPM1 ();
-  test_evalIR ();
+  (* testEvalPM1 (); *)
+  (* test_evalIR (); *)
   test_compile ();
   (* testAll (); *)
   ()
