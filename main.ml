@@ -141,10 +141,10 @@ end
 open Pattern
 let pleaf s : ground = PConstr (s, OCanren.Std.List.of_list id [])
 let ppair a b  : Pattern.ground = PConstr ("Pair", OCanren.Std.List.of_list id [a; b])
-let pnil       : Pattern.ground = PConstr ("Nil",  OCanren.Std.List.of_list id [])
-let pcons a b  : Pattern.ground = PConstr ("Cons", OCanren.Std.List.of_list id [a; b])
+let pnil       : Pattern.ground = pleaf "MyNil"
+let pcons a b  : Pattern.ground = PConstr ("MyCons", OCanren.Std.List.of_list id [a; b])
 let pconstr s xs : Pattern.ground = PConstr (s, OCanren.Std.List.of_list id xs)
-let pwc        = PWildCard
+let pwc                           = PWildCard
 
 type match_clauses = (Pattern.ground * int) list
 
@@ -200,6 +200,13 @@ let make_pattern_generator pats =
   (* generator_0 *)
   loop 0 generator_0
 
+let add_freshes n pregoal =
+  let rec helper acc n =
+    if n = 0 then pregoal acc
+    else OCanren.Fresh.one (fun q -> helper (q::acc) (n-1))
+  in
+  helper [] n
+
 module Expr = struct
   type ('name, 'self) t = EConstr of 'name * 'self
     [@@deriving gt ~options:{ gmap; fmt }
@@ -240,8 +247,8 @@ module Expr = struct
 
   let constr s xs : injected = inj @@ distrib (EConstr (s, xs))
   let leaf s : injected = constr OCanren.(inj@@lift s) (Std.List.nil ())
-  let rec reifier : _ -> injected -> elogic = fun env x ->
-    reify OCanren.reify (OCanren.Std.List.reify reifier) env x
+  let rec reify : _ -> injected -> elogic = fun env x ->
+    F.reify OCanren.reify (OCanren.Std.List.reify reify) env x
 
   let rec prjc : _ -> injected -> ground = fun env x ->
     F.prjc (OCanren.prjc (fun _ -> assert false))
@@ -262,6 +269,28 @@ module Expr = struct
   let elogic = { elogic with GT.plugins = object
       method fmt = pp_logic
   end }
+
+  let inject : elogic -> injected -> goal = fun e ->
+    let rec helper : elogic -> injected -> goal = function
+    | Var (_,_) -> (fun q -> Fresh.one (fun w -> w === q))
+    | Value (EConstr (Var (_,_), _)) -> failwith "should not happen %s %d" __FILE__ __LINE__
+    | Value (EConstr (_, Var (_,_))) -> failwith "should not happen %s %d" __FILE__ __LINE__
+
+    and helper_list = function
+    | Value Std.List.Nil -> (fun q -> q === Std.List.nil ())
+    | Var (_,_) ->  failwith "should not happen %s %d" __FILE__ __LINE__
+    | Value (Std.List.Cons (h, tl)) ->
+        let hg = helper h  in
+        let tlg = helper_list tl in
+        (fun q ->
+          Fresh.two (fun hh tlll ->
+            (hg hh) &&&
+            (tlg tlll) &&&
+            (q === Std.List.cons hh tlll)
+          )
+        )
+    in
+    helper e
 end
 
 let make_expr_generator pats =
@@ -272,13 +301,7 @@ let make_expr_generator pats =
     | Ok ar   -> ArityMap.remove default_name ar
     | Error _ -> failwith "bad arities"
   in
-  let add_freshes n pregoal =
-    let rec helper acc n =
-      if n = 0 then pregoal acc
-      else OCanren.Fresh.one (fun q -> helper (q::acc) (n-1))
-    in
-    helper [] n
-  in
+
   let generator_0 _ = fresh (q) (q === q)  in
   let rec loop prev_size (prev_size_gen : Expr.injected -> goal) =
     if prev_size > height then prev_size_gen
@@ -409,8 +432,8 @@ module IR = struct
   let rec reify env (ir: injected) =
     F.reify OCanren.reify
       Std.Nat.reify
-      Expr.reifier
-      Expr.reifier
+      Expr.reify
+      Expr.reify
       reify
       env
       ir
@@ -629,14 +652,32 @@ let testAll () =
       List.map (fun (p, ir) -> Std.Pair.pair (Pattern.pattern p) ir) example1
     in
 
-    fresh (scru compiledIR resIR)
-      (make_expr_generator (List.map fst example1) scru)
-      (* (evalPM scru Clauses.(clauses @@ caml_to_ground example1) progIR) *)
-      (compile_patterns (IR.expr scru)
-        example2
-        IR.fail compiledIR)
-      (evalIR compiledIR  resIR)
-      (evalIR optimizedIR resIR)
+    let all_exprs =
+      let generator = make_expr_generator @@ List.map fst example1 in
+      let es_logic = run one generator (fun r -> r#reify Expr.reify)
+        |> OCanren.Stream.take ~n:(2)
+        |> List.map Expr.inject
+      in
+      (* let es_logic =
+        if List.length es_logic > 2
+        then List.take es_logic 2
+        else es_logic
+      in *)
+      es_logic
+    in
+    fresh (compiledIR resIR)
+      (List.fold_left (fun acc scru ->
+          (compile_patterns (IR.expr scru)
+            example2
+            IR.fail compiledIR)
+          (evalIR compiledIR  resIR)
+          (evalIR optimizedIR resIR)
+        )
+        success
+        all_exprs
+
+
+
       (* (compiledIR === resIR) *)
   in
   let () = run one evalPM (fun r -> r#reify IR.reify)
@@ -645,20 +686,21 @@ let testAll () =
   in
   Format.printf "\n%!"
 
+let test_expr_geenrator () =
+  let generator = make_expr_generator @@ List.map fst example1 in
+  let () = run one generator (fun r -> r#reify Expr.reify)
+    |> OCanren.Stream.take ~n:(-1)
+    |> GT.(fmt list) Expr.pp_logic Format.std_formatter
+  in
+  Format.printf "\n%!";
+  ()
+
 let main =
   (* testEvalPM2 ();
   testEvalPM3 (); *)
   (* testEvalPM1 (); *)
   (* test_evalIR (); *)
-  test_compile ();
+  (* test_compile (); *)
+  test_expr_geenrator ();
   (* testAll (); *)
   ()
-
-
-
-(*
-match scru with
-| ([], _) -> 1
-| (_, []) -> 2
-| (_::_, _) -> 3
-*)
