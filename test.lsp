@@ -1,0 +1,3 @@
+Content-Length: 747
+
+{"id":0,"jsonrpc":"2.0","result":{"capabilities":{"textDocumentSync":{"openClose":true,"change":2,"willSave":false,"willSaveWaitUntil":false,"didSave":null},"hoverProvider":true,"completionProvider":{"resolveProvider":false,"triggerCharacters":["."]},"definitionProvider":true,"typeDefinitionProvider":true,"referencesProvider":true,"documentHighlightProvider":true,"documentSymbolProvider":true,"workspaceSymbolProvider":false,"codeActionProvider":false,"codeLensProvider":{"resolveProvider":false},"documentFormattingProvider":false,"documentRangeFormattingProvider":false,"documentOnTypeFormattingProvider":null,"renameProvider":true,"documentLinkProvider":null,"executeCommandProvider":null,"typeCoverageProvider":false,"rageProvider":false}}}
