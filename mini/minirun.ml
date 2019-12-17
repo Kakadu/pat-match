@@ -1,4 +1,4 @@
-open Mini
+open Pats
 
 let ppair a b = PConstr ("pair", [a;b])
 let pnil = PConstr ("nil", [])
