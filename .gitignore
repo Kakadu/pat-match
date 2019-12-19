@@ -7,4 +7,5 @@
 /pat-match.files
 /pat-match.includes
 /_build
+/node_modules
 
