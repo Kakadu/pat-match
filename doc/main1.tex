@@ -44,23 +44,23 @@
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 \begin{document}
 
-\begin{minted}[mathescape, escapeinside=??]{ocaml }  
-val encode: term -> heap -> term  (* ??? *)
-
-let encode term ?$\sigma$? = 
-  gmap term (object 
-                method LI h x ?$\arr$? find h x ?$\sigma$? 
-                method Call f ?$\arr$? encode (result_of f) ?$\sigma$? 
-            end)
-
-let find heap x ?$\sigma$? =
-  match heap with 
-  | Defined hs  ?$\arr$? find_defined hs x ?$\sigma$? 
-  | Merge [<?$g_i$?, ?$h_i$?>; ...] ?$\arr$? 
-     UNION [ <encode ?$g_i$? ?$\sigma$?, find ?$h_i$? x ?$\sigma$?>; ...]
-  | RecApp f  ?$\arr$? find (effect_of f) x ?$\sigma$?
-  | h1 ?$\circ$? h2   ?$\arr$? find h2 x (fun x -> find h1 x ?$\sigma$?)
-\end{minted}
+%\begin{minted}[mathescape, escapeinside=??]{ocaml }  
+%val encode: term -> heap -> term  (* ??? *)
+%
+%let encode term ?$\sigma$? = 
+%  gmap term (object 
+%                method LI h x ?$\arr$? find h x ?$\sigma$? 
+%                method Call f ?$\arr$? encode (result_of f) ?$\sigma$? 
+%            end)
+%
+%let find heap x ?$\sigma$? =
+%  match heap with 
+%  | Defined hs  ?$\arr$? find_defined hs x ?$\sigma$? 
+%  | Merge [<?$g_i$?, ?$h_i$?>; ...] ?$\arr$? 
+%     UNION [ <encode ?$g_i$? ?$\sigma$?, find ?$h_i$? x ?$\sigma$?>; ...]
+%  | RecApp f  ?$\arr$? find (effect_of f) x ?$\sigma$?
+%  | h1 ?$\circ$? h2   ?$\arr$? find h2 x (fun x -> find h1 x ?$\sigma$?)
+%\end{minted}
 
 \section{Дизъюнктный паттерн мэтчинг}
 
@@ -72,8 +72,9 @@ $$
 \mathcal{V = CV^*}
 $$
 
-...
-$\llbracket a+b\rrbracket$
+$$
+\mathcal{S}(p_1,\dots,p_n) = \lambda v \rightarrow \sem{v; p_1,\dots,p_n}
+$$
 
 \begin{figure}
   \[
@@ -103,183 +104,27 @@ $\llbracket a+b\rrbracket$
 %  \label{lts}
 \end{figure}
 
-\subsection{Пример из статьи}
 
-\textbf{N.B.} В статье такой язык, где функции не возвращают содержательного результата, т.е. имеют тип \mintinline{ocaml}{unit}. Иными словами, содержательное поведение функции -- это её эффект на глобальном состояии. Наверное можно немного изменить, чтобы поддержать содержательные результаты функции, но пока хз как.
+\section{Промежуточное представление}
+\begin{align*}
+\mathcal{C} &= \{ C_1^{k_1}, \dots, C_n^{k_n} \} \\
+\mathcal{M} =&\;  \mathcal{S} \\
+          \mid\; &\; \text{\texttt{field}}\  \mathcal{M}\  \mathbb{N}\\
+\mathcal{IR} =&\; \mathcal{S} \\
+           \mid\; &\;\text{\texttt{Int}}\  \mathbb{N} \\
+           \mid\; &\;\text{\texttt{Expr}}\  \mathcal{V} \\
+           \mid\; &\; \text{\texttt{IfTag}}\; \mathcal{C}\; \mathcal{M}\; \mathcal{I\!R}\; \mathcal{I\!R}
+\end{align*}
+Скомпилированная программа на основе паттернов $p_1,\dots,\_n$ -- это 
+такие программы $pr$, что 
 
-Используется функция $SAT(Env, Rec(f), Phormula)$, которая означает что в контексте результатов символьного исполнения $Env$ после запуска функции $f$ не случается $Assert(Phormula)$, иными словами, после исполнения $f$ на произвольных аргументах формула не выполнима.
+$$
+\forall s.\; eval_{\mathcal{I\!R}}\; pr\; s = \sem{s;p_1\dots,p_n} 
+$$
+или в реляционном синтаксисе
 
-Там есть типа алгоритм
-\begin{enumerate}
-  \item Нормализация $e$ и преобразование трёх верхнеуровневого объединения в конструкцию ветвления.
-  \item Замена ячеек $LI(\sigma,x)$  на  $find(\sigma, x, \tau)$.
-  \item Специализация $find$ согласно правилам.
-\end{enumerate}
+$$
+\forall s \exists\; res.\; (eval^o_{\mathcal{I\!R}}\; pr\; s res) \land ( res = \sem{s;p_1\dots,p_n}) 
+$$
 
-Например, надо проверить $SAT(Env, Rec(f), LI(\varepsilon, a) * 3< 17)$ при $Body(f) = $
-$merge(<c,\varepsilon>, <\neg c, \sigma \circ Rec(f)>)$, т.е. ограничение 
-$g = (Rec(f)\bullet LI(\varepsilon,a)*3<17) = (LI(Rec(f), a)*3 < 17)$ при некоторых наперед заданных $a$, $c$ и $\sigma$.
-
-Контекст, в котором происходит первый вызов $f$ будем обозначать $\tau_0$.
-
-Избавляемся от $LI$: $g = (find(Rec(f), a, \tau_0)*3 < 17)$
-
-Третий шаг порождает специализацию $find_f$, а закодированная формула становится 
-$g = (find_f\ \tau_0\ a)*3 < 17$.
-
-Теперь надо описать функцию $find_f\ \tau\ x = ... $ Тело получается применением шагов 1-3 к $Body(f)$: 
-
-\begin{center}
-$find( merge(<c,\varepsilon>, <\neg c, \sigma \circ Rec(f)>),\ x,\ \tau)$ = 
- $ite(\tau\bullet c,\ find(\varepsilon,x,\tau),\ find(\sigma\circ Rec(f),x,\tau)$
-\end{center}
-Здесь получаются два $find$, которые надо специализировать.
-
-$find_{\varepsilon} \tau\ x = \tau\ x$
-
-$find_{\sigma\circ\ Rec(f)}\ \tau\ x = find_{f}\ (find_{\sigma}\ \tau)\ x$
-
-Функция $find_\sigma$ задана свыше, так как $\sigma$ задана свыше.
-
-\subsection{Фибоначчи самый наивный}
-\begin{minted}{ocaml}  
-let rec fib1 n = 
-  if n <=1 then 1
-  else if n <= 2 then 1
-  else (fib1 (n-1)) + (fib1 (n-2))
-\end{minted}
-
-После символьного исполнения получается пустой эффект и терм:
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-effect_of(?$fib_{1002}$?) = ?$\varepsilon$?
-result_of(?$fib_{1002}$?) = 
-  Union 
-    [ ?$(n_{1003} \leqslant 1, \quad 1) $?
-    ; ?$(n_{1003} > 1 \wedge n_{1003} \leqslant 2,\quad 1)$?
-    ; ?$(n_{1003} > 1 \wedge n_{1003} > 2$?
-      , (Call (Ident ?$fib_{1002}$?) ?$\{n_{1003} \mapsto n_{1003} - 2\}$? +
-        (Call (Ident ?$fib_{1002}$?) ?$\{n_{1003} \mapsto n_{1003} - 2\}  )$?   
-    ]
-\end{minted}
-Упрощение
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-effect_of(?$fib_{1002}$?) = ?$\varepsilon$?
-result_of(?$fib_{1002}$?) = 
-  Union 
-    [ ?$(n_{1003} \leqslant 2, \quad 1)$?
-    ; ?$(n_{1003} > 2 $?
-      , (Call (Ident ?$fib_{1002}$?) ?$\{n_{1003} \mapsto n_{1003} - 2\}$?) +
-        (Call (Ident ?$fib_{1002}$?) ?$\{n_{1003} \mapsto n_{1003} - 2\} $?) ?$)$?
-
-    ]
-\end{minted}
-Теперь свойство, от которого будем доказывать: 
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-?$\forall n . (n \geqslant 1) \Rightarrow$? (Call (Ident ?$fib_{1002}$?) ?$\{n_{1003} \mapsto n\}$?) ?$\geqslant n$?
-\end{minted}
-
-Сейчас хотим специализировать \mintinline{latex}{find} для \mintinline{latex}{fib1}, избавляясь по дороге от композиций куч и LI.
-
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-encode ((Call (Ident ?$fib_{1002}$?) ?$\{n_{1003}\ \mapsto n\}$?))), ?$\sigma$?)
-encode ( (result_of ?$fib_{1002}$?) ?$\{n_{1003}\ \mapsto n\}$?})) ), ?$\sigma$?)
-
-let encoded_fib ?$\{ n_{1003}\ \mapsto\ n_{1003}\}$? = 
-    if ?$n_{1003} \leqslant 2$? then ?$1$?
-    else 
-        encoded_fib ?$\{ n_{1003}\ \mapsto\ (n_{1003} - 1)\}$? +  
-        encoded_fib ?$\{ n_{1003}\ \mapsto\ (n_{1003} - 2)\}$?
-\end{minted}
-
-
-% \begin{minted}[mathescape, escapeinside=??]{ocaml}
-% ?$\forall n . (n \geqslant 1) \Rightarrow$? find (Call (LI ("fib1_1002")), ?$n$?, WTF) ?$\geqslant n$?
-% 
-% ?$\forall n . (n \geqslant 1) \Rightarrow$? find (effect_of("fib1_1002"), ?$n$?, WTF) ?$\geqslant n$?
-% 
-% ?$\forall n . (n \geqslant 1) \Rightarrow$? find (?$\varepsilon$?, ?$n$?, WTF) ?$\geqslant n$?
-% 
-% ?$\forall n . (n \geqslant 1) \Rightarrow$? (find_defined ?$\varepsilon$?  ?$n$? WTF) ?$\geqslant n$?
-% \end{minted}
-
-\subsection{Фибоначчи императивный}
-\begin{minted}{ocaml}  
-let a = ref 0
-let b = ref 0
-
-let rec loop n = 
-  if n <= 1
-  then ()
-  else 
-    let c  = !a + !b in 
-    let () = a := !b in
-    b := c;
-    loop (n-1) 
- 
-let fib ndx = 
-  a := 1;
-  b := 1;
-  loop ndx;
-  !b
-\end{minted}
-% Может для полноты ещё написать для a и b
-После символьного исполнения $loop_{1635}$ и упрощения $a \neq b \wedge c \neq a \wedge c \neq b$
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-effect_of(?$loop_{1635}$?) = HMerge 
-  [ (?$n_{1636} \leqslant 1$?, ?$\varepsilon$?)
-  ; (?$n_{1636} > 1$?,
-      [ (?$b_{1634} \mapsto (a_{1002} + b_{1634})$?)
-      ; (?$c_{1637} \mapsto (a_{1002} + b_{1634})$?)
-      ; (?$a_{1002} \mapsto b_{1634}$?)          
-      ] ?$\circ$? (RecApp ?$loop_{1635}$? ?$\{n_{1636} \mapsto n_{1636} - 1\}$?)
-    )
-  ]
-result_of(?$loop_{1635}$?) = Union 
-  [ ( ?$n_{1636} \leqslant$? 1, Unit)     
-  ; ( ?$n_{1636} >$? 1,
-      Call (Ident ?$loop_{1635}$?) ?$\{n_{1003} \mapsto (n_{1003} - 1)\}$?) )
-  ]
-\end{minted}
-После символьного исполнения $fib_{1638}$
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-effect_of(?$fib_{1638}$?) = 
-  ?$\{ b_{1634} \mapsto 1;\quad a_{1002} \mapsto 1\} \ \circ$? (RecApp (Ident ?$ loop_{1635}) \ \{ n_{1636} \mapsto ndx_{1639} \}$?)
-result_of(?$fib_{1638}$?) = ?$b_{1634}$? 
-\end{minted}
-
-Теперь свойство, от которого будем доказывать: 
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-?$\forall n . (n \geqslant 1) \Rightarrow$? (Call (Ident ?$fib_{1638}$?) ?$\{n_{1003} \mapsto ndx_{1639}\}$?) ?$\geqslant n$?
-\end{minted}
-
-В терминах функции SAT: $SAT(Body, Rec(loop_{1635}), b_{1638} \leqslant n_{1003})$. Другими словами, после выполнения функции $loop_{1635}$ на куче $\tau_0=\{a\mapsto 1, b\mapsto 1, ndx\mapsto n\}$ формула $b_{1638} \leqslant n_{1003}$ будет невыполнима.
-
-Поехали. Нужно проверять $g = (Rec(loop)\bullet LI(\varepsilon, b) > n)$.
-
-Пихаем композицию внутрь:  $(LI(Rec(loop), b) > n)$.
-
-Вводим find: $find(Rec(loop), b, \tau_0) > n$.
-
-Порождаем специализацию $find_{loop}\ \tau\ x = ...$ и получаем формулу $find_{loop}\  \tau_0\ b > n$.
-
-Теперь надо специализровать тело функции $loop$. 
-\begin{center}
-	$find()$
-\end{center}
-
-
-
-\begin{minted}[mathescape, escapeinside=??]{ocaml}
-
-
-encode (Call (Ident ?$fib_{1638}$?)) ?$\{n_{1003}\ \mapsto n\}$? = 
-encode (   result_of ?$fib_{1638}$?) ?$\{n_{1003}\ \mapsto n\}$?
-
-
-let encoded_fib ?$\{ n_{1003}\ \mapsto\ n_{1003}\}$? = 
-    if ?$n_{1003} \leqslant 2$? then ?$1$?
-    else 
-        encoded_fib ?$\{ n_{1003}\ \mapsto\ (n_{1003} - 1)\}$? +  
-        encoded_fib ?$\{ n_{1003}\ \mapsto\ (n_{1003} - 2)\}$?
-\end{minted}
 \end{document}
