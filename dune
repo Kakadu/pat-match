@@ -17,3 +17,17 @@
   (libraries ocanren)
   (preprocess (pps ocanren.ppx GT.ppx))
 )
+
+
+(rule
+ (targets work.ml)
+ (deps    work.ml2mk.ml)
+ (action  (run noCanren work.ml2mk.ml -o %{targets})))
+
+(executable
+  (name main2)
+  (modules main2 work)
+  (flags (-rectypes))
+  (libraries ocanren ocanren.tester)
+  (preprocess (pps ocanren.ppx GT.ppx))
+)
