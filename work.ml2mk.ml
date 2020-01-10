@@ -30,27 +30,41 @@ let rec list_nth_nat idx xs = match (idx, xs) with
 | (Z, x::_) -> x
 | (S n, _::xs) -> list_nth_nat n xs
 
-
 type pattern = WildCard | PConstr of string * pattern list
 type expr = EConstr of string * expr list
 
-let rec eval1pat s p =
+let rec match1pat s p =
   match s,p with
   | (_,WildCard) -> true
   | (EConstr (tag1, es), PConstr (tag2, ps)) ->
       if (tag1 = tag2) && (same_length ps es)
       then
         let pairs = list_combine ps es in
-        list_all (fun z -> match z with (p,e) -> eval1pat e p) pairs
+        list_all (fun z -> match z with (p,e) -> match1pat e p) pairs
       else false
 
+(* evaluation with hypothesis that all patterns are full and disjunctive *)
 let rec eval_pat s pats =
   match pats with
   | [] -> None
   | (p,rhs)::ps ->
-      if eval1pat s p
+      if match1pat s p
       then Some rhs
       else eval_pat s ps
+
+(* *************************** eval pat hacky *************************** *)
+let rec eval_pat_hacky s on_fail pats =
+  let rec helper acc pats = 
+    match pats with
+    | [] -> on_fail
+    | (p,rhs)::ps ->
+        (* there we check that it metaches p and doesn't match previous ones *)
+        if match1pat s p
+        then (match list_all (fun p -> not (match1pat s p)) acc with
+              true -> rhs)
+        else helper (p::acc) ps
+  in 
+  helper [] pats
 
 
 (* *************************** IR thing ********************************* *)
@@ -75,3 +89,14 @@ let rec eval_ir s ir =
         if tag2 = tag
         then eval_ir s th
         else eval_ir s el
+
+let rec eval_ir_hacky s ir =
+  match ir with
+  | Fail -> Fail
+  | Int n -> Int n
+  | IFTag (tag, scru, th, el) ->
+      match eval_m s scru with
+      | EConstr (tag2, args) ->
+        if tag2 = tag
+        then eval_ir_hacky s th
+        else eval_ir_hacky s el

@@ -14,6 +14,13 @@ let leaf s = eConstr !!s @@ Std.List.nil ()
 (* let z = eConstr !!"z" @@ Std.List.nil () *)
 let pair a b = eConstr !!"pair" (Std.List.list [a;b])
 
+type name = string 
+let name = 
+  { GT.gcata = ()
+  ; fix = ()
+  ; plugins = object 
+      method fmt f = Format.fprintf f "%s"
+  end }
 
 module Pattern = struct
   type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b 
@@ -195,7 +202,7 @@ let generate_demo_exprs pats =
           if arity = 0 then Seq.return @@ Expr.econstr name []
           else
             List.to_seq @@
-            List.map (fun xs -> Expr.econstr name @@  xs) @@
+            List.map (Expr.econstr name) @@
             populate_lists arity prev
       )
       |> List.of_seq
@@ -463,3 +470,77 @@ let () =
 
 let () =
   print_endline "main2"
+
+let eval_pat_hacky :
+  Expr.injected ->
+  Clauses.injected ->
+  IR.injected -> IR.injected ->
+  goal
+  = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res
+
+let eval_ir_hacky :
+  Expr.injected ->
+  IR.injected ->  
+  IR.injected ->
+  goal
+  = fun s ir res -> eval_ir_hacky ((===)s) ((===)ir) res
+
+
+let run_hacky patterns2 =
+  let patterns2 : (Pattern.ground * IR.ground) list =
+    [ ppair pnil pwc,  IR.eint 1
+    ; ppair pwc  pnil, IR.eint 2
+    ; ppair pnil pnil, IR.eint 3
+    ]
+
+  in
+  let injected_pats = inject_patterns patterns2 in
+
+  let injected_exprs =
+    let demo_exprs = generate_demo_exprs @@ List.map fst patterns2 in
+    Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
+    print_demos "demo_exprs" demo_exprs;
+    let demo_exprs =
+      demo_exprs |> List.filter (fun e ->
+        let open OCanren in
+        run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
+          (fun r -> r)
+          |> (fun s -> not (OCanren.Stream.is_empty s))
+        )
+    in
+    demo_exprs |> List.iter (fun e ->
+        runR (Std.Option.reify IR.reify)
+             (GT.show Std.Option.ground IR.show)
+             (GT.show Std.Option.logic IR.show_logic)
+          1 q qh (Printf.sprintf "test_demo: `%s`" (Expr.show e), fun ir ->
+            eval_pat (Expr.inject e) injected_pats (ir)
+        )
+      );
+    print_newline ();
+    List.map Expr.inject demo_exprs
+  in
+
+  runR IR.reify IR.show IR.show_logic 10
+    q qh ("ideal_IR", fun ideal_IR ->
+      let init =
+        fresh (hack1 hack2)
+          success
+          (* (ideal_IR === IR.iftag !!"pair" (Matchable.scru ()) hack1 hack2) *)
+      in
+
+      List.fold_left (fun acc (scru: Expr.injected) ->
+        fresh (res_pat res_ir)
+          acc
+          (eval_pat_hacky scru ((===)IR.fail) injected_pats res_pat)
+          (eval_ir_hacky  scru ideal_IR      res_ir)
+          (res_pat === res_ir) 
+          (*(conde
+            [ fresh (n)
+                (res_pat === IR.int n)
+                (res_ir  === Std.Option.some n)
+            ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
+            ])*)
+      ) init injected_exprs
+    );
+
+  ()
