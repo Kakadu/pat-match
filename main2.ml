@@ -398,7 +398,8 @@ let eval_ir :
   = fun s ir res -> eval_ir ((===)s) ((===)ir) res
 
 
-let () =
+let main ?(n=10) patterns2 =
+(*
   let patterns2 : (Pattern.ground * IR.ground) list =
     (* [ psome pnil, IR.eint 1
     ; psome  pwc, IR.eint 2
@@ -415,8 +416,7 @@ let () =
     ; ppair pnil pnil, IR.eint 3
     (* ; pwc, IR.eint 4 *)
     ]
-
-  in
+  in*)
   let injected_pats = inject_patterns patterns2 in
 
   let injected_exprs =
@@ -443,7 +443,7 @@ let () =
     List.map Expr.inject demo_exprs
   in
 
-  runR IR.reify IR.show IR.show_logic 10
+  runR IR.reify IR.show IR.show_logic n
     q qh ("ideal_IR", fun ideal_IR ->
       let init =
         fresh (hack1 hack2)
@@ -467,14 +467,11 @@ let () =
 
   ()
 
-
-let () =
-  print_endline "main2"
-
 let eval_pat_hacky :
   Expr.injected ->
+  IR.injected -> 
   Clauses.injected ->
-  IR.injected -> IR.injected ->
+  IR.injected ->
   goal
   = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res
 
@@ -486,22 +483,15 @@ let eval_ir_hacky :
   = fun s ir res -> eval_ir_hacky ((===)s) ((===)ir) res
 
 
-let run_hacky patterns2 =
-  let patterns2 : (Pattern.ground * IR.ground) list =
-    [ ppair pnil pwc,  IR.eint 1
-    ; ppair pwc  pnil, IR.eint 2
-    ; ppair pnil pnil, IR.eint 3
-    ]
-
-  in
+let run_hacky ?(n=10) patterns2 =
   let injected_pats = inject_patterns patterns2 in
 
-  let injected_exprs =
+  let injected_exprs,non_exh_pats =
     let demo_exprs = generate_demo_exprs @@ List.map fst patterns2 in
     Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
     print_demos "demo_exprs" demo_exprs;
-    let demo_exprs =
-      demo_exprs |> List.filter (fun e ->
+    let (demo_exprs,non_exh_pats) =
+      demo_exprs |> List.partition (fun e ->
         let open OCanren in
         run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
           (fun r -> r)
@@ -517,30 +507,53 @@ let run_hacky patterns2 =
         )
       );
     print_newline ();
-    List.map Expr.inject demo_exprs
+    
+    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in 
+    (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)
   in
 
-  runR IR.reify IR.show IR.show_logic 10
+  runR IR.reify IR.show IR.show_logic n
     q qh ("ideal_IR", fun ideal_IR ->
-      let init =
-        fresh (hack1 hack2)
-          success
-          (* (ideal_IR === IR.iftag !!"pair" (Matchable.scru ()) hack1 hack2) *)
+      let init = success in
+      let init = 
+        List.fold_left (fun acc (scru: Expr.injected) ->
+          (eval_ir_hacky  scru ideal_IR      (IR.fail()))
+        ) init non_exh_pats
       in
-
       List.fold_left (fun acc (scru: Expr.injected) ->
         fresh (res_pat res_ir)
           acc
-          (eval_pat_hacky scru ((===)IR.fail) injected_pats res_pat)
+          (eval_pat_hacky scru (IR.fail()) injected_pats res_pat)
           (eval_ir_hacky  scru ideal_IR      res_ir)
           (res_pat === res_ir) 
-          (*(conde
-            [ fresh (n)
-                (res_pat === IR.int n)
-                (res_ir  === Std.Option.some n)
-            ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-            ])*)
       ) init injected_exprs
-    );
+    )
 
-  ()
+
+
+let () = 
+  let ps = 
+    [ pnil , IR.eint 1
+    ; pwc  , IR.eint 2
+    ]
+  in 
+  main ~n:0 ps;
+  run_hacky ps
+
+
+let patterns2 : (Pattern.ground * IR.ground) list =
+  (* [ psome pnil, IR.eint 1
+  ; psome  pwc, IR.eint 2
+  ] *)
+  (* [  pwc, IR.eint 1
+  ; pnil, IR.eint 2
+  ] *)
+  (* [ ppair pnil pwc, IR.eint 1
+  ; ppair pwc  pnil, IR.eint 2
+  ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
+  ] *)
+  [ ppair pnil pwc,  IR.eint 1
+  ; ppair pwc  pnil, IR.eint 2
+  ; ppair pnil pnil, IR.eint 3
+  (* ; pwc, IR.eint 4 *)
+  ]
