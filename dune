@@ -31,3 +31,11 @@
   (libraries ocanren ocanren.tester)
   (preprocess (pps ocanren.ppx GT.ppx))
 )
+
+(executable
+  (name main_gadt)
+  (modules main_gadt)
+  (flags (-rectypes))
+  (libraries ocanren ocanren.tester)
+  (preprocess (pps ocanren.ppx GT.ppx))
+)
