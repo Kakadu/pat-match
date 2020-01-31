@@ -1,5 +1,6 @@
 VERBOSE=#--verbose
-.PHONY: run run-mini
+.PHONY: run run-mini celan
+
 all: gadt
 
 
@@ -12,5 +13,6 @@ gadt:
 run-mini:
 	dune exec mini/minirun.exe $(VERBOSE)
 
+celan: clean
 clean:
 	$(RM) -r _build
