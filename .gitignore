@@ -11,3 +11,10 @@
 
 /qtc-pm.*
 
+/pat-match.cflags
+/pat-match.config
+/pat-match.creator
+/pat-match.creator.user*
+/pat-match.cxxflags
+/pat-match.files
+/pat-match.includes

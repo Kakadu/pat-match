@@ -2,20 +2,12 @@
   (dev
     (flags (-strict-sequence -strict-formats -short-paths -keep-locs -w -3-9-32))))
 
-;(library
-  ;(name vcore)
-  ;(modules Main)
-  ;(libraries ocanren )
-  ;(flags (-strict-sequence -strict-formats -short-paths -keep-locs -open Base -w -3-9+32))
-  ;(preprocess (pps GT.ppx ppx_import))
-;)
-
 (executable
   (name main)
   (modules main)
   (flags (-rectypes))
   (libraries ocanren)
-  (preprocess (pps ocanren.ppx GT.ppx))
+  (preprocess (pps OCanren-ppx.ppx_repr GT.ppx))
 )
 
 
@@ -29,7 +21,7 @@
   (modules main2 work)
   (flags (-rectypes))
   (libraries ocanren ocanren.tester)
-  (preprocess (pps ocanren.ppx GT.ppx))
+  (preprocess (pps OCanren-ppx.ppx_repr GT.ppx))
 )
 
 (executable
@@ -37,5 +29,5 @@
   (modules main_gadt)
   (flags (-rectypes))
   (libraries ocanren ocanren.tester)
-  (preprocess (pps ocanren.ppx GT.ppx))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh  GT.ppx))
 )
