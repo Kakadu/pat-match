@@ -2,12 +2,22 @@
   (dev
     (flags (-strict-sequence -strict-formats -short-paths -keep-locs -w -3-9-32))))
 
+(library
+  (name        helper)
+  (public_name helper)
+  (modules     helper)
+
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags      (-rectypes))
+  (libraries  ocanren)
+)
+
 (executable
   (name main)
   (modules main)
   (flags (-rectypes))
   (libraries ocanren)
-  (preprocess (pps OCanren-ppx.ppx_repr GT.ppx))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
 
@@ -20,14 +30,14 @@
   (name main2)
   (modules main2 work)
   (flags (-rectypes))
-  (libraries ocanren ocanren.tester)
-  (preprocess (pps OCanren-ppx.ppx_repr GT.ppx))
+  (libraries ocanren ocanren.tester helper)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
 (executable
   (name main_gadt)
   (modules main_gadt)
   (flags (-rectypes))
-  (libraries ocanren ocanren.tester)
+  (libraries ocanren ocanren.tester helper)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh  GT.ppx))
 )

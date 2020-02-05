@@ -548,12 +548,212 @@ let patterns2 : (Pattern.ground * IR.ground) list =
   (* [  pwc, IR.eint 1
   ; pnil, IR.eint 2
   ] *)
-  (* [ ppair pnil pwc, IR.eint 1
+  [ ppair pnil pwc, IR.eint 1
   ; ppair pwc  pnil, IR.eint 2
   ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
-  ] *)
-  [ ppair pnil pwc,  IR.eint 1
+  ]
+  (*[ ppair pnil pwc,  IR.eint 1
   ; ppair pwc  pnil, IR.eint 2
   ; ppair pnil pnil, IR.eint 3
-  (* ; pwc, IR.eint 4 *)
-  ]
+  ]*)
+
+
+module TypedLists = struct
+(*
+match xs,ys with
+| [],_ -> ys
+| _,[] -> xs
+| x::rx,y::ry -> ...
+*)
+  open Helper
+  module GPair = OCanren.Std.Pair
+
+  let inhabit_pair : (*'a 'b 'c 'd.*)
+      (('a, 'b) OCanren.injected -> goal) ->
+      (('c, 'd) OCanren.injected -> goal) ->
+      (*left_desc: Info.inj ->
+      right_desc: Info.inj ->*)
+      ('a * 'c, ('b * 'd) OCanren.logic) OCanren.injected ->
+      goal
+    = fun inh_left inh_right r ->
+    conde
+      [ fresh (l r)
+          (r === Std.pair l r)
+          (inh_left l)
+          (inh_right r)
+      ]
+
+  (** [inhabit_list height arg r] returns all inhabtants of the list where
+    list elements are inhabited by [arg] and amount of Nil/Cons constructors
+    are equal or less then [height]
+  *)
+  let rec inhabit_list :
+      Std.Nat.groundi ->
+      (('a, 'b) OCanren.injected -> goal) ->
+      ('a, 'b) Std.List.groundi ->
+      goal
+    = fun height inh_arg r ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (r === Std.nil ())
+            ; fresh (size_tl h tl)
+                (Std.List.cons h tl === r)
+                (inh_arg h)
+                (inhabit_list prev inh_arg tl)
+            ])
+      ]
+
+  let () =
+    run one (fun q -> fresh (h) (inhabit_list (Std.nat 2) inhabit_free q))
+      (fun r -> r#reify (Std.List.reify OCanren.reify))
+    |> OCanren.Stream.mapi (fun i x ->
+         Format.printf "%d:\t%a\n%!" i GT.(fmt Std.List.logic @@ (fmt OCanren.logic @@ fmt bool)) x
+       )
+    |> OCanren.Stream.take ~n:(10) |> ignore;
+    Format.printf "\n%!"
+
+  let () =
+    run one (fun q -> fresh (h) (inhabit_list (Std.nat 1) inhabit_free q))
+      (fun r -> r#reify (Std.List.reify OCanren.reify))
+    |> OCanren.Stream.mapi (fun i x ->
+         Format.printf "%d:\t%a\n%!" i GT.(fmt Std.List.logic @@ (fmt OCanren.logic @@ fmt bool)) x
+       )
+    |> OCanren.Stream.take ~n:(10) |> ignore;
+    Format.printf "\n%!"
+
+  (* Testing inhabitants of a pair of two lists *)
+  let inhabit_pair_lists :
+      Std.Nat.groundi ->
+      (('a, 'b) OCanren.injected -> goal) ->
+      (_, _) OCanren.injected ->
+      goal
+    = fun height inh_list_arg rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (rez === Std.pair l r)
+          (inhabit_list prev inh_list_arg l)
+          (inhabit_list prev inh_list_arg r)
+      ]
+
+  let () =
+    let fmt_list = GT.(fmt Std.List.logic (fmt OCanren.logic @@ fmt int)) in
+    run one (fun q -> fresh (h) (inhabit_pair_lists (Std.nat 4) inhabit_int q))
+      (fun r -> r#reify (Std.Pair.reify (Std.List.reify OCanren.reify) (Std.List.reify OCanren.reify)))
+    |> OCanren.Stream.mapi (fun i x ->
+         Format.printf "%d:\t%a\n%!" i
+          GT.(fmt Std.Pair.logic fmt_list fmt_list)
+          x
+       )
+    |> OCanren.Stream.take ~n:(-1) |> ignore;
+    Format.printf "\n%!"
+
+  (*
+  For example all lists of <= two elements (height = 4) will be enough
+
+    match xs,ys with
+    | [],_ -> ys
+    | _,[] -> xs
+    | x::rx,y::ry -> ...
+  *)
+
+  let run_hacky ?(n=10) patterns2 =
+    let injected_pats = inject_patterns patterns2 in
+
+    let injected_exprs =
+      let demo_exprs =
+        let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
+        let prjl e =
+          Std.List.prjc
+            prj1
+            (fun _ _ -> failwith "should not happen2")
+            e
+          in
+        let prjp e =
+          Std.Pair.prjc
+            prjl
+            prjl
+            (fun _ _ -> failwith "should not happen5")
+            e
+        in
+        run one (fun q -> fresh (h) (inhabit_pair_lists (Std.nat 4) inhabit_int q))
+          (fun r -> r#prjc prjp)
+        |> OCanren.Stream.take ~n:(-1)
+      in
+      let demo_exprs =
+        let rec hack_list = function
+        | Std.List.Nil -> EConstr ("nil", Std.List.Nil)
+        | Std.List.Cons (_,tl) ->
+            EConstr ("cons", Std.List.of_list id [EConstr ("int", Std.List.Nil); hack_list tl])
+        in
+        ListLabels.map demo_exprs ~f:(fun (a,b) ->
+          EConstr ("pair", Std.List.of_list id [ hack_list a; hack_list b])
+        )
+      in
+      Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
+      print_demos "demo_exprs" demo_exprs;
+      let () =
+        demo_exprs |> List.iter (fun e ->
+          print_endline @@ Expr.show e;
+          let open OCanren in
+          run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
+            (fun r -> r)
+            |> (fun s -> assert (not (OCanren.Stream.is_empty s)) )
+          )
+      in
+      List.map Expr.inject demo_exprs
+      (*let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in
+      (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)*)
+    in
+
+    runR IR.reify IR.show IR.show_logic n
+      q qh ("ideal_IR", fun ideal_IR ->
+        let init = success in
+        List.fold_left (fun acc (scru: Expr.injected) ->
+          fresh (res_pat res_ir)
+            acc
+            (eval_pat scru  injected_pats res_pat)
+            (eval_ir  scru ideal_IR      res_ir)
+            (conde
+              [ fresh (n)
+                  (res_pat === Std.Option.some (IR.int n))
+                  (res_ir  === Std.Option.some n)
+              ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
+              ])
+          ) init injected_exprs
+      );
+
+    Format.printf "%!\n";
+
+    runR IR.reify IR.show IR.show_logic n
+      q qh ("ideal_IR", fun ideal_IR ->
+        let init =
+          fresh (th el)
+            (IR.iftag !!"nil" Matchable.(field (s(z())) (scru())) th el === ideal_IR)
+        in
+        List.fold_left (fun acc (scru: Expr.injected) ->
+          fresh (res_pat res_ir)
+            acc
+            (eval_pat scru  injected_pats res_pat)
+            (eval_ir  scru ideal_IR      res_ir)
+            (conde
+              [ fresh (n)
+                  (res_pat === Std.Option.some (IR.int n))
+                  (res_ir  === Std.Option.some n)
+              ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
+              ])
+          ) init injected_exprs
+      )
+
+  let () =
+    run_hacky ~n:10
+      [ ppair pnil  pwc, IR.eint 1
+      ; ppair pwc  pnil, IR.eint 2
+      ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
+      ]
+
+end

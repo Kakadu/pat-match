@@ -1,8 +1,5 @@
 open OCanren
-
-let inhabit_free r = (r===r)
-let inhabit_int  r = (r === !!1)
-let inhabit_bool r = conde [ r=== !!false; r === !!true ]
+open Helper
 
 let () =
   run one inhabit_int (fun r -> r#reify OCanren.reify)
@@ -16,36 +13,6 @@ let () =
     |> GT.(fmt list) GT.(fmt OCanren.logic @@ fmt bool) Format.std_formatter;
   Format.printf "\n%!"
 
-(* ********************************************************************** *)
-module Info = struct
-  type ('string, 'xs) ginfo = Complex of 'string * 'xs
-    [@@deriving gt ~options:{gmap; fmt }]
-  module F = Fmap2(struct
-    type ('a, 'b) t = ('a, 'b) ginfo
-    let fmap p q x = (GT.gmap ginfo) p q x
-  end)
-
-  type ground = (GT.string,              ground Std.List.ground) ginfo
-  type logic  = (GT.string OCanren.logic, logic Std.List.logic) ginfo OCanren.logic
-    [@@deriving gt ~options:{fmt}]
-
-  type inj = (ground, logic) OCanren.injected
-
-  let rec reify env (x: inj) : logic = F.reify OCanren.reify (Std.List.reify reify) env x
-
-  let complex name xs = inj @@ F.distrib (Complex (name,xs))
-  let leaf name : inj = complex name (Std.List.nil())
-
-  let int = leaf !!"int"
-  let bool = leaf !!"bool"
-
-  let test _ =
-    run one (fun q -> (q === leaf !!"int"))
-      (fun r -> r#reify reify)
-      |> OCanren.Stream.take ~n:(-1)
-      |> GT.(fmt list) GT.(fmt logic) Format.std_formatter;
-    Format.printf "\n%!"
-end
 
 (* ********************************************************************** *)
 module Test1 = struct
@@ -308,6 +275,54 @@ module Test2 = struct
 end
 
 
+module Test3 = struct
+  type 'a s = S  (* abstract type will not work *)
+  type z
+
+  type ('a, 'size) vector =
+    | VNil  : ('a, z) vector
+    | VCons : 'a * ('a, 'size) vector -> ('a, 'size s) vector
+
+  module GVector = OCanren.Std.List
+
+  let rec inhabit_vector : 'a 'b .
+      (('a, 'b) OCanren.injected -> goal) ->
+      arg_desc: Info.inj ->
+      size_desc:Info.inj ->
+      ('a, 'b) GVector.groundi ->
+      goal
+    = fun inh_arg ~arg_desc ~size_desc r ->
+    conde
+      [ fresh (i)
+          (Info.leaf !!"z" === size_desc)
+          (r === Std.nil ())
+      ; fresh (size_tl h tl)
+          (Info.complex !!"s" Std.List.(!< size_tl) === size_desc)
+          (Std.List.cons h tl === r)
+          (inh_arg h)
+          (inhabit_vector inh_arg ~arg_desc ~size_desc:size_tl  tl)
+(*
+      ; fresh (b)
+          (Info.leaf !!"bool" === arg_desc)
+          (r === bool b)
+        (*  (inh_arg b)*)
+      ; fresh (arg x)
+          (arg === arg_desc)
+          (r === a x)
+          (inh_arg x)*)
+      ]
+
+  let () =
+    run one (inhabit_vector inhabit_bool ~arg_desc:Info.bool ~size_desc:Info.size3)
+      (fun r -> r#reify (GVector.reify OCanren.reify))
+    |> OCanren.Stream.mapi (fun i x ->
+         Format.printf "%d:\t%a\n%!" i GT.(fmt GVector.logic @@ (fmt OCanren.logic @@ fmt bool)) x
+       )
+    |> OCanren.Stream.take ~n:(-1) |> ignore
+    ;
+    Format.printf "\n%!"
+end
+
 (* About bivariance https://github.com/ocaml/ocaml/issues/5985
     bivariant (= irrelevant) types ('a t) have the distinct property that the equation
     (foo t = bar t) does not necessarily implies (foo = bar), while types
@@ -315,3 +330,5 @@ end
 
     type 'a s = int (* is bivariant *)
 *)
+
+
