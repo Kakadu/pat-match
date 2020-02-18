@@ -1,6 +1,7 @@
-open Work 
-open OCanren 
-open Tester 
+module Work = Work_guards
+open Work
+open OCanren
+open Tester
 
 let id x = x
 
@@ -10,22 +11,20 @@ let pp_maybe fa fmt = function
 | Some x -> Format.fprintf fmt "(Some %a)" fa x
 
 let leaf s = eConstr !!s @@ Std.List.nil ()
-(* let nil = eConstr !!"nil" @@ Std.List.nil () *)
-(* let z = eConstr !!"z" @@ Std.List.nil () *)
 let pair a b = eConstr !!"pair" (Std.List.list [a;b])
 
-type name = string 
-let name = 
+type name = string
+let name =
   { GT.gcata = ()
   ; fix = ()
-  ; plugins = object 
+  ; plugins = object
       method fmt f = Format.fprintf f "%s"
   end }
 
 module Pattern = struct
-  type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b 
+  type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b
     [@@deriving gt ~options:{fmt; gmap}]
-  
+
   type ground = (string, ground Std.List.ground) t
   type logic = (string OCanren.logic, logic Std.List.logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
@@ -168,23 +167,6 @@ let generate_demo_exprs pats =
   in
   let () = print_demos "height1" height1 in
 
-  (* let rec populate_lists length (orig: 'a list) : 'a list list =
-    Printf.printf "populate_lists length=%d\n%!" length;
-    let rec helper n =
-      if n<1 then failwith (Printf.sprintf "populate_list: bad argument %d" n)
-      else if n=1 then [orig]
-      else
-        let prevs = helper (n-1) in
-        List.iter (fun xs -> assert (length = (List.length xs))) prevs;
-        List.flatten @@
-        List.map (fun tl -> List.map (fun h -> h::tl) orig) prevs
-    in
-    let ans = helper length in
-    List.iter (fun xs -> assert (length = (List.length xs))) ans;
-    ans
-  in *)
-
-
   let rec populate_lists : int -> 'a list -> 'a list list = fun n init ->
     if n<1 then assert false
     else if n = 1 then List.map (fun h -> [h]) init
@@ -192,7 +174,7 @@ let generate_demo_exprs pats =
       List.flatten @@ List.map (fun xs -> List.map (fun h -> h::xs) init) @@
       populate_lists (n-1) init
   in
-  
+
   let rec builder (prev: 'a list) curh : Expr.ground list =
     if curh > height
     then prev
@@ -209,12 +191,13 @@ let generate_demo_exprs pats =
   in
   builder height1 (1+1)
 
-let checkAnswer q c r = eval_ir ((===) q) ((===) c) r
+let checkAnswer q ir eval_guard r = eval_ir ((===) q) ((===) ir) eval_guard r
 
 let _ =
   run_exn (Format.asprintf "%a" (pp_maybe pp_rhs)) 1 q qh ("answers", fun q ->
     checkAnswer (pair (leaf "aaa") (leaf "bbb"))
       (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
+      (fun _  -> failure)
       q
   )
 
@@ -224,6 +207,7 @@ let _ =
      checkAnswer
         q
         (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
+        (fun _  -> failure)
         (Std.some (!!2))
   )
 
@@ -242,34 +226,22 @@ let pcons a b = pconstr "cons" [a;b]
 let psome a   = pconstr "some" [a]
 let ppair a b : Pattern.ground = pconstr "pair" [a;b]
 
-(* let patterns1 : Pattern.ground list =
-  [ ppair pnil pwc
-  ; ppair pwc  pnil
-  ; ppair (pcons pwc pwc) (pcons pwc pwc)
-  ] *)
-
-
-(* let _ =
-  runR Expr.reify Expr.show Expr.show_logic 10
-    q qh ("answers", make_expr_generator patterns1) *)
-
-
-module Nat = struct 
+module Nat = struct
   type 'a gnat = 'a Work.gnat = Z | S of 'a [@@deriving gt ~options:{fmt}]
-  type ground = ground gnat 
-  type logic = logic gnat OCanren.logic 
-  type injected = (ground, logic) OCanren.injected 
-  
+  type ground = ground gnat
+  type logic = logic gnat OCanren.logic
+  type injected = (ground, logic) OCanren.injected
+
   let z : injected = Work.z ()
   let s = Work.s
-  
+
   let show (n: ground) =
     let rec helper acc = function
     | Z -> string_of_int acc
     | S n -> helper (acc+1) n
     in
     helper 0 n
-  
+
   let show_logic n =
     let rec helper acc : logic -> string = function
     | Value Z -> string_of_int acc
@@ -283,7 +255,8 @@ module Nat = struct
     | S n -> helper (acc+1) n
     in
     helper 0 n
-  
+
+  let fmt formatter x = Format.fprintf formatter "%s" (show x)
   let rec reify env x = For_gnat.reify reify env x
 end
 
@@ -312,12 +285,14 @@ module Matchable = struct
     in
     helper x
 
+  let fmt formatter x = Format.fprintf formatter "%s" (show x)
 end
 
 
 module IR = struct
-  type ground = (string, Matchable.ground, ground, int) gir
-  type logic = (string OCanren.logic, Matchable.logic, logic, int OCanren.logic) gir OCanren.logic
+  type ground = (int, string, Matchable.ground, Nat.ground, ground Std.List.ground, ground) gir
+  type logic =
+    (int OCanren.logic, string OCanren.logic, Matchable.logic, Nat.logic, logic Std.List.logic, logic) gir OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let fail = fail
@@ -327,7 +302,7 @@ module IR = struct
   let eint n = Int n
 
   let rec reify env x =
-    For_gir.reify OCanren.reify Matchable.reify reify OCanren.reify env x
+    For_gir.reify OCanren.reify OCanren.reify Matchable.reify Nat.reify (Std.List.reify reify) reify env x
 
   let inject e =
     let rec helper = function
@@ -336,18 +311,24 @@ module IR = struct
     in
     helper e
 
-  let show e =
-    let rec helper = function
-    | Fail -> "(fail)"
-    | Int n -> string_of_int n
-    | IFTag (str, m, th_, el_) ->
-      Printf.sprintf "(iftag %S %s %s %s)"
-        str
-        (Matchable.show m)
-        (helper th_)
-        (helper el_)
-    in
-    helper e
+  let rec pp fmt = function
+  | Fail -> Format.fprintf fmt "(fail)"
+  | Int n -> Format.fprintf fmt "%d" n
+  | IFTag (str, m, th_, el_) ->
+    Format.fprintf fmt "(iftag %S %a %a %a)"
+      str
+      Matchable.fmt m
+      pp th_
+      pp el_
+  | IFGuard (ndx, args, th_, el_) ->
+      Format.fprintf fmt "(ifguard %a %a %a %a)"
+        Nat.fmt ndx
+        (GT.fmt Std.List.ground pp) args
+        pp th_
+        pp el_
+
+  let show e = Format.asprintf "%a" pp e
+
 
   let rec show_logic e =
     let rec helper = function
@@ -387,15 +368,17 @@ let eval_pat :
   Expr.injected ->
   Clauses.injected ->
   (IR.ground option, IR.logic Std.Option.logic) OCanren.injected ->
+(*  _ ->*)
   goal
   = fun expr_scru pats res -> eval_pat ((===)expr_scru) ((===)pats) res
 
 let eval_ir :
   Expr.injected ->
+  ( (_,_) OCanren.injected -> goal) ->
   IR.injected ->
   (int option, int OCanren.logic Std.Option.logic) OCanren.injected ->
   goal
-  = fun s ir res -> eval_ir ((===)s) ((===)ir) res
+  = fun s eval_guard ir res -> eval_ir ((===)s) eval_guard ((===)ir)  res
 
 
 let main ?(n=10) patterns2 =
@@ -455,7 +438,7 @@ let main ?(n=10) patterns2 =
         fresh (res_pat res_ir)
           acc
           (eval_pat scru injected_pats res_pat)
-          (eval_ir  scru ideal_IR      res_ir)
+          (eval_ir  scru (fun _ -> failure) ideal_IR      res_ir)
           (conde
             [ fresh (n)
                 (res_pat === Std.Option.some (IR.int n))
@@ -467,9 +450,10 @@ let main ?(n=10) patterns2 =
 
   ()
 
+
 let eval_pat_hacky :
   Expr.injected ->
-  IR.injected -> 
+  IR.injected ->
   Clauses.injected ->
   IR.injected ->
   goal
@@ -477,10 +461,12 @@ let eval_pat_hacky :
 
 let eval_ir_hacky :
   Expr.injected ->
-  IR.injected ->  
+  ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
+  IR.injected ->
   IR.injected ->
   goal
-  = fun s ir res -> eval_ir_hacky ((===)s) ((===)ir) res
+  = fun s eval_guard ir res ->
+      eval_ir_hacky ((===)s) eval_guard ((===)ir) res
 
 
 let run_hacky ?(n=10) patterns2 =
@@ -507,15 +493,15 @@ let run_hacky ?(n=10) patterns2 =
         )
       );
     print_newline ();
-    
-    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in 
+
+    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in
     (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)
   in
 
   runR IR.reify IR.show IR.show_logic n
     q qh ("ideal_IR", fun ideal_IR ->
       let init = success in
-      let init = 
+      let init =
         List.fold_left (fun acc (scru: Expr.injected) ->
           (eval_ir_hacky  scru ideal_IR      (IR.fail()))
         ) init non_exh_pats
@@ -525,18 +511,18 @@ let run_hacky ?(n=10) patterns2 =
           acc
           (eval_pat_hacky scru (IR.fail()) injected_pats res_pat)
           (eval_ir_hacky  scru ideal_IR      res_ir)
-          (res_pat === res_ir) 
+          (res_pat === res_ir)
       ) init injected_exprs
     )
 
 
 
-let () = 
-  let ps = 
+let () =
+  let ps =
     [ pnil , IR.eint 1
     ; pwc  , IR.eint 2
     ]
-  in 
+  in
   main ~n:0 ps;
   run_hacky ps
 
