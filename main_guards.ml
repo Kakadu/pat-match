@@ -459,6 +459,12 @@ let eval_pat_hacky :
   goal
   = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res
 
+let wrap :
+  ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
+  ((_,_) OCanren.injected -> goal) -> ((_,_) OCanren.injected -> goal) -> (_,_) OCanren.injected -> goal
+  = fun eval_guard ->
+   fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z))
+
 let eval_ir_hacky :
   Expr.injected ->
   ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
@@ -466,7 +472,9 @@ let eval_ir_hacky :
   IR.injected ->
   goal
   = fun s eval_guard ir res ->
-      eval_ir_hacky ((===)s) eval_guard ((===)ir) res
+      eval_ir_hacky ((===)s)
+        (fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z)))
+        ((===)ir) res
 
 
 let run_hacky ?(n=10) patterns2 =
