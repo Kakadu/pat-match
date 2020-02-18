@@ -256,6 +256,10 @@ module Nat = struct
     in
     helper 0 n
 
+  let rec inject = function
+  | Z -> z
+  | S x -> s (inject x)
+
   let fmt formatter x = Format.fprintf formatter "%s" (show x)
   let rec reify env x = For_gnat.reify reify env x
 end
@@ -329,7 +333,6 @@ module IR = struct
 
   let show e = Format.asprintf "%a" pp e
 
-
   let rec show_logic e =
     let rec helper = function
     | Fail -> "(fail)"
@@ -352,6 +355,16 @@ module Clauses = struct
   type injected = (ground, logic) OCanren.injected
 end
 
+module Triple = struct
+  type ('a,'b,'c) t = 'a * 'b * 'c [@@deriving gt ~options:{fmt; gmap }]
+  module F = Fmap3(struct
+    type nonrec ('a,'b,'c) t = ('a,'b,'c) t
+    let fmap eta = GT.gmap t eta
+  end)
+
+  let make a b c = inj @@ F.distrib (a,b,c)
+  let reify = F.reify
+end
 
 let inject_patterns ps =
   let rec one : Pattern.ground -> _ = function
@@ -361,14 +374,18 @@ let inject_patterns ps =
       (inject_ground_list @@ GT.gmap Std.List.ground one ps)
   in
 
+  let option_inject fa = function
+  | None -> Std.Option.none ()
+  | Some x ->Std.Option.some (fa x)
+  in
+
   Std.List.list @@
-  List.map (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
+  List.map (fun (p,g,rhs) -> Triple.make (one p) (option_inject Nat.inject g) (IR.inject rhs)) ps
 
 let eval_pat :
   Expr.injected ->
   Clauses.injected ->
   (IR.ground option, IR.logic Std.Option.logic) OCanren.injected ->
-(*  _ ->*)
   goal
   = fun expr_scru pats res -> eval_pat ((===)expr_scru) ((===)pats) res
 
@@ -403,13 +420,14 @@ let main ?(n=10) patterns2 =
   let injected_pats = inject_patterns patterns2 in
 
   let injected_exprs =
-    let demo_exprs = generate_demo_exprs @@ List.map fst patterns2 in
+    let demo_exprs = generate_demo_exprs @@ List.map (fun (x,_,_) -> x) patterns2 in
     Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
     print_demos "demo_exprs" demo_exprs;
     let demo_exprs =
       demo_exprs |> List.filter (fun e ->
         let open OCanren in
-        run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
+        run one
+          (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
           (fun r -> r)
           |> (fun s -> not (OCanren.Stream.is_empty s))
         )
@@ -511,14 +529,14 @@ let run_hacky ?(n=10) patterns2 =
       let init = success in
       let init =
         List.fold_left (fun acc (scru: Expr.injected) ->
-          (eval_ir_hacky  scru ideal_IR      (IR.fail()))
+          (eval_ir_hacky scru (fun _ _ _ -> success) ideal_IR (IR.fail()))
         ) init non_exh_pats
       in
       List.fold_left (fun acc (scru: Expr.injected) ->
         fresh (res_pat res_ir)
           acc
           (eval_pat_hacky scru (IR.fail()) injected_pats res_pat)
-          (eval_ir_hacky  scru ideal_IR      res_ir)
+          (eval_ir_hacky  scru (fun _ _ _ -> failure) ideal_IR      res_ir)
           (res_pat === res_ir)
       ) init injected_exprs
     )
@@ -531,7 +549,7 @@ let () =
     ; pwc  , IR.eint 2
     ]
   in
-  main ~n:0 ps;
+  main ~n:10 ps;
   run_hacky ps
 
 
@@ -710,8 +728,8 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat scru  injected_pats res_pat)
-            (eval_ir  scru ideal_IR      res_ir)
+            (eval_pat scru injected_pats res_pat)
+            (eval_ir  scru (fun _ -> failure) ideal_IR      res_ir)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -733,7 +751,7 @@ match xs,ys with
           fresh (res_pat res_ir)
             acc
             (eval_pat scru  injected_pats res_pat)
-            (eval_ir  scru ideal_IR      res_ir)
+            (eval_ir  scru (fun _ -> success) ideal_IR      res_ir)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -744,10 +762,10 @@ match xs,ys with
       )
 
   let () =
-    run_hacky ~n:140
-      [ ppair pnil  pwc, IR.eint 1
-      ; ppair pwc  pnil, IR.eint 2
-      ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
+    run_hacky ~n:10
+      [ ppair pnil  pwc, None, IR.eint 1
+      ; ppair pwc  pnil, None, IR.eint 2
+      ; ppair (pcons pwc pwc) (pcons pwc pwc), None, IR.eint 3
       ]
 
 end
