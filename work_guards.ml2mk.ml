@@ -49,6 +49,8 @@ let rec list_append xs ys =
   | [] -> ys
   | x::xs -> x :: (list_append xs ys)
 
+let list_snoc x xs = list_append xs [x]
+
 let rec list_nth_nat idx xs = match (idx, xs) with
 | (Z, x::_) -> x
 | (S n, _::xs) -> list_nth_nat n xs
@@ -112,6 +114,23 @@ let rec eval_pat_hacky s on_fail pats =
   in
   helper [] pats
 
+let do_not_match s eval_guard prev =
+  let rec helper ys =
+    match ys with
+    | [] -> true
+    | (p,g)::xs ->
+      match match_pat_bindings s p with
+      | None -> true
+      | Some bnds ->
+          match g with
+          | None -> false
+          | Some guard ->
+              if eval_guard bnds guard
+              then false
+              else helper xs
+  in
+  helper prev
+
 let rec eval_with_guards s on_fail eval_guard pats =
   let rec helper acc pats =
     match pats with
@@ -120,13 +139,15 @@ let rec eval_with_guards s on_fail eval_guard pats =
         match aux with (g, rhs) ->
         (* there we check that  it metaches p and doesn't match previous ones *)
         match match_pat_bindings s p with
-        | None -> helper (p::acc) ps
+        | None -> helper (list_snoc (p,g) acc) ps
         | Some bindings ->
-            (match list_all (fun p -> not (match1pat s p)) acc with
-               true -> if eval_guard bindings g
-                       then rhs
-                       else helper (p::acc) ps
-                       )
+            match g with
+            | None -> rhs
+            | Some guard ->
+                if eval_guard bindings guard
+                then (match do_not_match s eval_guard acc with true -> rhs)
+                else helper (list_snoc (p,g) acc) ps
+
   in
   helper [] pats
 

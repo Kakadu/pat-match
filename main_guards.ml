@@ -21,6 +21,15 @@ let name =
       method fmt f = Format.fprintf f "%s"
   end }
 
+(* TODO: put this to stdlib *)
+let rec inject_ground_list ps =
+  (* TODO: tail recursion *)
+  let rec helper = function
+  | Std.List.Nil -> Std.List.nil ()
+  | Std.List.Cons (x, xs) -> Std.List.cons x (helper xs)
+  in
+  helper ps
+
 module Pattern = struct
   type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b
     [@@deriving gt ~options:{fmt; gmap}]
@@ -63,6 +72,13 @@ module Pattern = struct
     in
     GT.show OCanren.logic helper p
 
+  let rec inject : ground -> injected = fun p ->
+    match p with
+    | WildCard -> wc ()
+    | PConstr (name,ps) ->
+        constr !!name @@
+        (inject_ground_list @@ GT.gmap Std.List.ground inject ps)
+
 
 
   module ArityMap = Map.Make(Base.String)
@@ -85,16 +101,6 @@ module Pattern = struct
     try Some (helper ArityMap.empty pat)
     with Bad -> None
 end
-
-(* TODO: put this to stdlib *)
-let rec inject_ground_list ps =
-  (* TODO: tail recursion *)
-  let rec helper = function
-  | Std.List.Nil -> Std.List.nil ()
-  | Std.List.Cons (x, xs) -> Std.List.cons x (helper xs)
-  in
-  helper ps
-
 
 module Expr = struct
   type ground = (string, ground Std.List.ground) gexpr
@@ -133,12 +139,12 @@ module Expr = struct
   let rec reify env x =
     For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
 
-let inject (e: ground) : injected =
-  let rec helper = function
-  | EConstr (s,xs) ->
-      constr !!s (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
-  in
-  helper e
+  let inject (e: ground) : injected =
+    let rec helper = function
+    | EConstr (s,xs) ->
+        constr !!s (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
+    in
+    helper e
 end
 
 let print_demos msg xs =
@@ -348,13 +354,6 @@ module IR = struct
     GT.show OCanren.logic helper e
 end
 
-
-module Clauses = struct
-  type ground = (Pattern.ground * IR.ground) Std.List.ground
-  type logic = (Pattern.logic, IR.logic) Std.Pair.logic Std.List.logic
-  type injected = (ground, logic) OCanren.injected
-end
-
 module Triple = struct
   type ('a,'b,'c) t = 'a * 'b * 'c [@@deriving gt ~options:{fmt; gmap }]
   module F = Fmap3(struct
@@ -362,25 +361,42 @@ module Triple = struct
     let fmap eta = GT.gmap t eta
   end)
 
+  type ('a,'b,'c) ground = ('a,'b,'c) t
+  type ('a,'b,'c) logic = ('a,'b,'c) t OCanren.logic
+  type ('a,'b,'c,'d,'e,'f) injected = (('a,'b,'c) ground, ('d,'e,'f) logic) OCanren.injected
+
   let make a b c = inj @@ F.distrib (a,b,c)
   let reify = F.reify
 end
 
-let inject_patterns ps =
-  let rec one : Pattern.ground -> _ = function
-  | WildCard -> Pattern.wc ()
-  | PConstr (name,ps) ->
-      Pattern.constr !!name @@
-      (inject_ground_list @@ GT.gmap Std.List.ground one ps)
-  in
+module Clauses = struct
+  type ground = (Pattern.ground * IR.ground) Std.List.ground
+  type logic = (Pattern.logic, IR.logic) Std.Pair.logic Std.List.logic
+  type injected = (ground, logic) OCanren.injected
+end
 
+module Clauses_with_guards = struct
+(*  type ground = (Pattern.ground, Nat.ground, IR.ground) Triple.ground Std.List.ground
+  type logic  = (Pattern.logic,  Nat.logic,  IR.logic)  Triple.logic Std.List.logic
+  type injected = (ground, logic) OCanren.injected*)
+
+  type ground = (Pattern.ground * (Nat.ground option * IR.ground)) Std.List.ground
+  type logic  = (Pattern.logic, (Nat.logic Std.Option.logic, IR.logic) Std.Pair.logic) Std.Pair.logic Std.List.logic
+  type injected = (ground, logic) OCanren.injected
+end
+
+
+let inject_patterns ps =
   let option_inject fa = function
   | None -> Std.Option.none ()
   | Some x ->Std.Option.some (fa x)
   in
 
   Std.List.list @@
-  List.map (fun (p,g,rhs) -> Triple.make (one p) (option_inject Nat.inject g) (IR.inject rhs)) ps
+  List.map (fun (p,(g,rhs)) ->
+    Std.Pair.pair (Pattern.inject p) @@
+    Std.Pair.pair (option_inject Nat.inject g) (IR.inject rhs)
+  ) ps
 
 let eval_pat :
   Expr.injected ->
@@ -397,7 +413,7 @@ let eval_ir :
   goal
   = fun s eval_guard ir res -> eval_ir ((===)s) eval_guard ((===)ir)  res
 
-
+(*
 let main ?(n=10) patterns2 =
 (*
   let patterns2 : (Pattern.ground * IR.ground) list =
@@ -467,7 +483,7 @@ let main ?(n=10) patterns2 =
     );
 
   ()
-
+*)
 
 let eval_pat_hacky :
   Expr.injected ->
@@ -494,7 +510,7 @@ let eval_ir_hacky :
         (fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z)))
         ((===)ir) res
 
-
+(*
 let run_hacky ?(n=10) patterns2 =
   let injected_pats = inject_patterns patterns2 in
 
@@ -552,6 +568,7 @@ let () =
   main ~n:10 ps;
   run_hacky ps
 
+*)
 
 let patterns2 : (Pattern.ground * IR.ground) list =
   (* [ psome pnil, IR.eint 1
@@ -569,6 +586,21 @@ let patterns2 : (Pattern.ground * IR.ground) list =
   ; ppair pnil pnil, IR.eint 3
   ]*)
 
+let eval_with_guards :
+  Expr.injected ->
+  onfail:IR.injected ->
+  ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
+  Clauses_with_guards.injected ->
+  IR.injected ->
+  goal
+  = fun s ~onfail eval_guard pats res ->
+      eval_with_guards
+        ((===)s)
+        ((===)onfail)
+        (fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z)))
+        ((===)pats)
+        res
+
 
 module TypedLists = struct
 (*
@@ -583,8 +615,6 @@ match xs,ys with
   let inhabit_pair : (*'a 'b 'c 'd.*)
       (('a, 'b) OCanren.injected -> goal) ->
       (('c, 'd) OCanren.injected -> goal) ->
-      (*left_desc: Info.inj ->
-      right_desc: Info.inj ->*)
       ('a * 'c, ('b * 'd) OCanren.logic) OCanren.injected ->
       goal
     = fun inh_left inh_right r ->
@@ -673,7 +703,7 @@ match xs,ys with
     | x::rx,y::ry -> ...
   *)
 
-  let run_hacky ?(n=10) patterns2 =
+  let run_hacky ?(n=10) (patterns2: (Pattern.ground * (Nat.ground option * IR.ground)) list) on_guard =
     let injected_pats = inject_patterns patterns2 in
 
     let injected_exprs =
@@ -712,7 +742,10 @@ match xs,ys with
         demo_exprs |> List.iter (fun e ->
           print_endline @@ Expr.show e;
           let open OCanren in
-          run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
+          run one (fun ir ->
+              (IR.fail () =/= ir) &&&
+              (eval_with_guards (Expr.inject e)
+                ~onfail:(IR.fail ()) on_guard injected_pats ir))
             (fun r -> r)
             |> (fun s -> assert (not (OCanren.Stream.is_empty s)) )
           )
@@ -728,8 +761,8 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat scru injected_pats res_pat)
-            (eval_ir  scru (fun _ -> failure) ideal_IR      res_ir)
+            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats res_pat)
+            (eval_ir          scru ~onfail:(IR.fail ()) on_guard ideal_IR      res_ir)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -763,9 +796,9 @@ match xs,ys with
 
   let () =
     run_hacky ~n:10
-      [ ppair pnil  pwc, None, IR.eint 1
-      ; ppair pwc  pnil, None, IR.eint 2
-      ; ppair (pcons pwc pwc) (pcons pwc pwc), None, IR.eint 3
+      [ ppair pnil  pwc, (None, IR.eint 1)
+      ; ppair pwc  pnil, (None, IR.eint 2)
+      ; ppair (pcons pwc pwc) (pcons pwc pwc), (None, IR.eint 3)
       ]
 
 end
