@@ -31,7 +31,7 @@ let rec inject_ground_list ps =
   helper ps
 
 module Pattern = struct
-  type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b
+  type ('s,'ps) t = ('s,'ps) Work.gpattern = WildCard | PVar of 's | PConstr of 's * 'ps
     [@@deriving gt ~options:{fmt; gmap}]
 
   type ground = (string, ground Std.List.ground) t
@@ -40,9 +40,11 @@ module Pattern = struct
 
   let constr = pConstr
   let wc = wildCard
+  let var = pVar
 
   let rec height = function
   | WildCard  -> 0
+  | PVar _ -> 1
   | PConstr (_,ps) ->
     GT.foldl Std.List.ground (fun acc x -> max acc (height x)) 0 ps + 1
 
@@ -52,6 +54,7 @@ module Pattern = struct
   let show p =
     let rec helper = function
     | WildCard -> "_"
+    | PVar s -> s
     | PConstr (s, Std.List.Nil) -> Printf.sprintf "(%s)" s
     | PConstr (s, ps) ->
       Printf.sprintf "(%s %s)" s (GT.show Std.List.ground helper ps)
@@ -61,6 +64,7 @@ module Pattern = struct
   let rec show_logic (p: logic) =
     let rec helper = function
     | WildCard -> "_"
+    | PVar s -> GT.show OCanren.logic (GT.show GT.string) s
     | PConstr (s, OCanren.Value Std.List.Nil) ->
         GT.show OCanren.logic (GT.show GT.string) s
     | PConstr (s, ps) ->
@@ -75,18 +79,18 @@ module Pattern = struct
   let rec inject : ground -> injected = fun p ->
     match p with
     | WildCard -> wc ()
+    | PVar s -> var !!s
     | PConstr (name,ps) ->
         constr !!name @@
         (inject_ground_list @@ GT.gmap Std.List.ground inject ps)
-
-
 
   module ArityMap = Map.Make(Base.String)
   exception Bad
 
   let get_arities (pat: ground) =
     let rec helper acc = function
-      | WildCard -> acc
+      | WildCard
+      | PVar _    -> acc
       | PConstr (name, xs) ->
           let acc =
             let arity = ground_list_length xs in
@@ -197,7 +201,7 @@ let generate_demo_exprs pats =
   in
   builder height1 (1+1)
 
-let checkAnswer q ir eval_guard r = eval_ir ((===) q) ((===) ir) eval_guard r
+(*let checkAnswer q ir eval_guard r = eval_ir ((===) q) ((===) ir) eval_guard r
 
 let _ =
   run_exn (Format.asprintf "%a" (pp_maybe pp_rhs)) 1 q qh ("answers", fun q ->
@@ -215,7 +219,7 @@ let _ =
         (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
         (fun _  -> failure)
         (Std.some (!!2))
-  )
+  )*)
 
 let add_freshes n pregoal =
   let rec helper acc n =
@@ -226,6 +230,7 @@ let add_freshes n pregoal =
 
 let pwc = WildCard
 let pconstr name xs = PConstr (name, Std.List.of_list id xs)
+let pvar name = PVar name
 let pleaf s = pconstr s []
 let pnil    = pleaf "nil"
 let pcons a b = pconstr "cons" [a;b]
@@ -262,6 +267,8 @@ module Nat = struct
     in
     helper 0 n
 
+  let pp_logic fmt x = Format.fprintf fmt "%s" (show_logic x)
+
   let rec inject = function
   | Z -> z
   | S x -> s (inject x)
@@ -288,6 +295,8 @@ module Matchable = struct
     in
     GT.show OCanren.logic helper x
 
+  let pp_logic fmt (x: logic) = Format.fprintf fmt "%s" (show_logic x)
+
   let show x =
     let rec helper = function
     | Scru        -> "Scru"
@@ -295,14 +304,19 @@ module Matchable = struct
     in
     helper x
 
+  let pp fmt (x: ground) = Format.fprintf fmt "%s" (show x)
   let fmt formatter x = Format.fprintf formatter "%s" (show x)
 end
 
 
 module IR = struct
-  type ground = (int, string, Matchable.ground, Nat.ground, ground Std.List.ground, ground) gir
+  type ground = (int, string, Matchable.ground
+                , Nat.ground, (string * Matchable.ground) Std.List.ground, ground
+                ) gir
   type logic =
-    (int OCanren.logic, string OCanren.logic, Matchable.logic, Nat.logic, logic Std.List.logic, logic) gir OCanren.logic
+    ( int OCanren.logic, string OCanren.logic, Matchable.logic
+    , Nat.logic, (string OCanren.logic, Matchable.logic) Std.Pair.logic Std.List.logic, logic
+    ) gir OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let fail = fail
@@ -311,8 +325,10 @@ module IR = struct
 
   let eint n = Int n
 
-  let rec reify env x =
-    For_gir.reify OCanren.reify OCanren.reify Matchable.reify Nat.reify (Std.List.reify reify) reify env x
+  let rec reify env (x: injected) : logic =
+    For_gir.reify OCanren.reify OCanren.reify Matchable.reify Nat.reify
+      (Std.List.reify @@ Std.Pair.reify OCanren.reify Matchable.reify) reify
+      env x
 
   let inject e =
     let rec helper = function
@@ -321,7 +337,7 @@ module IR = struct
     in
     helper e
 
-  let rec pp fmt = function
+  let rec pp fmt : ground -> unit = function
   | Fail -> Format.fprintf fmt "(fail)"
   | Int n -> Format.fprintf fmt "%d" n
   | IFTag (str, m, th_, el_) ->
@@ -333,25 +349,32 @@ module IR = struct
   | IFGuard (ndx, args, th_, el_) ->
       Format.fprintf fmt "(ifguard %a %a %a %a)"
         Nat.fmt ndx
-        (GT.fmt Std.List.ground pp) args
+        (GT.fmt Std.List.ground @@ GT.fmt Std.Pair.ground (GT.fmt GT.string) Matchable.pp) args
         pp th_
         pp el_
 
   let show e = Format.asprintf "%a" pp e
 
-  let rec show_logic e =
-    let rec helper = function
-    | Fail -> "(fail)"
-    | Int ln -> GT.show OCanren.logic (GT.show GT.int) ln
+  let rec pp_logic fmt : logic -> unit =
+    let rec helper fmt = function
+    | Fail -> Format.fprintf fmt "(fail)"
+    | Int ln -> Format.fprintf fmt "%a" (GT.fmt OCanren.logic (GT.fmt GT.int)) ln
     | IFTag (ltag, m, th_, el_) ->
-      Printf.sprintf "(iftag %s %s %s %s)"
-        (GT.show OCanren.logic (GT.show GT.string) ltag)
-        (Matchable.show_logic m)
-        (show_logic th_)
-        (show_logic el_)
-    | _ -> Printf.sprintf "<logic ir>"
+        Format.fprintf fmt "(iftag %a %a %a %a)"
+          (GT.fmt OCanren.logic (GT.fmt GT.string)) ltag
+          Matchable.pp_logic m
+          (GT.fmt OCanren.logic helper) th_
+          (GT.fmt OCanren.logic helper) el_
+    | IFGuard (ndx, args, th_, el_) ->
+        Format.fprintf fmt "(ifguard %a %a %a %a)"
+          Nat.pp_logic ndx
+          (GT.fmt Std.List.logic @@ GT.fmt Std.Pair.logic (GT.fmt OCanren.logic @@ GT.fmt GT.string) Matchable.pp_logic) args
+          (GT.fmt OCanren.logic helper) th_
+          (GT.fmt OCanren.logic helper) el_
     in
-    GT.show OCanren.logic helper e
+    GT.fmt OCanren.logic helper fmt
+
+  let show_logic e = Format.asprintf "%a" pp_logic e
 end
 
 module Triple = struct
@@ -407,11 +430,20 @@ let eval_pat :
 
 let eval_ir :
   Expr.injected ->
-  ( (_,_) OCanren.injected -> goal) ->
+  ( Nat.injected ->
+    Expr.injected ->
+    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
+    (bool, bool OCanren.logic) OCanren.injected -> goal) ->
+  onfail:IR.injected ->
   IR.injected ->
-  (int option, int OCanren.logic Std.Option.logic) OCanren.injected ->
-  goal
-  = fun s eval_guard ir res -> eval_ir ((===)s) eval_guard ((===)ir)  res
+  IR.injected -> goal
+  = fun s eval_guard ~onfail ir res ->
+      eval_ir_hacky
+        ((===)s)
+        (fun n s xs rez -> Fresh.three (fun x y z -> (n x) &&& (s y) &&& (xs z) &&& (eval_guard x y z rez)))
+        ((===)onfail)
+        ((===)ir)
+        res
 
 (*
 let main ?(n=10) patterns2 =
@@ -499,7 +531,7 @@ let wrap :
   = fun eval_guard ->
    fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z))
 
-let eval_ir_hacky :
+(*let eval_ir_hacky :
   Expr.injected ->
   ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
   IR.injected ->
@@ -508,7 +540,7 @@ let eval_ir_hacky :
   = fun s eval_guard ir res ->
       eval_ir_hacky ((===)s)
         (fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z)))
-        ((===)ir) res
+        ((===)ir) res*)
 
 (*
 let run_hacky ?(n=10) patterns2 =
@@ -589,7 +621,10 @@ let patterns2 : (Pattern.ground * IR.ground) list =
 let eval_with_guards :
   Expr.injected ->
   onfail:IR.injected ->
-  ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
+  ( Nat.injected ->
+    Expr.injected ->
+    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
+    (bool, bool OCanren.logic) OCanren.injected -> goal) ->
   Clauses_with_guards.injected ->
   IR.injected ->
   goal
@@ -747,7 +782,10 @@ match xs,ys with
               (eval_with_guards (Expr.inject e)
                 ~onfail:(IR.fail ()) on_guard injected_pats ir))
             (fun r -> r)
-            |> (fun s -> assert (not (OCanren.Stream.is_empty s)) )
+            |> (fun s ->
+                if OCanren.Stream.is_empty s
+                then failwith (Printf.sprintf "can't get any answer")
+            )
           )
       in
       List.map Expr.inject demo_exprs
@@ -759,16 +797,10 @@ match xs,ys with
       q qh ("ideal_IR", fun ideal_IR ->
         let init = success in
         List.fold_left (fun acc (scru: Expr.injected) ->
-          fresh (res_pat res_ir)
+          fresh (res_ir)
             acc
-            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats res_pat)
-            (eval_ir          scru ~onfail:(IR.fail ()) on_guard ideal_IR      res_ir)
-            (conde
-              [ fresh (n)
-                  (res_pat === Std.Option.some (IR.int n))
-                  (res_ir  === Std.Option.some n)
-              ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-              ])
+            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats ideal_IR)
+            (eval_ir          scru ~onfail:(IR.fail ()) on_guard               ideal_IR)
           ) init injected_exprs
       );
 
@@ -777,28 +809,70 @@ match xs,ys with
     runR IR.reify IR.show IR.show_logic n
       q qh ("ideal_IR", fun ideal_IR ->
         let init =
-          fresh (th el)
-            (IR.iftag !!"nil" Matchable.(field (s(z())) (scru())) th el === ideal_IR)
+          (*fresh (th el)
+            (IR.iftag !!"nil" Matchable.(field (s(z())) (scru())) th el === ideal_IR)*)
+            success
         in
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat scru  injected_pats res_pat)
-            (eval_ir  scru (fun _ -> success) ideal_IR      res_ir)
-            (conde
-              [ fresh (n)
-                  (res_pat === Std.Option.some (IR.int n))
-                  (res_ir  === Std.Option.some n)
-              ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-              ])
+            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats res_ir)
+            (eval_ir  scru on_guard ideal_IR      res_ir)
           ) init injected_exprs
       )
 
+
+  let patterns1 =
+    [ ppair pwc  pwc,                 (Some Nat.Z,  IR.eint 100)
+    ; ppair pwc  pnil,                       (None,        IR.eint 200)
+    ; ppair (pcons pwc pwc) (pcons pwc pwc), (None,        IR.eint 300)
+    ]
+
+  let guards1 gndx _ res =
+    (Nat.z === gndx) &&& success
+
   let () =
-    run_hacky ~n:10
+    let open OCanren in
+    let on_guard gndx _ res =
+      (Nat.z === gndx) &&& success
+    in
+
+    let injected_pats = inject_patterns patterns1 in
+    let e = Expr.(econstr "pair" [econstr "nil" []; econstr "nil" []; ]) in
+
+    let () =
+      let match_pat_bindings e p r = match_pat_bindings ((===)e) ((===)p) r in
+      let injected_pat =
+          Pattern.inject @@ ppair (pvar "x") pwc
+      in
+      runR
+        (Std.Option.reify @@ Std.List.reify Expr.reify)
+        (GT.show Std.Option.ground @@ GT.show Std.List.ground Expr.show)
+        (GT.show Std.Option.logic @@ GT.show Std.List.logic Expr.show_logic)
+        1 q qh ("asdf", fun r ->
+            (match_pat_bindings (Expr.inject e) injected_pat r))
+    in
+    runR IR.reify IR.show IR.show_logic
+      1 q qh ("asdf", fun ir ->
+          (eval_with_guards (Expr.inject e)
+            ~onfail:(IR.fail ()) on_guard injected_pats ir))
+
+
+
+
+
+
+
+
+(*  let () =
+    run_hacky ~n:5
       [ ppair pnil  pwc, (None, IR.eint 1)
       ; ppair pwc  pnil, (None, IR.eint 2)
       ; ppair (pcons pwc pwc) (pcons pwc pwc), (None, IR.eint 3)
       ]
+      (fun _ _ res -> failure)*)
+
+(*  let () =
+    run_hacky ~n:5 patterns1 guards1*)
 
 end

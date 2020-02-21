@@ -1,6 +1,6 @@
 (env
   (dev
-    (flags (-strict-sequence -strict-formats -short-paths -keep-locs -w -3-9-32))))
+    (flags (-strict-sequence -short-paths -strict-formats -short-paths -keep-locs -w -3-9-32))))
 
 (library
   (name        helper)
