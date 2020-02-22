@@ -126,18 +126,26 @@ let do_not_match s eval_guard prev =
           match g with
           | None -> false
           | Some guard ->
-              if eval_guard s guard bnds
+              if eval_guard guard s bnds
               then false
               else helper xs
   in
   helper prev
 
+type matchable = Scru | Field of nat * matchable
+type ir =
+  | Fail | Int of int
+  | IFTag of string * matchable * ir * ir
+  | IFGuard of nat * (string * matchable) list * ir * ir
+
 let rec eval_with_guards s on_fail eval_guard pats =
+  let _dummyXXX = if on_fail = Fail then Fail else Fail  in
   let rec helper acc pats =
     match pats with
     | [] -> on_fail
     | (p, aux)::ps ->
         match aux with (g, rhs) ->
+        let _dummy = if g = Some Z then g else g in
         (* there we check that  it metaches p and doesn't match previous ones *)
         match match_pat_bindings s p with
         | None -> helper (list_snoc (p,g) acc) ps
@@ -145,7 +153,7 @@ let rec eval_with_guards s on_fail eval_guard pats =
             match g with
             | None -> rhs
             | Some guard ->
-                if eval_guard s guard bindings
+                if eval_guard guard s bindings
                 then (match do_not_match s eval_guard acc with true -> rhs)
                 else helper (list_snoc (p,g) acc) ps
 
@@ -155,12 +163,6 @@ let rec eval_with_guards s on_fail eval_guard pats =
 
 
 (* *************************** IR thing ********************************* *)
-
-type matchable = Scru | Field of nat * matchable
-type ir =
-  | Fail | Int of int
-  | IFTag of string * matchable * ir * ir
-  | IFGuard of nat * (string * matchable) list * ir * ir
 
 let rec eval_m s h eval_guard =
   match h with

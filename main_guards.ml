@@ -428,22 +428,6 @@ let eval_pat :
   goal
   = fun expr_scru pats res -> eval_pat ((===)expr_scru) ((===)pats) res
 
-let eval_ir :
-  Expr.injected ->
-  ( Nat.injected ->
-    Expr.injected ->
-    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
-    (bool, bool OCanren.logic) OCanren.injected -> goal) ->
-  onfail:IR.injected ->
-  IR.injected ->
-  IR.injected -> goal
-  = fun s eval_guard ~onfail ir res ->
-      eval_ir_hacky
-        ((===)s)
-        (fun n s xs rez -> Fresh.three (fun x y z -> (n x) &&& (s y) &&& (xs z) &&& (eval_guard x y z rez)))
-        ((===)onfail)
-        ((===)ir)
-        res
 
 (*
 let main ?(n=10) patterns2 =
@@ -517,19 +501,19 @@ let main ?(n=10) patterns2 =
   ()
 *)
 
-let eval_pat_hacky :
+(*let eval_pat_hacky :
   Expr.injected ->
   IR.injected ->
   Clauses.injected ->
   IR.injected ->
   goal
-  = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res
+  = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res*)
 
-let wrap :
+(*let wrap :
   ( (_,_) OCanren.injected -> (_,_) OCanren.injected -> (_,_) OCanren.injected -> goal) ->
   ((_,_) OCanren.injected -> goal) -> ((_,_) OCanren.injected -> goal) -> (_,_) OCanren.injected -> goal
   = fun eval_guard ->
-   fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z))
+   fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z))*)
 
 (*let eval_ir_hacky :
   Expr.injected ->
@@ -618,13 +602,31 @@ let patterns2 : (Pattern.ground * IR.ground) list =
   ; ppair pnil pnil, IR.eint 3
   ]*)
 
+type on_guard_t =
+    Nat.injected ->
+    Expr.injected ->
+    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
+    (bool, bool OCanren.logic) OCanren.injected -> goal
+
+let eval_ir :
+  Expr.injected ->
+  on_guard_t ->
+  onfail:IR.injected ->
+  IR.injected ->
+  IR.injected -> goal
+  = fun s eval_guard ~onfail ir res ->
+      eval_ir_hacky
+        ((===)s)
+        (fun n s xs rez -> Fresh.three (fun x y z -> (n x) &&& (s y) &&& (xs z) &&& (eval_guard x y z rez)))
+        ((===)onfail)
+        ((===)ir)
+        res
+
+
 let eval_with_guards :
   Expr.injected ->
   onfail:IR.injected ->
-  ( Nat.injected ->
-    Expr.injected ->
-    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
-    (bool, bool OCanren.logic) OCanren.injected -> goal) ->
+  on_guard_t ->
   Clauses_with_guards.injected ->
   IR.injected ->
   goal
@@ -632,7 +634,7 @@ let eval_with_guards :
       eval_with_guards
         ((===)s)
         ((===)onfail)
-        (fun a b z -> Fresh.two (fun x y -> (a x) &&& (b y) &&& (eval_guard x y z)))
+        (fun a b c d -> Fresh.three (fun x y z -> (a x) &&& (b y) &&& (c z) &&& (eval_guard x y z d)    ))
         ((===)pats)
         res
 
