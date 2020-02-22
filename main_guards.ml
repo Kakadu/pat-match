@@ -602,31 +602,39 @@ let patterns2 : (Pattern.ground * IR.ground) list =
   ; ppair pnil pnil, IR.eint 3
   ]*)
 
-type on_guard_t =
-    Nat.injected ->
-    Expr.injected ->
-    (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
-    (bool, bool OCanren.logic) OCanren.injected -> goal
+type on_guard_ir =
+  Nat.injected ->
+  Expr.injected ->
+  (string * Matchable.ground, (string OCanren.logic, Matchable.logic) Std.Pair.logic) Std.List.groundi ->
+  (bool, bool OCanren.logic) OCanren.injected ->
+  goal
 
 let eval_ir :
   Expr.injected ->
-  on_guard_t ->
+  on_guard_ir ->
   onfail:IR.injected ->
   IR.injected ->
-  IR.injected -> goal
+  IR.injected ->
+  goal
   = fun s eval_guard ~onfail ir res ->
       eval_ir_hacky
         ((===)s)
-        (fun n s xs rez -> Fresh.three (fun x y z -> (n x) &&& (s y) &&& (xs z) &&& (eval_guard x y z rez)))
+        (fun n s xs rez -> Fresh.three (fun x y zs -> (n x) &&& (s y) &&& (xs zs) &&& (eval_guard x y zs rez)))
         ((===)onfail)
         ((===)ir)
         res
+
+type on_guard_pm =
+    Nat.injected ->
+    Expr.injected ->
+    (string * Expr.ground, (string OCanren.logic, Expr.logic) Std.Pair.logic) Std.List.groundi ->
+    (bool, bool OCanren.logic) OCanren.injected -> goal
 
 
 let eval_with_guards :
   Expr.injected ->
   onfail:IR.injected ->
-  on_guard_t ->
+  on_guard_pm ->
   Clauses_with_guards.injected ->
   IR.injected ->
   goal
@@ -638,6 +646,19 @@ let eval_with_guards :
         ((===)pats)
         res
 
+let match_pat_bindings :
+  Expr.injected ->
+  Pattern.injected ->
+  ( (string * Expr.ground) Std.List.ground
+  , (string OCanren.logic, Expr.logic) Std.Pair.logic Std.List.logic
+  ) Std.Option.groundi ->
+  goal
+  = fun e p r ->
+      match_pat_bindings ((===)e) ((===)p) r
+
+
+let eval_m
+  = fun e m res -> eval_m ((===)e) ((===)m) res
 
 module TypedLists = struct
 (*
@@ -740,7 +761,8 @@ match xs,ys with
     | x::rx,y::ry -> ...
   *)
 
-  let run_hacky ?(n=10) (patterns2: (Pattern.ground * (Nat.ground option * IR.ground)) list) on_guard =
+  let run_hacky ?(n=10) ?(testname="ideal_IR") (patterns2: (Pattern.ground * (Nat.ground option * IR.ground)) list)
+        on_guard_pm on_guard_ir =
     let injected_pats = inject_patterns patterns2 in
 
     let injected_exprs =
@@ -782,7 +804,7 @@ match xs,ys with
           run one (fun ir ->
               (IR.fail () =/= ir) &&&
               (eval_with_guards (Expr.inject e)
-                ~onfail:(IR.fail ()) on_guard injected_pats ir))
+                ~onfail:(IR.fail ()) on_guard_pm injected_pats ir))
             (fun r -> r)
             |> (fun s ->
                 if OCanren.Stream.is_empty s
@@ -796,18 +818,18 @@ match xs,ys with
     in
 
     runR IR.reify IR.show IR.show_logic n
-      q qh ("ideal_IR", fun ideal_IR ->
+      q qh (Printf.sprintf "%S" testname, fun ideal_IR ->
         let init = success in
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_ir)
             acc
-            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats ideal_IR)
-            (eval_ir          scru ~onfail:(IR.fail ()) on_guard               ideal_IR)
+            (eval_with_guards scru ~onfail:(IR.fail ()) on_guard_pm injected_pats res_ir)
+            (eval_ir          scru ~onfail:(IR.fail ()) on_guard_ir ideal_IR      res_ir)
           ) init injected_exprs
       );
 
     Format.printf "%!\n";
-
+(*
     runR IR.reify IR.show IR.show_logic n
       q qh ("ideal_IR", fun ideal_IR ->
         let init =
@@ -821,7 +843,9 @@ match xs,ys with
             (eval_with_guards scru ~onfail:(IR.fail ()) on_guard injected_pats res_ir)
             (eval_ir  scru on_guard ideal_IR      res_ir)
           ) init injected_exprs
-      )
+      );
+*)
+      ()
 
 
   let patterns1 =
@@ -835,29 +859,62 @@ match xs,ys with
 
   let () =
     let open OCanren in
-    let on_guard gndx _ res =
-      (Nat.z === gndx) &&& success
-    in
-
-    let injected_pats = inject_patterns patterns1 in
-    let e = Expr.(econstr "pair" [econstr "nil" []; econstr "nil" []; ]) in
-
     let () =
-      let match_pat_bindings e p r = match_pat_bindings ((===)e) ((===)p) r in
+      let e = Expr.(econstr "pair" [econstr "nil" []; econstr "nil" []; ]) in
       let injected_pat =
-          Pattern.inject @@ ppair (pvar "x") pwc
+          Pattern.inject @@ ppair (pvar "x") (pvar "y")
       in
       runR
-        (Std.Option.reify @@ Std.List.reify Expr.reify)
-        (GT.show Std.Option.ground @@ GT.show Std.List.ground Expr.show)
-        (GT.show Std.Option.logic @@ GT.show Std.List.logic Expr.show_logic)
-        1 q qh ("asdf", fun r ->
+        (Std.Option.reify @@ Std.List.reify @@ Std.Pair.reify OCanren.reify Expr.reify)
+        (GT.show Std.Option.ground @@ GT.show Std.List.ground @@
+            GT.show Std.Pair.ground (GT.show GT.string) Expr.show)
+        (GT.show Std.Option.logic  @@ GT.show Std.List.logic  @@
+            GT.show Std.Pair.logic  (GT.show OCanren.logic @@ GT.show GT.string) Expr.show_logic)
+        (-1) q qh ("asdf", fun r ->
             (match_pat_bindings (Expr.inject e) injected_pat r))
     in
-    runR IR.reify IR.show IR.show_logic
-      1 q qh ("asdf", fun ir ->
-          (eval_with_guards (Expr.inject e)
-            ~onfail:(IR.fail ()) on_guard injected_pats ir))
+
+ (*   let on_guard gndx _ res =
+      (Nat.z === gndx) &&& success
+    in*)
+    (* testing eval_with_guards *)
+    let () =
+      let injected_pats =
+        inject_patterns @@
+        [ ppair (pvar "x")  pwc,                 (Some Nat.Z,  IR.eint 100)
+        ; ppair pwc         pnil,                (None,        IR.eint 200)
+        ; ppair (pcons pwc pwc) (pcons pwc pwc), (None,        IR.eint 300)
+        ]
+      in
+      let on_guard_pm n scru bnds flag =
+        conde
+          [ fresh (onx)
+              (Nat.z === n)
+              (Std.List.assoco !!"x" bnds onx)
+              (conde
+                [ (Expr.constr !!"nil" (Std.nil()) === onx) &&& (flag === !!true)
+                ; (Expr.constr !!"nil" (Std.nil()) =/= onx) &&& (flag === !!false)
+                ])
+          ; (Nat.z =/= n) &&& failure
+          ]
+      in
+
+      let enil = Expr.econstr "nil"  [] in
+      let cons_nil_nil =  Expr.econstr "cons" [enil;enil] in
+
+      List.iter (fun e ->
+        runR IR.reify IR.show IR.show_logic 1 q qh
+          ( Printf.sprintf "Matching scru = %s" (Expr.show e)
+          , fun ir ->
+              (eval_with_guards (Expr.inject e)
+                ~onfail:(IR.fail ()) on_guard_pm injected_pats ir)))
+        [ Expr.(econstr "pair" [enil;         cons_nil_nil ])
+        ; Expr.(econstr "pair" [cons_nil_nil; enil; ])
+        ; Expr.(econstr "pair" [enil;         cons_nil_nil ])
+        ; Expr.(econstr "pair" [cons_nil_nil; cons_nil_nil ])
+        ]
+    in
+    ()
 
 
 
@@ -866,15 +923,77 @@ match xs,ys with
 
 
 
-(*  let () =
-    run_hacky ~n:5
-      [ ppair pnil  pwc, (None, IR.eint 1)
-      ; ppair pwc  pnil, (None, IR.eint 2)
-      ; ppair (pcons pwc pwc) (pcons pwc pwc), (None, IR.eint 3)
+  let () =
+    let testname = "a la Maranget with guard" in
+    let patterns =
+      [ ppair (pvar "x")   pwc,         (Some Z, IR.eint 1000)
+      ; ppair pwc          pnil,        (None, IR.eint 2000)
+      ; ppair (pcons pwc pwc) (pcons pwc pwc), (None, IR.eint 3000)
       ]
-      (fun _ _ res -> failure)*)
+    in
+    let on_guard_pm n scru bnds flag =
+      conde
+        [ fresh (onx)
+            (Nat.z === n)
+            (Std.List.assoco !!"x" bnds onx)
+            (conde
+              [ (Expr.constr !!"nil" (Std.nil()) === onx) &&& (flag === !!true)
+              ; (Expr.constr !!"nil" (Std.nil()) =/= onx) &&& (flag === !!false)
+              ])
+        ; (Nat.z =/= n) &&& failure
+        ]
+    in
+    let on_guard_ir n scru bnds flag =
+      conde
+        [ fresh (onx subterm)
+            (Nat.z === n)
+            (Std.List.assoco !!"x" bnds onx)
+            (eval_m scru onx subterm)
+            (conde
+              [ (Expr.constr !!"nil" (Std.nil()) === subterm) &&& (flag === !!true)
+              ; (Expr.constr !!"nil" (Std.nil()) =/= subterm) &&& (flag === !!false)
+              ])
+        ; (Nat.z =/= n) &&& failure
+        ]
+    in
+    run_hacky ~n:5 ~testname
+      patterns
+      on_guard_pm
+      on_guard_ir
 
-(*  let () =
-    run_hacky ~n:5 patterns1 guards1*)
+
+  let _works () =
+    let patterns =
+      [ ppair (pvar "x")  pwc, (Some Z, IR.eint 1000)
+      ; ppair pwc         pwc, (None, IR.eint 2000)
+      ]
+    in
+    let on_guard_pm n scru bnds flag =
+      conde
+        [ fresh (onx)
+            (Nat.z === n)
+            (Std.List.assoco !!"x" bnds onx)
+            (conde
+              [ (Expr.constr !!"nil" (Std.nil()) === onx) &&& (flag === !!true)
+              ; (Expr.constr !!"nil" (Std.nil()) =/= onx) &&& (flag === !!false)
+              ])
+        ; (Nat.z =/= n) &&& failure
+        ]
+    in
+    let on_guard_ir n scru bnds flag =
+      conde
+        [ fresh (onx subterm)
+            (Nat.z === n)
+            (Std.List.assoco !!"x" bnds onx)
+            (eval_m scru onx subterm)
+            (conde
+              [ (Expr.constr !!"nil" (Std.nil()) === subterm) &&& (flag === !!true)
+              ; (Expr.constr !!"nil" (Std.nil()) =/= subterm) &&& (flag === !!false)
+              ])
+        ; (Nat.z =/= n) &&& failure
+        ]
+    in
+    run_hacky ~n:4 patterns on_guard_pm on_guard_ir
+
 
 end

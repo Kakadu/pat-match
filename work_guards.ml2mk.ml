@@ -1,3 +1,16 @@
+let list_map f xs =
+  let rec helper xs = match xs with
+  | [] -> []
+  | x::xs -> (f x) :: helper xs
+  in
+  helper xs
+
+let rec list_all f xs = match xs with
+| [] -> true
+| x::xs ->  if f x
+            then list_all f xs
+            else false
+
 let list_map_all f =
   let rec helper xs = match xs with
   | [] -> true
@@ -7,11 +20,6 @@ let list_map_all f =
   in
   helper
 
-let rec list_all f xs = match xs with
-| [] -> true
-| x::xs ->  if f x
-            then list_all f xs
-            else false
 
 let rec list_foldl f acc ys = match ys with
 | [] -> acc
@@ -37,13 +45,6 @@ let list_mapi f xs =
   in
   helper Z xs
 
-let list_map f xs =
-  let rec helper xs = match xs with
-  | [] -> []
-  | x::xs -> ( x) :: helper xs
-  in
-  helper xs
-
 let rec list_append xs ys =
   match xs with
   | [] -> ys
@@ -62,6 +63,7 @@ let option_bind x f =
 
 type pattern = WildCard | PVar of string | PConstr of string * pattern list
 type expr = EConstr of string * expr list
+type matchable = Scru | Field of nat * matchable
 
 let rec match1pat s p =
   match s,p with
@@ -132,7 +134,7 @@ let do_not_match s eval_guard prev =
   in
   helper prev
 
-type matchable = Scru | Field of nat * matchable
+
 type ir =
   | Fail | Int of int
   | IFTag of string * matchable * ir * ir
@@ -160,15 +162,13 @@ let rec eval_with_guards s on_fail eval_guard pats =
   in
   helper [] pats
 
-
-
 (* *************************** IR thing ********************************* *)
 
-let rec eval_m s h eval_guard =
+let rec eval_m s h  =
   match h with
   | Scru -> s
   | Field (n, m) ->
-    match eval_m s m eval_guard with
+    match eval_m s m with
     | EConstr (_, es) -> list_nth_nat n es
 
 (*
@@ -189,12 +189,14 @@ let rec eval_ir_hacky s eval_guard onfail ir =
   | Fail -> onfail
   | Int n -> Int n
   | IFGuard (gndx, args, then_, else_) ->
-(*      let evaled_args = list_map (fun (name,x) -> (name,eval_ir_hacky s eval_guard x) ) args in*)
+      (*let evaled_args =
+        list_map (fun p -> match p with (name,x) -> (name, eval_m s x)) args
+      in*)
       if eval_guard gndx s args
       then eval_ir_hacky s eval_guard onfail then_
       else eval_ir_hacky s eval_guard onfail else_
   | IFTag (tag, scru, th, el) ->
-      match eval_m s scru eval_guard with
+      match eval_m s scru with
       | EConstr (tag2, args) ->
         if tag2 = tag
         then eval_ir_hacky s eval_guard onfail th
