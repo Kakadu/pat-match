@@ -114,6 +114,9 @@ module Expr = struct
   let constr = eConstr
   let econstr s xs = EConstr (s, Std.List.of_list id xs)
 
+  let rec reify env x =
+    For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
+
   let show x =
     let rec helper pars x =
      match x with
@@ -139,9 +142,6 @@ module Expr = struct
           (GT.show Std.List.logic show_logic xs)
     in
     GT.show OCanren.logic helper x
-
-  let rec reify env x =
-    For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
 
   let inject (e: ground) : injected =
     let rec helper = function

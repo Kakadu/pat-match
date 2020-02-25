@@ -42,6 +42,7 @@
 \newcommand{\ruleno}[1]{\mbox{[\textsc{#1}]}}
 \newcommand{\bigslant}[2]{{\raisebox{.2em}{$#1$}\left/\raisebox{-.2em}{$#2$}\right.}}
 \newcommand{\sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\ir}{\ensuremath{\mathcal{I\!R}}}
 \begin{document}
 
 %\begin{minted}[mathescape, escapeinside=??]{ocaml }  
@@ -107,24 +108,105 @@ $$
 
 \section{Промежуточное представление}
 \begin{align*}
-\mathcal{C} &= \{ C_1^{k_1}, \dots, C_n^{k_n} \} \\
+\mathcal{C} =&\; \{ C_1^{k_1}, \dots, C_n^{k_n} \} \\
+\mathcal{V} =&\;  \mathcal{C}\ \mathcal{V}^*\\
 \mathcal{M} =&\;  \mathcal{S} \\
-          \mid\; &\; \text{\texttt{field}}\  \mathcal{M}\  \mathbb{N}\\
-\mathcal{IR} =&\; \mathcal{S} \\
+          \mid\; &\; \text{\texttt{Field}}\  \mathcal{M}\times  \mathbb{N}\\
+\mathcal{P} =&\;  \mathcal{WC} \\
+          \mid\; &\; \text{\texttt{Var}}\  \mathcal{Name}\\
+          \mid\; &\; \text{\texttt{PConstructor}}\  \mathcal{C}\times  \mathcal{P}^*\\
+\ir  =&\; \mathcal{S} \\
            \mid\; &\;\text{\texttt{Int}}\  \mathbb{N} \\
-           \mid\; &\;\text{\texttt{Expr}}\  \mathcal{V} \\
-           \mid\; &\; \text{\texttt{IfTag}}\; \mathcal{C}\; \mathcal{M}\; \mathcal{I\!R}\; \mathcal{I\!R}
+%           \mid\; &\;\text{\texttt{Expr}}\  \mathcal{V} \\
+           \mid\; &\; \text{\texttt{IfTag}}\; \mathcal{C}\times \mathcal{M}\times \ir\times \ir\\
+           \mid\; &\; \text{\texttt{IfGuard}}\ \mathbb{N}\times (\mathcal{Name}\times \mathcal{M})^*\times \ir\times \ir\\
+\mathcal{Clause} =&\;  \mathcal{P} \times \mathbb{N}? \times \ir \\           
 \end{align*}
-Скомпилированная программа на основе паттернов $p_1,\dots,p_n$ -- это 
-такие программы $pr$, что 
 
+Сопоставление с образцом производится для значений вида $\mathcal{V}$. Среди паттернов разрешены wildcards, переменной и паттерны-констукторы с аргументами. В клаузхах у паттернов разрешено ставить ноль или одно охранное выражение, которые нумеруются натуральными числами $\mathbb{N}$. В правой части клауз стоит произвольный код вида $\ir$.
+
+\section{Интерпретатор паттернов}
+Чтобы написать интепретатор (реляционный или нет) сопоставления с образцом, который на выходе выдает значение вида $\ir$, на входе необходимо иметь
+\begin{enumerate}
+\item конкретное выражение $v\in \mathcal{V}$ (scrutinee)
+\item клаузы, возможно c охранными выражениями, представленными числами из $\mathbb{N}$;
+\item конкретный результат на случай, если ни один паттерн не подошел
+\item функцию-интерпретатор охранных выражений, которая принимает номер и сопоставления переменных мэтчинга в выражения из $\mathcal{V}$
+\end{enumerate}
+
+Такой интерпретатор будем обозначать $\sem{s;p_1\dots,p_n}$.
+
+
+
+\section{Интерпретатор $\ir$}
+В язык $\ir$ не введены в явном виде термы из языка $\mathcal{V}$, чтобы сделать язык менее богатым и, следовательно, более поддающемся перебору. Поэтому конструкторы \texttt{IfTag} и \texttt{IfGuard} содержат в себе не выражения $\mathcal{V}$, а срезы исходного scrutinee $\mathcal{M}$.
+
+Для написания интепретатора $eval_{\ir}$ требуется 
+\begin{itemize}
+\item Программа, которая будет интерпретироваться
+\item Выражение, которое будет разбираться (scrutinee)
+\item Функция-интепретатор исполнения охранного выражения c номером, на частичном отображении некоторых имен в подвыражения scrutinee.
+\end{itemize}
+
+\section{Задача синтеза}
+
+Дана программа, производящие сопоставление с образцом какое-то значение 
+scrutinee конкретного типа с помощью конкретных паттернов. В паттернах разрешены конструкторы, wildcards и охранные выражения. В правых частях стоит слово языка $\ir$, обозначающее номер ветки. Необходимо по данной программе построить программу на языке $\ir$, которая показывает такое же поведение, и оптимальная с точки зрения количества кода.
+
+Таким образом ставится задачи синтеза программы $pr\in~\ir$, которая для произвольных scrutinee $s$  и конкретных паттернов с охранными выражениями $p_1\dots,p_n$ ведет себя так же, как и исходная программа
 $$
-\forall s.\; eval_{\mathcal{I\!R}}\; pr\; s = \sem{s;p_1\dots,p_n} 
+\forall s.\; eval_{\ir}\; s\; pr = \sem{s;p_1\dots,p_n}
 $$
 или в реляционном синтаксисе
 
 $$
-\forall s \exists\; res.\; (eval^o_{\mathcal{I\!R}}\; pr\; s res) \land ( res = \sem{s;p_1\dots,p_n}) 
+\forall s\; \exists res: \left((eval^o_{\ir}\; s \; pr \; res) \land ( res = \sem{s;p_1\dots,p_n}) \right)
 $$
 
+В данной формуле стоит универсальная квантификация по возможным $s\in\mathcal{S}$, которая затрудняет перебор. От неё можно избавиться (раздел \ref{genexamples}), сведя её к перебору по \emph{конечному} набору примеров $\mathcal{ExS}$:
+
+$$
+\forall s \; (s\in\mathcal{ExS})\land \left(\exists res \left((eval^o_{\ir}\; s \; pr \; res) \land ( res = \sem{s;p_1\dots,p_n}) \right)\right)
+$$
+
+\section{Получение конечного числа примеров}
+\label{genexamples}
+
+Идея заключается в том, что для конкретных паттернов нам известна максимальная высота паттернов разбираемого выражения: для примеров с большей высотой некоторые подтермы не будут затронуты сопоставлением с образцом и по сути могут иметь произвольное значение. Таким образцом, если тип населен бесконечным числом жителей, то достаточно проверить только на жителях конечной высоты.
+
+Для алгебраических типов данных все примеры конечной высоты генерируются за конечное время. Обобщенные (GADT) алгебраические типы данных могут быть не населены, и, в общем случае, процесс построения конечного числа примеров может не завершиться.
+
+Население n-параметрического (G)ADT осуществляется реляцией с $(1+2n)$ аргументами: один для результата и на каждый параметр $\alpha$ по реляции, населяющей тип $\alpha$ и информации $info_{\alpha}$ о конкретной инстанциации этого типового параметра.
+
+Информация об инстанции хранится в типе $ginfo$, погруженным в реляционный домен. Значения такого типа хранят в себе имя типа и список аргументов, обозначающий с какими конкретными типами он был инстанциирован. Если типовый параметр -- это полиморфная типовая переменная, то вместо информации мы будем использовать свежую переменную реляционного программирования.
+
+\begin{minted}{ocaml}
+type ginfo = Info of string * ginfo list
+\end{minted}
+
+Не дописано. Пример.
+
+\begin{minted}{ocaml}
+type _ expr =
+  | Int  : int -> int expr
+  | Bool : bool -> bool expr
+  | If   : bool expr * 'a expr * 'a expr -> 'a expr
+  
+let rec inhabit_expr = fun inh_arg arg_desc r ->
+  conde
+    [ fresh (i)
+        (Info.int === arg_desc)
+        (r === int i)
+        (inhabit_int i)
+    ; fresh (b)
+        (Info.bool === arg_desc)
+        (r === bool b)
+        (inhabit_bool b)
+    ; fresh (c th el)
+        (if_ c th el === r)
+        (inhabit_expr inhabit_bool Info.bool c)
+        (inhabit_expr inh_arg arg_desc th)
+        (inhabit_expr inh_arg arg_desc el)
+    ]
+\end{minted}
 \end{document}

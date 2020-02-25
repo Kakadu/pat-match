@@ -16,7 +16,7 @@ let () =
 
 (* ********************************************************************** *)
 module Test1 = struct
-  type 'a expr =
+  type _ expr =
     | Int  : int -> int expr
     | Bool : bool -> bool expr
     | If   : bool expr * 'a expr * 'a expr -> 'a expr
@@ -55,11 +55,11 @@ module Test1 = struct
     conde
       [ fresh (i)
           (Info.leaf !!"int" === arg_desc)
-          (r === int i)
+          (int i === r)
           (inhabit_int i)
       ; fresh (b)
           (Info.leaf !!"bool" === arg_desc)
-          (r === bool b)
+          (bool b === r)
           (inhabit_bool b)
       ; fresh (c th el)
           (if_ c th el === r)

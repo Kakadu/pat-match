@@ -35,7 +35,7 @@
   (name main2)
   (modules main2 work)
   (flags (-rectypes))
-  (libraries ocanren ocanren.tester helper)
+  (libraries OCanren OCanren.tester helper)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
@@ -43,7 +43,7 @@
   (name main_gadt)
   (modules main_gadt)
   (flags (-rectypes))
-  (libraries ocanren ocanren.tester helper)
+  (libraries OCanren OCanren.tester helper)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
