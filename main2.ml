@@ -1,6 +1,6 @@
-open Work 
-open OCanren 
-open Tester 
+open Work
+open OCanren
+open Tester
 
 let id x = x
 
@@ -14,18 +14,18 @@ let leaf s = eConstr !!s @@ Std.List.nil ()
 (* let z = eConstr !!"z" @@ Std.List.nil () *)
 let pair a b = eConstr !!"pair" (Std.List.list [a;b])
 
-type name = string 
-let name = 
+type name = string
+let name =
   { GT.gcata = ()
   ; fix = ()
-  ; plugins = object 
+  ; plugins = object
       method fmt f = Format.fprintf f "%s"
   end }
 
 module Pattern = struct
-  type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b 
+  type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b
     [@@deriving gt ~options:{fmt; gmap}]
-  
+
   type ground = (string, ground Std.List.ground) t
   type logic = (string OCanren.logic, logic Std.List.logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
@@ -192,7 +192,7 @@ let generate_demo_exprs pats =
       List.flatten @@ List.map (fun xs -> List.map (fun h -> h::xs) init) @@
       populate_lists (n-1) init
   in
-  
+
   let rec builder (prev: 'a list) curh : Expr.ground list =
     if curh > height
     then prev
@@ -254,22 +254,22 @@ let ppair a b : Pattern.ground = pconstr "pair" [a;b]
     q qh ("answers", make_expr_generator patterns1) *)
 
 
-module Nat = struct 
+module Nat = struct
   type 'a gnat = 'a Work.gnat = Z | S of 'a [@@deriving gt ~options:{fmt}]
-  type ground = ground gnat 
-  type logic = logic gnat OCanren.logic 
-  type injected = (ground, logic) OCanren.injected 
-  
+  type ground = ground gnat
+  type logic = logic gnat OCanren.logic
+  type injected = (ground, logic) OCanren.injected
+
   let z : injected = Work.z ()
   let s = Work.s
-  
+
   let show (n: ground) =
     let rec helper acc = function
     | Z -> string_of_int acc
     | S n -> helper (acc+1) n
     in
     helper 0 n
-  
+
   let show_logic n =
     let rec helper acc : logic -> string = function
     | Value Z -> string_of_int acc
@@ -283,7 +283,7 @@ module Nat = struct
     | S n -> helper (acc+1) n
     in
     helper 0 n
-  
+
   let rec reify env x = For_gnat.reify reify env x
 end
 
@@ -469,7 +469,7 @@ let main ?(n=10) patterns2 =
 
 let eval_pat_hacky :
   Expr.injected ->
-  IR.injected -> 
+  IR.injected ->
   Clauses.injected ->
   IR.injected ->
   goal
@@ -477,7 +477,7 @@ let eval_pat_hacky :
 
 let eval_ir_hacky :
   Expr.injected ->
-  IR.injected ->  
+  IR.injected ->
   IR.injected ->
   goal
   = fun s ir res -> eval_ir_hacky ((===)s) ((===)ir) res
@@ -507,15 +507,15 @@ let run_hacky ?(n=10) patterns2 =
         )
       );
     print_newline ();
-    
-    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in 
+
+    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in
     (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)
   in
 
   runR IR.reify IR.show IR.show_logic n
     q qh ("ideal_IR", fun ideal_IR ->
       let init = success in
-      let init = 
+      let init =
         List.fold_left (fun acc (scru: Expr.injected) ->
           (eval_ir_hacky  scru ideal_IR      (IR.fail()))
         ) init non_exh_pats
@@ -525,18 +525,18 @@ let run_hacky ?(n=10) patterns2 =
           acc
           (eval_pat_hacky scru (IR.fail()) injected_pats res_pat)
           (eval_ir_hacky  scru ideal_IR      res_ir)
-          (res_pat === res_ir) 
+          (res_pat === res_ir)
       ) init injected_exprs
     )
 
 
 
-let () = 
-  let ps = 
+let () =
+  let ps =
     [ pnil , IR.eint 1
     ; pwc  , IR.eint 2
     ]
-  in 
+  in
   main ~n:0 ps;
   run_hacky ps
 
@@ -751,9 +751,9 @@ match xs,ys with
 
   let () =
     run_hacky ~n:140
-      [ ppair pnil  pwc, IR.eint 1
-      ; ppair pwc  pnil, IR.eint 2
-      ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
+      [ ppair pnil  pwc, IR.eint 10
+      ; ppair pwc  pnil, IR.eint 20
+      ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
       ]
 
 end

@@ -16,6 +16,9 @@ guards:
 run-mini:
 	dune exec mini/minirun.exe $(VERBOSE)
 
+unn:
+	dune exec ./main_unnested.exe $(VERBOSE)
+
 celan: clean
 clean:
 	$(RM) -r _build
