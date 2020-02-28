@@ -1,3 +1,4 @@
+module Work = Work_unnested
 open Work
 open OCanren
 open Tester
@@ -209,7 +210,7 @@ let generate_demo_exprs pats =
   in
   builder height1 (1+1)
 
-let checkAnswer q c r = eval_ir ((===) q) ((===) c) r
+let checkAnswer = eval_ir
 
 let _ =
   run_exn (Format.asprintf "%a" (pp_maybe pp_rhs)) 1 q qh ("answers", fun q ->
@@ -294,6 +295,14 @@ module Matchable = struct
 
   let scru = scru
   let field = field
+
+  let field0  () = field (z())    @@ scru()
+  let field1  () = field (s(z())) @@ scru()
+  let field00 () = field (z())    @@ field0 ()
+  let field01 () = field (s(z())) @@ field0 ()
+  let field10 () = field (z())    @@ field1 ()
+  let field11 () : injected = field (s(z())) @@ field1 ()
+
   let rec reify env x =
     For_gmatchable.reify Nat.reify reify env x
 
@@ -382,106 +391,7 @@ let inject_patterns ps =
 
   Std.List.list @@
   List.map (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
-
-let eval_pat :
-  Expr.injected ->
-  Clauses.injected ->
-  (IR.ground option, IR.logic Std.Option.logic) OCanren.injected ->
-  goal
-  = fun expr_scru pats res -> eval_pat ((===)expr_scru) ((===)pats) res
-
-let eval_ir :
-  Expr.injected ->
-  IR.injected ->
-  (int option, int OCanren.logic Std.Option.logic) OCanren.injected ->
-  goal
-  = fun s ir res -> eval_ir ((===)s) ((===)ir) res
-
-
-let main ?(n=10) patterns2 =
 (*
-  let patterns2 : (Pattern.ground * IR.ground) list =
-    (* [ psome pnil, IR.eint 1
-    ; psome  pwc, IR.eint 2
-    ] *)
-    (* [  pwc, IR.eint 1
-    ; pnil, IR.eint 2
-    ] *)
-    (* [ ppair pnil pwc, IR.eint 1
-    ; ppair pwc  pnil, IR.eint 2
-    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
-    ] *)
-    [ ppair pnil pwc,  IR.eint 1
-    ; ppair pwc  pnil, IR.eint 2
-    ; ppair pnil pnil, IR.eint 3
-    (* ; pwc, IR.eint 4 *)
-    ]
-  in*)
-  let injected_pats = inject_patterns patterns2 in
-
-  let injected_exprs =
-    let demo_exprs = generate_demo_exprs @@ List.map fst patterns2 in
-    Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
-    print_demos "demo_exprs" demo_exprs;
-    let demo_exprs =
-      demo_exprs |> List.filter (fun e ->
-        let open OCanren in
-        run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
-          (fun r -> r)
-          |> (fun s -> not (OCanren.Stream.is_empty s))
-        )
-    in
-    demo_exprs |> List.iter (fun e ->
-        runR (Std.Option.reify IR.reify)
-             (GT.show Std.Option.ground IR.show)
-             (GT.show Std.Option.logic IR.show_logic)
-          1 q qh (Printf.sprintf "test_demo: `%s`" (Expr.show e), fun ir ->
-            eval_pat (Expr.inject e) injected_pats (ir)
-        )
-      );
-    print_newline ();
-    List.map Expr.inject demo_exprs
-  in
-
-  runR IR.reify IR.show IR.show_logic n
-    q qh ("ideal_IR", fun ideal_IR ->
-      let init =
-        fresh (hack1 hack2)
-          success
-          (* (ideal_IR === IR.iftag !!"pair" (Matchable.scru ()) hack1 hack2) *)
-      in
-
-      List.fold_left (fun acc (scru: Expr.injected) ->
-        fresh (res_pat res_ir)
-          acc
-          (eval_pat scru injected_pats res_pat)
-          (eval_ir  scru ideal_IR      res_ir)
-          (conde
-            [ fresh (n)
-                (res_pat === Std.Option.some (IR.int n))
-                (res_ir  === Std.Option.some n)
-            ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-            ])
-      ) init injected_exprs
-    );
-
-  ()
-
-let eval_pat_hacky :
-  Expr.injected ->
-  IR.injected ->
-  Clauses.injected ->
-  IR.injected ->
-  goal
-  = fun expr_scru onfail pats res -> eval_pat_hacky ((===)expr_scru) ((===)onfail) ((===)pats) res
-
-let eval_ir_hacky :
-  Expr.injected ->
-  IR.injected ->
-  IR.injected ->
-  goal
-  = fun s ir res -> eval_ir_hacky ((===)s) ((===)ir) res
-
 
 let run_hacky ?(n=10) patterns2 =
   let injected_pats = inject_patterns patterns2 in
@@ -529,16 +439,7 @@ let run_hacky ?(n=10) patterns2 =
       ) init injected_exprs
     )
 
-
-
-let () =
-  let ps =
-    [ pnil , IR.eint 1
-    ; pwc  , IR.eint 2
-    ]
-  in
-  main ~n:0 ps;
-  run_hacky ps
+*)
 
 
 let patterns2 : (Pattern.ground * IR.ground) list =
@@ -702,12 +603,129 @@ match xs,ys with
           let open OCanren in
           run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
             (fun r -> r)
-            |> (fun s -> assert (not (OCanren.Stream.is_empty s)) )
+            |> (fun s ->
+                  assert (not (OCanren.Stream.is_empty s));
+(*                  let (_:int)  = (OCanren.Stream.hd s) in*)
+                  print_endline @@ IR.show_logic  ((OCanren.Stream.hd s)#reify IR.reify);
+            )
           )
       in
       List.map Expr.inject demo_exprs
       (*let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in
       (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)*)
+    in
+
+    let count_constructors : IR.logic -> int = fun root ->
+      (*let (>>=) x f = match x with None -> None | Some x -> f x in
+      let (>>|) x f = match x with None -> None | Some x -> Some (f x) in
+      let return x = Some x in*)
+
+      let rec helper = function
+      | Var (_,_)     -> 0
+      | Value (Int _)
+      | Value (Fail)  -> 0
+      | Value (IFTag (_,_,then_,else_)) ->
+          let a = helper then_ in
+          let b = helper else_ in
+          (1+a+b)
+      in
+      helper root
+    in
+
+    let flip f a b = f b a in
+
+    let height_hack ans =
+      fortytwo ans (flip IR.reify) (fun ir ->
+
+            let n = count_constructors ir in
+(*            Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
+            match count_constructors ir with
+            | x when x>2 -> failure
+            | _ -> success
+      )
+    in
+
+(*
+    (* Not fast enough *)
+    let rec my_eval_ir s ir ans =
+      let open Std in
+      conde
+        [ (ir === (fail ())) &&& (ans === (none ()))
+        ; fresh (n)
+            (ir === (int n))
+            (ans === (some n))
+        ; fresh (tag scru2 th el q14 tag2 args q16)
+            (ir === (iFTag tag scru2 th el))
+            (q14 === (eConstr tag2 args))
+            (eval_m s scru2 q14)
+
+            (conde [tag === !!"nil"; tag === !!"cons"; tag === !!"pair"])
+            (let open Matchable in
+             conde
+              [ (scru2 === scru   ()) &&& (tag === !!"pair")
+              ; (scru2 === field0 ()) &&& (conde [tag === !!"nil"; tag === !!"cons"])
+              ; (scru2 === field1 ()) &&& (conde [tag === !!"nil"; tag === !!"cons"])
+              ; (scru2 === field00()) &&& failure
+              ; (scru2 === field01()) &&& failure
+              ; (scru2 === field10()) &&& failure
+              ; (scru2 === field11()) &&& failure
+              ])
+
+            (conde
+               [ (tag2 === tag) &&& (q16 === !!true)
+               ; (q16 === !!false) &&& (tag2 =/= tag)
+               ])
+            (conde
+               [ (q16 === !!true)  &&& (my_eval_ir s th ans)
+                    &&& (height_hack th)
+               ; (q16 === !!false) &&& (my_eval_ir s el ans)
+                    &&& (height_hack el)
+               ])
+        ]
+    in
+*)
+    let rec my_eval_ir s ir ans =
+      let open Std in
+      conde
+        [ (ir === (fail ())) &&& (ans === (none ()))
+        ; fresh (n)
+            (ir === (int n))
+            (ans === (some n))
+        ; fresh (tag scru2 th el q14 tag2 args q16)
+            (ir === (iFTag tag scru2 th el))
+            (q14 === (eConstr tag2 args))
+            (eval_m s scru2 q14)
+
+            (conde [tag === !!"nil"; tag === !!"cons"; tag === !!"pair"])
+            (let open Matchable in
+             conde
+              [ (scru2 === scru   ()) &&& failure
+                  (*(tag === !!"pair") &&& (el === fail())*)
+              ; (scru2 === field0 ()) &&&
+                  (conde [ tag === !!"nil"  &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                         ; tag === !!"cons" &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                         ])
+              ; (scru2 === field1 ()) &&&
+                  (conde [ tag === !!"nil"  &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                         ; tag === !!"cons" &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                         ])
+              ; (scru2 === field00()) &&& failure
+              ; (scru2 === field01()) &&& failure
+              ; (scru2 === field10()) &&& failure
+              ; (scru2 === field11()) &&& failure
+              ])
+
+            (conde
+               [ (tag2 === tag) &&& (q16 === !!true)
+               ; (q16 === !!false) &&& (tag2 =/= tag)
+               ])
+            (conde
+               [ (q16 === !!true)  &&& (my_eval_ir s th ans)
+                    &&& (height_hack th)
+               ; (q16 === !!false) &&& (my_eval_ir s el ans)
+                    &&& (height_hack el)
+               ])
+        ]
     in
 
     runR IR.reify IR.show IR.show_logic n
@@ -716,8 +734,8 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat scru  injected_pats res_pat)
-            (eval_ir  scru ideal_IR      res_ir)
+            (eval_pat    scru  injected_pats res_pat)
+            (my_eval_ir  scru ideal_IR      res_ir)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -738,8 +756,8 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat scru injected_pats res_pat)
-            (eval_ir  scru ideal_IR      res_ir)
+            (eval_pat    scru injected_pats res_pat)
+            (my_eval_ir  scru ideal_IR      res_ir)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -750,7 +768,7 @@ match xs,ys with
       )
 
   let () =
-    run_hacky ~n:140
+    run_hacky ~n:40
       [ ppair pnil  pwc, IR.eint 10
       ; ppair pwc  pnil, IR.eint 20
       ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30

@@ -1,7 +1,7 @@
 VERBOSE=#--verbose
 .PHONY: run run-mini celan
 
-all: guards
+all: unn #guards
 
 
 run:
