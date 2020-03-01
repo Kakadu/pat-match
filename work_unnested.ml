@@ -39,11 +39,13 @@ module For_gnat =
          end)
 let rec z () = inj (For_gnat.distrib Z)
 and s x__0 = inj (For_gnat.distrib (S x__0))
+
 let rec list_nth_nat idx xs q61 =
   fresh (q62) (q62 === (pair idx xs))
     ((fresh (x q63) (q62 === (pair (z ()) (x % q63))) (x === q61)) |||
        (fresh (n q65 xs) (q62 === (pair (s n) (q65 % xs)))
           (list_nth_nat n xs q61)))
+
 type ('a1, 'a0) gpattern =
   | WildCard 
   | PConstr of 'a1 * 'a0 

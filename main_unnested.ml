@@ -1,4 +1,5 @@
 module Work = Work_unnested
+open Printf
 open Work
 open OCanren
 open Tester
@@ -11,17 +12,15 @@ let pp_maybe fa fmt = function
 | Some x -> Format.fprintf fmt "(Some %a)" fa x
 
 let leaf s = eConstr !!s @@ Std.List.nil ()
-(* let nil = eConstr !!"nil" @@ Std.List.nil () *)
-(* let z = eConstr !!"z" @@ Std.List.nil () *)
 let pair a b = eConstr !!"pair" (Std.List.list [a;b])
 
-type name = string
+(*type name = string
 let name =
   { GT.gcata = ()
   ; fix = ()
   ; plugins = object
       method fmt f = Format.fprintf f "%s"
-  end }
+  end }*)
 
 module Pattern = struct
   type ('a,'b) t = ('a,'b) Work.gpattern = WildCard | PConstr of 'a * 'b
@@ -262,6 +261,7 @@ module Nat = struct
   type injected = (ground, logic) OCanren.injected
 
   let z : injected = Work.z ()
+  let one : injected =  Work.s z
   let s = Work.s
 
   let show (n: ground) =
@@ -358,19 +358,26 @@ module IR = struct
     in
     helper e
 
+  let show_ocl f = GT.show OCanren.logic f
+  let show_ocl_small f = function
+    | Value x -> f x
+    | Var (n,_) -> Printf.sprintf "_.%d" n
+
+(*  let show_ocl_small = show_ocl     (* PRINTING HACK *)*)
+
   let rec show_logic e =
     let rec helper = function
     | Fail -> "(fail)"
-    | Int ln -> GT.show OCanren.logic (GT.show GT.int) ln
+    | Int ln -> show_ocl_small (GT.show GT.int) ln
     | IFTag (ltag, m, th_, el_) ->
       Printf.sprintf "(iftag %s %s %s %s)"
-        (GT.show OCanren.logic (GT.show GT.string) ltag)
+        (show_ocl_small (fun s -> sprintf "\"%s%s\"" (if String.length s = 3 then " " else "") s) ltag)
         (Matchable.show_logic m)
         (show_logic th_)
         (show_logic el_)
-    | _ -> Printf.sprintf "<logic ir>"
+(*    | _ -> Printf.sprintf "<logic ir>"*)
     in
-    GT.show OCanren.logic helper e
+    show_ocl_small helper e
 end
 
 
@@ -391,72 +398,6 @@ let inject_patterns ps =
 
   Std.List.list @@
   List.map (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
-(*
-
-let run_hacky ?(n=10) patterns2 =
-  let injected_pats = inject_patterns patterns2 in
-
-  let injected_exprs,non_exh_pats =
-    let demo_exprs = generate_demo_exprs @@ List.map fst patterns2 in
-    Printf.printf "\ndemo expressions:%! %s\n%!" @@ GT.show GT.list Expr.show demo_exprs;
-    print_demos "demo_exprs" demo_exprs;
-    let (demo_exprs,non_exh_pats) =
-      demo_exprs |> List.partition (fun e ->
-        let open OCanren in
-        run one (fun ir -> eval_pat (Expr.inject e) injected_pats (Std.Option.some ir))
-          (fun r -> r)
-          |> (fun s -> not (OCanren.Stream.is_empty s))
-        )
-    in
-    demo_exprs |> List.iter (fun e ->
-        runR (Std.Option.reify IR.reify)
-             (GT.show Std.Option.ground IR.show)
-             (GT.show Std.Option.logic IR.show_logic)
-          1 q qh (Printf.sprintf "test_demo: `%s`" (Expr.show e), fun ir ->
-            eval_pat (Expr.inject e) injected_pats (ir)
-        )
-      );
-    print_newline ();
-
-    let non_exh_pats = (Expr.econstr "DUMMY" []) :: non_exh_pats in
-    (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)
-  in
-
-  runR IR.reify IR.show IR.show_logic n
-    q qh ("ideal_IR", fun ideal_IR ->
-      let init = success in
-      let init =
-        List.fold_left (fun acc (scru: Expr.injected) ->
-          (eval_ir_hacky  scru ideal_IR      (IR.fail()))
-        ) init non_exh_pats
-      in
-      List.fold_left (fun acc (scru: Expr.injected) ->
-        fresh (res_pat res_ir)
-          acc
-          (eval_pat_hacky scru (IR.fail()) injected_pats res_pat)
-          (eval_ir_hacky  scru ideal_IR      res_ir)
-          (res_pat === res_ir)
-      ) init injected_exprs
-    )
-
-*)
-
-
-let patterns2 : (Pattern.ground * IR.ground) list =
-  (* [ psome pnil, IR.eint 1
-  ; psome  pwc, IR.eint 2
-  ] *)
-  (* [  pwc, IR.eint 1
-  ; pnil, IR.eint 2
-  ] *)
-  [ ppair pnil pwc, IR.eint 1
-  ; ppair pwc  pnil, IR.eint 2
-  ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 3
-  ]
-  (*[ ppair pnil pwc,  IR.eint 1
-  ; ppair pwc  pnil, IR.eint 2
-  ; ppair pnil pnil, IR.eint 3
-  ]*)
 
 
 module TypedLists = struct
@@ -616,10 +557,6 @@ match xs,ys with
     in
 
     let count_constructors : IR.logic -> int = fun root ->
-      (*let (>>=) x f = match x with None -> None | Some x -> f x in
-      let (>>|) x f = match x with None -> None | Some x -> Some (f x) in
-      let return x = Some x in*)
-
       let rec helper = function
       | Var (_,_)     -> 0
       | Value (Int _)
@@ -636,12 +573,11 @@ match xs,ys with
 
     let height_hack ans =
       fortytwo ans (flip IR.reify) (fun ir ->
-
-            let n = count_constructors ir in
-(*            Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
-            match count_constructors ir with
-            | x when x>2 -> failure
-            | _ -> success
+        let n = count_constructors ir in
+(*        Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
+        match count_constructors ir with
+        | x when x>3 -> failure
+        | _ -> success
       )
     in
 
@@ -684,49 +620,123 @@ match xs,ys with
         ]
     in
 *)
-    let rec my_eval_ir s ir ans =
+
+(*
+    let rec list_nth_nat idx xs ans =0
+      conde
+        [ fresh (x q63)
+            (Nat.z === idx)
+            (xs === Std.(ans % q63))
+        ; fresh (prev h tl)
+            ((Nat.s prev) === idx)
+            (xs === Std.(h % tl))
+            (list_nth_nat prev tl ans)
+        ]
+    in*)
+
+    let rec list_nth_nat idx xs ans =
+      conde
+        [ failure
+        ; fresh (prev h tl)
+            (Nat.one === idx)
+            (xs === Std.(h % (ans % tl)))
+        ; fresh (x q63)
+            (Nat.z === idx)
+            (xs === Std.(ans % q63))
+        ]
+    in
+
+    let rec my_eval_m s h ans =
+      conde
+        [ (h === (scru ())) &&& (s === ans) &&& (fresh (a b) (Expr.constr !!"pair" Std.(a %< b) === ans))
+        ; fresh (n m q23 cname es)
+            (* field of scrutineee *)
+            (scru () === m)
+            (h === (field n m))
+            (conde [  n === (Nat.s (z())); n === z () ])
+
+(*            (conde
+              [ cname === !!"nil"  &&&              (es === Std.nil())
+              ; cname === !!"cons" &&& (fresh (a b) (es === Std.(a %< b)))
+              ])*)
+
+            (q23 === (eConstr cname es))
+            (list_nth_nat n es ans)
+            (my_eval_m s m q23)
+
+        ; fresh (n m q23 q24 es)
+            (h === (field n m))
+            (m =/= scru())
+            (conde [ n === z (); n === (Nat.s (z())) ])
+            (q23 === (eConstr q24 es))
+            (list_nth_nat n es ans)
+            (my_eval_m s m q23)
+        ]
+    in
+
+    let my_eval_ir ideal =
       let open Std in
+      let rec inner self s ir ans =
       conde
         [ (ir === (fail ())) &&& (ans === (none ()))
         ; fresh (n)
             (ir === (int n))
             (ans === (some n))
-        ; fresh (tag scru2 th el q14 tag2 args q16)
+        (*; Fresh.one @@ fun n ->
+            (ir === (int n)) &&&
+            (ans === (some n))*)
+
+        ; fresh (tag scru2 th el q14 tag2 args q16 q6)
             (ir === (iFTag tag scru2 th el))
             (q14 === (eConstr tag2 args))
-            (eval_m s scru2 q14)
+            (my_eval_m s scru2 q14)
 
-            (conde [tag === !!"nil"; tag === !!"cons"; tag === !!"pair"])
+            (* Commenting next goal leads to no answers *)
+
             (let open Matchable in
              conde
               [ (scru2 === scru   ()) &&& failure
                   (*(tag === !!"pair") &&& (el === fail())*)
-              ; (scru2 === field0 ()) &&&
-                  (conde [ tag === !!"nil"  &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                         ; tag === !!"cons" &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                         ])
-              ; (scru2 === field1 ()) &&&
-                  (conde [ tag === !!"nil"  &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                         ; tag === !!"cons" &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                         ])
+              ; (conde [ scru2 === field0 (); scru2 === field1 () ])
+                &&&
+                (conde [ tag === !!"nil"
+(*                            &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                            &&& (fresh (u v) (el =/= (iFTag !!"nil"  scru2 u v)))*)
+                       ; tag === !!"cons"
+                            (*&&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
+                            &&& (fresh (u v) (el =/= (iFTag !!"nil"  scru2 u v)))*)
+                       ])
+
               ; (scru2 === field00()) &&& failure
               ; (scru2 === field01()) &&& failure
               ; (scru2 === field10()) &&& failure
               ; (scru2 === field11()) &&& failure
               ])
 
+
+          (* next two variants seems to be equivalent *)
+(*
             (conde
-               [ (tag2 === tag) &&& (q16 === !!true)
-               ; (q16 === !!false) &&& (tag2 =/= tag)
+               [ (tag2 === tag) &&& (self s th ans)
+               ; (tag2 =/= tag) &&& (self s el ans)
                ])
-            (conde
-               [ (q16 === !!true)  &&& (my_eval_ir s th ans)
-                    &&& (height_hack th)
-               ; (q16 === !!false) &&& (my_eval_ir s el ans)
-                    &&& (height_hack el)
-               ])
+               *)
+           (conde
+              [(tag2 === tag) &&& (q6 === (!! true));
+              (q6 === (!! false)) &&& (tag2 =/= tag)])
+           (conde
+              [(q6 === (!! true)) &&& (self s th ans);
+              (q6 === (!! false)) &&& (self s el ans)])
+
+           (* Commenting next line leads to no answers *)
+           (height_hack ideal)
         ]
+      in
+(*      inner  s ir ans*)
+      Tabling.(tabledrec three) inner
     in
+
+    let injected_exprs = List.rev injected_exprs in
 
     runR IR.reify IR.show IR.show_logic n
       q qh ("ideal_IR", fun ideal_IR ->
@@ -734,18 +744,22 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat    scru  injected_pats res_pat)
-            (my_eval_ir  scru ideal_IR      res_ir)
+            (eval_pat             scru injected_pats res_pat)
             (conde
               [ fresh (n)
-                  (res_pat === Std.Option.some (IR.int n))
-                  (res_ir  === Std.Option.some n)
+                 (res_pat === Std.Option.some (IR.int n))
+                 (res_ir  === Std.Option.some n)
               ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
               ])
-          ) init injected_exprs
+
+            (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
+          )
+          init
+          injected_exprs
       );
 
     Format.printf "%!\n";
+
 
     runR IR.reify IR.show IR.show_logic n
       q qh ("ideal_IR", fun ideal_IR ->
@@ -756,19 +770,19 @@ match xs,ys with
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (eval_pat    scru injected_pats res_pat)
-            (my_eval_ir  scru ideal_IR      res_ir)
+            (eval_pat             scru injected_pats res_pat)
             (conde
               [ fresh (n)
-                  (res_pat === Std.Option.some (IR.int n))
-                  (res_ir  === Std.Option.some n)
+                 (res_pat === Std.Option.some (IR.int n))
+                 (res_ir  === Std.Option.some n)
               ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
               ])
+            (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
           ) init injected_exprs
       )
 
   let () =
-    run_hacky ~n:40
+    run_hacky ~n:60
       [ ppair pnil  pwc, IR.eint 10
       ; ppair pwc  pnil, IR.eint 20
       ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
