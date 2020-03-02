@@ -636,8 +636,7 @@ match xs,ys with
 
     let rec list_nth_nat idx xs ans =
       conde
-        [ failure
-        ; fresh (prev h tl)
+        [ fresh (prev h tl)
             (Nat.one === idx)
             (xs === Std.(h % (ans % tl)))
         ; fresh (x q63)
@@ -745,13 +744,13 @@ match xs,ys with
           fresh (res_pat res_ir)
             acc
             (eval_pat             scru injected_pats res_pat)
+
             (conde
               [ fresh (n)
                  (res_pat === Std.Option.some (IR.int n))
                  (res_ir  === Std.Option.some n)
               ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
               ])
-
             (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
           )
           init
@@ -762,7 +761,7 @@ match xs,ys with
 
 
     runR IR.reify IR.show IR.show_logic n
-      q qh ("ideal_IR", fun ideal_IR ->
+      q qh ("ideal_IR hinted", fun ideal_IR ->
         let init =
           fresh (th el)
             (IR.iftag !!"nil" Matchable.(field (s(z())) (scru())) th el === ideal_IR)
@@ -771,13 +770,13 @@ match xs,ys with
           fresh (res_pat res_ir)
             acc
             (eval_pat             scru injected_pats res_pat)
+            (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
             (conde
               [ fresh (n)
                  (res_pat === Std.Option.some (IR.int n))
                  (res_ir  === Std.Option.some n)
               ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
               ])
-            (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
           ) init injected_exprs
       )
 
