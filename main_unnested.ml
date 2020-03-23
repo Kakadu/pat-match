@@ -253,6 +253,7 @@ let ppair a b : Pattern.ground = pconstr "pair" [a;b]
   runR Expr.reify Expr.show Expr.show_logic 10
     q qh ("answers", make_expr_generator patterns1) *)
 
+let (>>=?) x f = match x with None -> None | Some x -> f x
 
 module Nat = struct
   type 'a gnat = 'a Work.gnat = Z | S of 'a [@@deriving gt ~options:{fmt}]
@@ -286,6 +287,11 @@ module Nat = struct
     helper 0 n
 
   let rec reify env x = For_gnat.reify reify env x
+
+  let rec to_ground = function
+    | Var (_,_) -> None
+    | Value (Z) -> Some Z
+    | Value (S x) -> to_ground x >>=? fun x -> Some (S x)
 end
 
 module Matchable = struct
@@ -308,19 +314,29 @@ module Matchable = struct
 
   let rec show_logic x =
     let rec helper = function
-    | Scru          -> "Scru"
+    | Scru        -> "S"
     | Field (n,r) ->
-      Printf.sprintf "(field %s %s)" (Nat.show_logic n) (show_logic r)
+      Printf.sprintf "%s[%s]" (show_logic r) (Nat.show_logic n)
     in
     GT.show OCanren.logic helper x
 
   let show x =
     let rec helper = function
-    | Scru        -> "Scru"
-    | Field (n,r) -> Printf.sprintf "(field %s %s)" (Nat.show n) (helper r)
+    | Scru        -> "S"
+    | Field (n,r) -> Printf.sprintf "%s[%s]" (helper r) (Nat.show n)
     in
     helper x
 
+  let to_ground l =
+    let rec helper = function
+    | Value Scru -> Some Scru
+    | Value (Field (n, m)) ->
+        Nat.to_ground n >>=? fun n ->
+        helper m        >>=? fun m ->
+        Some (Field (n,m))
+    | Var (_,_) -> None
+    in
+    helper l
 end
 
 
@@ -350,6 +366,7 @@ module IR = struct
     | Fail -> "(fail)"
     | Int n -> string_of_int n
     | IFTag (str, m, th_, el_) ->
+      let str = if str = "nil" then " nil" else str in
       Printf.sprintf "(iftag %S %s %s %s)"
         str
         (Matchable.show m)
@@ -574,63 +591,10 @@ match xs,ys with
         let n = count_constructors ir in
 (*        Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
         match n with
-        | x when x>3 -> true
+        | x when x>(3+1) -> true
         | _ -> false
       )
     in
-
-(*
-    (* Not fast enough *)
-    let rec my_eval_ir s ir ans =
-      let open Std in
-      conde
-        [ (ir === (fail ())) &&& (ans === (none ()))
-        ; fresh (n)
-            (ir === (int n))
-            (ans === (some n))
-        ; fresh (tag scru2 th el q14 tag2 args q16)
-            (ir === (iFTag tag scru2 th el))
-            (q14 === (eConstr tag2 args))
-            (eval_m s scru2 q14)
-
-            (conde [tag === !!"nil"; tag === !!"cons"; tag === !!"pair"])
-            (let open Matchable in
-             conde
-              [ (scru2 === scru   ()) &&& (tag === !!"pair")
-              ; (scru2 === field0 ()) &&& (conde [tag === !!"nil"; tag === !!"cons"])
-              ; (scru2 === field1 ()) &&& (conde [tag === !!"nil"; tag === !!"cons"])
-              ; (scru2 === field00()) &&& failure
-              ; (scru2 === field01()) &&& failure
-              ; (scru2 === field10()) &&& failure
-              ; (scru2 === field11()) &&& failure
-              ])
-
-            (conde
-               [ (tag2 === tag) &&& (q16 === !!true)
-               ; (q16 === !!false) &&& (tag2 =/= tag)
-               ])
-            (conde
-               [ (q16 === !!true)  &&& (my_eval_ir s th ans)
-                    &&& (height_hack th)
-               ; (q16 === !!false) &&& (my_eval_ir s el ans)
-                    &&& (height_hack el)
-               ])
-        ]
-    in
-*)
-
-(*
-    let rec list_nth_nat idx xs ans =0
-      conde
-        [ fresh (x q63)
-            (Nat.z === idx)
-            (xs === Std.(ans % q63))
-        ; fresh (prev h tl)
-            ((Nat.s prev) === idx)
-            (xs === Std.(h % tl))
-            (list_nth_nat prev tl ans)
-        ]
-    in*)
 
     let rec list_nth_nat idx xs ans =
       conde
@@ -671,6 +635,56 @@ match xs,ys with
         ]
     in
 
+    let make_constraint var scru (cname: string) =
+      (* we should not see the code which tests scru for this constructor *)
+      structural var (IR.reify) (fun ir ->
+      (*
+        Format.printf "structural of '%s' with cname=%a and scru = %s\n"
+          (IR.show_logic ir)
+          (GT.fmt GT.string) cname
+          (Matchable.show scru);
+          *)
+        let rec helper ir =
+          match ir with
+          | Var (_,_) -> false
+          | Value (IFTag (Value c, m, th_, el_)) -> begin
+              if (Matchable.to_ground m = Some scru) && (c = cname)
+              then true
+              else (helper th_) || (helper el_)
+          end
+          | _ -> false
+        in
+        let ans = helper ir in
+(*        if ans then Format.printf "filtered out\n%!";*)
+        ans
+      )
+    in
+
+    let make_constraint2 var scru =
+      (* we should not see the code which tests scru for this constructor *)
+      structural var (IR.reify) (fun ir ->
+      (*
+        Format.printf "structural of '%s' with cname=%a and scru = %s\n"
+          (IR.show_logic ir)
+          (GT.fmt GT.string) cname
+          (Matchable.show scru);
+          *)
+        let rec helper ir =
+          match ir with
+          | Var (_,_) -> false
+          | Value (IFTag (Value _c, m, th_, el_)) -> begin
+              if (Matchable.to_ground m = Some scru)
+              then true
+              else (helper th_) || (helper el_)
+          end
+          | _ -> false
+        in
+        let ans = helper ir in
+    (*        if ans then Format.printf "filtered out\n%!";*)
+        ans
+      )
+    in
+
     let my_eval_ir ideal =
       let open Std in
       let rec inner self s ir ans =
@@ -693,44 +707,34 @@ match xs,ys with
             (let open Matchable in
              conde
               [ (scru2 === scru   ()) &&& failure
-                  (*(tag === !!"pair") &&& (el === fail())*)
-              ; (conde [ scru2 === field0 (); scru2 === field1 () ])
-                &&&
-                (conde [ tag === !!"nil"
-(*                            &&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                            &&& (fresh (u v) (el =/= (iFTag !!"nil"  scru2 u v)))*)
-                       ; tag === !!"cons"
-                            (*&&& (fresh (u v) (el =/= (iFTag !!"cons" scru2 u v)))
-                            &&& (fresh (u v) (el =/= (iFTag !!"nil"  scru2 u v)))*)
-                       ])
-
+              ; (scru2 === field0 ()) &&&
+                (conde [ tag === !!"nil"; tag === !!"cons" ]) &&&
+                (conde
+                  [ (make_constraint2 el (Field (Z,Scru)) ) &&&
+                    (make_constraint2 th (Field (Z,Scru)) )
+                  ])
+              ; (scru2 === field1 ()) &&&
+                (conde [ tag === !!"nil"; tag === !!"cons" ]) &&&
+                (conde
+                  [ (make_constraint2 el (Field (S Z,Scru)) ) &&&
+                    (make_constraint2 th (Field (S Z,Scru)) )
+                  ])
               ; (scru2 === field00()) &&& failure
               ; (scru2 === field01()) &&& failure
               ; (scru2 === field10()) &&& failure
               ; (scru2 === field11()) &&& failure
               ])
 
-
-          (* next two variants seems to be equivalent *)
-(*
             (conde
                [ (tag2 === tag) &&& (self s th ans)
                ; (tag2 =/= tag) &&& (self s el ans)
                ])
-               *)
-           (conde
-              [(tag2 === tag) &&& (q6 === (!! true));
-              (q6 === (!! false)) &&& (tag2 =/= tag)])
-           (conde
-              [(q6 === (!! true)) &&& (self s th ans);
-              (q6 === (!! false)) &&& (self s el ans)])
-
-           (* Commenting next line leads to no answers *)
-           (height_hack ideal)
         ]
       in
-(*      inner  s ir ans*)
-      Tabling.(tabledrec three) inner
+      (fun a b c ->
+        (height_hack ideal) &&&
+        (Tabling.(tabledrec three) inner a b c)
+      )
     in
 
     let injected_exprs = List.rev injected_exprs in
@@ -780,7 +784,7 @@ match xs,ys with
     ()
 
   let () =
-    run_hacky ~n:28
+    run_hacky ~n:20
       [ ppair pnil  pwc, IR.eint 10
       ; ppair pwc  pnil, IR.eint 20
       ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
