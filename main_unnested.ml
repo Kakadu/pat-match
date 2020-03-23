@@ -218,7 +218,7 @@ let _ =
       q
   )
 
-let _ =
+let _foo () =
   runR Expr.reify Expr.show Expr.show_logic
         1 q qh ("answers", fun q ->
      checkAnswer
@@ -448,7 +448,7 @@ match xs,ys with
             ])
       ]
 
-  let () =
+  let _comment () =
     run one (fun q -> fresh (h) (inhabit_list (Std.nat 2) inhabit_free q))
       (fun r -> r#reify (Std.List.reify OCanren.reify))
     |> OCanren.Stream.mapi (fun i x ->
@@ -457,7 +457,7 @@ match xs,ys with
     |> OCanren.Stream.take ~n:(10) |> ignore;
     Format.printf "\n%!"
 
-  let () =
+  let _comment () =
     run one (fun q -> fresh (h) (inhabit_list (Std.nat 1) inhabit_free q))
       (fun r -> r#reify (Std.List.reify OCanren.reify))
     |> OCanren.Stream.mapi (fun i x ->
@@ -482,7 +482,7 @@ match xs,ys with
           (inhabit_list prev inh_list_arg r)
       ]
 
-  let () =
+  let _comment () =
     let fmt_list = GT.(fmt Std.List.logic (fmt OCanren.logic @@ fmt int)) in
     run one (fun q -> fresh (h) (inhabit_pair_lists (Std.nat 4) inhabit_int q))
       (fun r -> r#reify (Std.Pair.reify (Std.List.reify OCanren.reify) (Std.List.reify OCanren.reify)))
@@ -569,15 +569,13 @@ match xs,ys with
       helper root
     in
 
-    let flip f a b = f b a in
-
     let height_hack ans =
-      fortytwo ans (flip IR.reify) (fun ir ->
+      structural ans IR.reify (fun ir ->
         let n = count_constructors ir in
 (*        Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
-        match count_constructors ir with
-        | x when x>3 -> failure
-        | _ -> success
+        match n with
+        | x when x>3 -> true
+        | _ -> false
       )
     in
 
@@ -759,7 +757,7 @@ match xs,ys with
 
     Format.printf "%!\n";
 
-
+(*
     runR IR.reify IR.show IR.show_logic n
       q qh ("ideal_IR hinted", fun ideal_IR ->
         let init =
@@ -778,10 +776,11 @@ match xs,ys with
               ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
               ])
           ) init injected_exprs
-      )
+      );*)
+    ()
 
   let () =
-    run_hacky ~n:60
+    run_hacky ~n:28
       [ ppair pnil  pwc, IR.eint 10
       ; ppair pwc  pnil, IR.eint 20
       ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
