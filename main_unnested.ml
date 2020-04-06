@@ -589,10 +589,9 @@ match xs,ys with
     let height_hack ans =
       structural ans IR.reify (fun ir ->
         let n = count_constructors ir in
-(*        Format.printf "%d == min height of `%s`\n%!" n (IR.show_logic ir);*)
         match n with
-        | x when x>(3+1) -> true
-        | _ -> false
+        | x when x>3 -> false
+        | _ -> true
       )
     in
 
@@ -635,31 +634,6 @@ match xs,ys with
         ]
     in
 
-    let make_constraint var scru (cname: string) =
-      (* we should not see the code which tests scru for this constructor *)
-      structural var (IR.reify) (fun ir ->
-      (*
-        Format.printf "structural of '%s' with cname=%a and scru = %s\n"
-          (IR.show_logic ir)
-          (GT.fmt GT.string) cname
-          (Matchable.show scru);
-          *)
-        let rec helper ir =
-          match ir with
-          | Var (_,_) -> false
-          | Value (IFTag (Value c, m, th_, el_)) -> begin
-              if (Matchable.to_ground m = Some scru) && (c = cname)
-              then true
-              else (helper th_) || (helper el_)
-          end
-          | _ -> false
-        in
-        let ans = helper ir in
-(*        if ans then Format.printf "filtered out\n%!";*)
-        ans
-      )
-    in
-
     let make_constraint2 var scru =
       (* we should not see the code which tests scru for this constructor *)
       structural var (IR.reify) (fun ir ->
@@ -671,13 +645,13 @@ match xs,ys with
           *)
         let rec helper ir =
           match ir with
-          | Var (_,_) -> false
+          | Var (_,_) -> true
           | Value (IFTag (Value _c, m, th_, el_)) -> begin
               if (Matchable.to_ground m = Some scru)
-              then true
-              else (helper th_) || (helper el_)
+              then false
+              else (helper th_) && (helper el_)
           end
-          | _ -> false
+          | _ -> true
         in
         let ans = helper ir in
     (*        if ans then Format.printf "filtered out\n%!";*)
