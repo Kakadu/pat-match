@@ -573,6 +573,7 @@ match xs,ys with
       (List.map Expr.inject demo_exprs, List.map Expr.inject non_exh_pats)*)
     in
 
+(*
     let count_constructors : IR.logic -> int = fun root ->
       let rec helper = function
       | Var (_,_)     -> 0
@@ -585,7 +586,6 @@ match xs,ys with
       in
       helper root
     in
-
     let height_hack ans =
       structural ans IR.reify (fun ir ->
         let n = count_constructors ir in
@@ -593,7 +593,34 @@ match xs,ys with
         | x when x>3 -> false
         | _ -> true
       )
+    in*)
+
+(*
+    let hack ideal goal =
+      (height_hack ideal) &&&
+      goal
+    in*)
+
+    let costf : IR.logic -> OCanren.cost = fun root ->
+      let rec helper (low,var) = function
+      | Var (_,_)     -> (low,true)
+      | Value (Int _)
+      | Value (Fail)  -> (0,false)
+      | Value (IFTag (_,_,then_,else_)) ->
+          let (lw,lf) = helper (0,false) then_ in
+          let (rw,rf) = helper (0,false) else_ in
+          (lw+rw+1, lf || rf)
+      in
+      let (n,has_var) = helper (0,false) root in
+(*      Format.printf "costing `%s` = %d\n%!" (IR.show_logic root) n;*)
+      let n = if n < 3 then 3 else n in
+      if has_var
+      then OCanren.CAtLeast n
+      else OCanren.CFixed n
     in
+    (*let hack var goal =
+      minimize costf IR.reify var goal
+    in*)
 
     let rec list_nth_nat idx xs ans =
       conde
@@ -706,15 +733,17 @@ match xs,ys with
         ]
       in
       (fun a b c ->
-        (height_hack ideal) &&&
-        (Tabling.(tabledrec three) inner a b c)
+         (Tabling.(tabledrec three) inner a b c)
       )
     in
 
     let injected_exprs = List.rev injected_exprs in
 
     runR IR.reify IR.show IR.show_logic n
-      q qh ("ideal_IR", fun ideal_IR ->
+      q qh ("ideal_IR", (fun ideal_IR ->
+
+        minimize costf IR.reify ideal_IR
+        (fun _ ->
         let init = success in
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
@@ -730,8 +759,8 @@ match xs,ys with
             (my_eval_ir  ideal_IR scru ideal_IR      res_ir)
           )
           init
-          injected_exprs
-      );
+          injected_exprs)
+      ));
 
     Format.printf "%!\n";
 
