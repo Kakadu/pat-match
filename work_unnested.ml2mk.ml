@@ -89,6 +89,7 @@ type ir = Fail | IFTag of string * matchable * ir * ir | Int of int
 
 (* *************************** Naive compilation *************************** *)
 let compile_naively pats: ir =
+
   let rec helper_pat scru pat rhs else_top =
     match pat with
     | EConstr (tag, args) ->
@@ -138,3 +139,27 @@ let rec eval_ir_hacky s ir =
         if tag2 = tag
         then eval_ir_hacky s th
         else eval_ir_hacky s el
+
+
+(* *************************** Naive compilation *************************** *)
+let compile_naively pats : ir =
+  let rec helper_pat scru pat rhs else_top =
+    match pat with
+    | WildCard -> rhs
+    | PConstr (tag, args) ->
+        let dec_args = list_decorate_nat args in
+        let then_ =
+          list_foldl (fun acc z -> match z with (idx, pat1) ->
+              helper_pat (Field (idx, scru)) pat1 acc else_top
+          ) rhs dec_args
+        in
+        IFTag (tag, scru, then_, else_top)
+  in
+  let rec helper pats =
+    match pats with
+    | [] -> Fail
+    | (p,rhs)::ps ->
+        let else_ = helper ps in
+        helper_pat Scru p rhs else_
+  in
+  helper pats

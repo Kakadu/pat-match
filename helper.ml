@@ -37,3 +37,20 @@ module Info = struct
       |> GT.(fmt list) GT.(fmt logic) Format.std_formatter;
     Format.printf "\n%!"
 end
+
+module GPair = OCanren.Std.Pair
+
+let inhabit_pair : (*'a 'b 'c 'd.*)
+    (('a, 'b) OCanren.injected -> goal) ->
+    (('c, 'd) OCanren.injected -> goal) ->
+    (*left_desc: Info.inj ->
+    right_desc: Info.inj ->*)
+    ('a * 'c, ('b * 'd) OCanren.logic) OCanren.injected ->
+    goal
+  = fun inh_left inh_right r ->
+  conde
+    [ fresh (l r)
+        (r === Std.pair l r)
+        (inh_left l)
+        (inh_right r)
+    ]

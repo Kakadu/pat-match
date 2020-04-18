@@ -36,6 +36,11 @@
  (deps    work_nonlinear.ml2mk.ml)
  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
 
+(rule
+ (targets work_unnested.ml)
+ (deps    work_unnested.ml2mk.ml)
+ (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+
 (executable
   (name main2)
   (modules main2 work)
