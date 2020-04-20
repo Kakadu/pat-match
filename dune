@@ -12,6 +12,16 @@
   (libraries  OCanren)
 )
 
+(library
+  (name        mytester)
+  ;(public_name helper)
+  (modules     mytester)
+
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags      (-rectypes))
+  (libraries  mtime.clock.os OCanren)
+)
+
 (executable
   (name main)
   (modules main)
@@ -69,7 +79,7 @@
   (name main_unnested)
   (modules main_unnested work_unnested)
   (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
+  (libraries OCanren helper mytester)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 

@@ -1,4 +1,5 @@
 open OCanren
+open Printf
 
 let inhabit_free r = (r===r)
 let inhabit_int  r = (r === !!1)
@@ -54,3 +55,14 @@ let inhabit_pair : (*'a 'b 'c 'd.*)
         (inh_left l)
         (inh_right r)
     ]
+
+module Bools = struct
+  let test _ =
+    run one (fun q -> (q =/= !!true) &&& (q =/= !!false))
+      (fun r -> r#reify reify)
+      |> OCanren.Stream.hd
+      |> (fun bl -> printf "%s\n%!" (GT.(show OCanren.logic @@ show bool) bl));
+    Format.printf "\n%!"
+end
+
+
