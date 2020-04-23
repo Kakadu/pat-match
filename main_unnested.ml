@@ -203,9 +203,7 @@ let generate_demo_exprs pats =
 
 let checkAnswer = eval_ir
 
-(*let (_:int) =  OCanren.(run q ) (fun q -> q === !!1)*)
-
-
+(*
 let _ =
   run_exn (Format.asprintf "%a" (pp_maybe pp_rhs)) 1 q qh ("answers", fun q ->
     checkAnswer (pair (leaf "aaa") (leaf "bbb"))
@@ -221,7 +219,7 @@ let _foo () =
         (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
         (Std.some (!!2))
   )
-
+*)
 let add_freshes n pregoal =
   let rec helper acc n =
     if n = 0 then pregoal acc
@@ -620,7 +618,7 @@ match xs,ys with
       let do_debug = false  in
       structural ans IR.reify (fun ir ->
         let debug fmt =
-          Format.kprintf (fun s -> if do_debug then Format.printf "%s" s else ())
+          Format.ksprintf (fun s -> if do_debug then Format.printf "%s" s else ())
             fmt
         in
         try
@@ -1171,7 +1169,7 @@ module TwoNilList = struct
     let my_eval_ir ideal =
       let open Std in
       let rec inner self s ir ans =
-(*
+
         let make_constraints_goal tag ~th ~el scru2 =
           let open Matchable in
           let wrap tag_str scur_g =
@@ -1204,7 +1202,7 @@ module TwoNilList = struct
             ; (scru2 === field11()) &&& failure
             ]
         in
-*)
+
         conde
           [ (ir === (fail ())) &&& (ans === (none ()))
           ; fresh (n)
@@ -1230,15 +1228,16 @@ module TwoNilList = struct
                 ; scru2 === Matchable.field110 ()
                 ; scru2 === Matchable.field111 ()*)
                 ])
+
               (my_eval_m s scru2 q14)
 
-              (conde [tag === !!"cons"; tag === !!"nil"; tag === !!"nil2" ])
+(*              (conde [tag === !!"cons"; tag === !!"nil"; tag === !!"nil2" ])*)
               (conde
                  [ (tag2 === tag) &&&
-(*                   (make_constraints_goal ~th ~el tag scru2) &&& *)
+                   (make_constraints_goal ~th ~el tag scru2) &&&
                    (self s th ans)
                  ; (tag2 =/= tag) &&&
-(*                   (make_constraints_goal ~th ~el tag scru2) &&& *)
+                   (make_constraints_goal ~th ~el tag scru2) &&&
                    (self s el ans)
                  ])
           ]

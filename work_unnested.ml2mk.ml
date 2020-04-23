@@ -1,5 +1,14 @@
 type nat = Z | S of nat
 
+let fst z = match z with (a,_) -> a
+
+let rec list_assoc name ys =
+  match ys with
+  | (k,v)::xs ->
+      if k = name
+      then v
+      else list_assoc name xs
+
 let list_map_all f =
   let rec helper xs = match xs with
   | [] -> true
@@ -8,6 +17,13 @@ let list_map_all f =
     | None -> false
   in
   helper
+
+let list_map f xs =
+  let rec helper xs = match xs with
+  | [] -> []
+  | x::xs -> (f x) :: helper xs
+  in
+  helper xs
 
 let list_mapi f xs =
   let rec helper i xs = match xs with
@@ -85,11 +101,10 @@ let rec eval_pat_hacky s on_fail pats =
 
 type matchable = Scru | Field of nat * matchable
 type ir = Fail | IFTag of string * matchable * ir * ir | Int of int
-
+type typ_info = T of (string * typ_info list) list
 
 (* *************************** Naive compilation *************************** *)
 let compile_naively pats: ir =
-
   let rec helper_pat scru pat rhs else_top =
     match pat with
     | EConstr (tag, args) ->
@@ -110,35 +125,48 @@ let compile_naively pats: ir =
   in
   helper pats
 
-(* ****************************** evaluating IR ************************** *)
-let rec eval_m s h = 
-  match h with
-  | Scru -> s
-  | Field (n, m) ->
-    match eval_m s m with
-    | EConstr (_, es) -> list_nth_nat n es
+(*let tinfo_args t = match t with T (_,args) -> args*)
+let tinfo_names tt = match tt with T xs -> list_map fst xs
+let tinfo_args tt name = match tt with
+  | T xs -> list_assoc name xs
+let tinfo_nth_arg tt n = match tt with T xs -> list_nth_nat n xs
+let info_assoc tt name = match tt with T xs -> list_assoc name xs
 
-let rec eval_ir s ir =
+(* ****************************** evaluating IR ************************** *)
+let rec eval_m s typinfo0 path0 =
+  let rec helper path =
+    match path with
+    | Scru -> (s, typinfo0)
+    | Field (nth, scru) ->
+      match helper scru with
+      | (EConstr (cname, es), next_tinfos) ->
+(*          let ppp = list_combine es next_tinfos in*)
+          let arg_info = info_assoc next_tinfos cname in
+          (list_nth_nat nth es, list_nth_nat nth arg_info)
+  in
+  helper path0
+
+let rec eval_ir s tinfo ir =
   match ir with
   | Fail -> None
   | Int n -> Some n
   | IFTag (tag, scru, th, el) ->
-      match eval_m s scru with
+      match fst (eval_m s  tinfo scru) with
       | EConstr (tag2, args) ->
         if tag2 = tag
-        then eval_ir s th
-        else eval_ir s el
+        then eval_ir s tinfo th
+        else eval_ir s tinfo el
 
-let rec eval_ir_hacky s ir =
+let rec eval_ir_hacky s tinfo ir =
   match ir with
   | Fail -> Fail
   | Int n -> Int n
   | IFTag (tag, scru, th, el) ->
-      match eval_m s scru with
+      match fst (eval_m s tinfo scru ) with
       | EConstr (tag2, args) ->
         if tag2 = tag
-        then eval_ir_hacky s th
-        else eval_ir_hacky s el
+        then eval_ir_hacky s tinfo th
+        else eval_ir_hacky s tinfo el
 
 
 (* *************************** Naive compilation *************************** *)
