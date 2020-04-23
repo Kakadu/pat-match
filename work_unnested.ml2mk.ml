@@ -103,6 +103,20 @@ type matchable = Scru | Field of nat * matchable
 type ir = Fail | IFTag of string * matchable * ir * ir | Int of int
 type typ_info = T of (string * typ_info list) list
 
+let rec height_of_matchable root =
+  match root with
+  | Scru -> S Z
+  | Field (_, ss) -> S (height_of_matchable ss)
+
+let nat_leq a b =
+  let rec helper root =
+    match root with
+    | (Z,_) -> true
+    | (S _, Z) -> false
+    | (S x, S y) -> helper (x,y)
+  in
+  helper (a,b)
+
 (* *************************** Naive compilation *************************** *)
 let compile_naively pats: ir =
   let rec helper_pat scru pat rhs else_top =
@@ -144,18 +158,25 @@ let rec eval_m s typinfo0 path0 =
           let arg_info = info_assoc next_tinfos cname in
           (list_nth_nat nth es, list_nth_nat nth arg_info)
   in
-  helper path0
+  match  helper path0 with
+  | (ans, info) ->  (ans, tinfo_names info)
 
-let rec eval_ir s tinfo ir =
-  match ir with
-  | Fail -> None
-  | Int n -> Some n
-  | IFTag (tag, scru, th, el) ->
-      match fst (eval_m s  tinfo scru) with
-      | EConstr (tag2, args) ->
-        if tag2 = tag
-        then eval_ir s tinfo th
-        else eval_ir s tinfo el
+let rec eval_ir s maxheight tinfo ir =
+  let rec helper self irrr =
+    match irrr with
+    | Fail -> None
+    | Int n -> Some n
+    | IFTag (tag, scru, th, el) ->
+        match nat_leq (height_of_matchable scru) maxheight with
+        | true ->
+            match eval_m s tinfo scru with
+            | (EConstr (tag2, args), cnames) ->
+                if tag2 = tag
+                then self th
+                else self el
+  in
+  let rec fix f x = f (fix f) x in
+  fix helper ir
 
 let rec eval_ir_hacky s tinfo ir =
   match ir with
