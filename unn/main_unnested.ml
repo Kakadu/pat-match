@@ -438,7 +438,9 @@ end
 
 
 let eval_ir :
-  Expr.injected -> Nat.injected -> Typs.injected -> IR.injected  ->
+  Expr.injected -> Nat.injected -> Typs.injected ->
+  _ ->
+  IR.injected  ->
   (int, int OCanren.logic) Std.Option.groundi -> goal =
     Work.eval_ir
 
@@ -455,6 +457,7 @@ let _f ()  =
       (epair (eleaf "aaa") (eleaf "bbb"))
       (Nat.inject @@ Nat.of_int 2)
       Typs.(inject @@ construct @@ T [ ("pair", [ T [ ("aaa", []) ]; T [ ("bbb", []) ] ]) ])
+      (fun _ _ _ rez -> (rez === !!true))
       (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
       q
   )
@@ -466,7 +469,8 @@ let _foo () =
         q
         (Nat.inject @@ Nat.of_int 2)
         Typs.(inject @@ construct @@ T [ ("pair", [ T [ ("aab", []) ]; T [ ("bbb", []) ] ]) ])
-        (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
+        (fun _ _ _ rez -> (rez === !!true))
+        (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))        
         (Std.some (!!2))
   )
 
@@ -938,9 +942,7 @@ module IMPL1(Arg: ARG_FINAL) = struct
             ; (scru2 === field0 ())
               &&& (conde
                     [ tag === !!"nil"  &&& (wrap "nil"  (Field (Z,Scru)) )
-                    (*
                     ; tag === !!"nil2" &&& (wrap "nil2" (Field (Z,Scru)) )
-                    *)
                     ; tag === !!"cons" &&& (wrap "cons" (Field (Z,Scru)) )
                     ])
               (*&&& (make_constraint2 el (Field (Z,Scru)) )
@@ -949,9 +951,7 @@ module IMPL1(Arg: ARG_FINAL) = struct
             ; (scru2 === field1 ())
               &&& (conde
                     [ tag === !!"nil"  &&& (wrap "nil"  (Field (S Z,Scru)) )
-                    (*
                     ; tag === !!"nil2" &&& (wrap "nil2" (Field (S Z,Scru)) )
-                    *)
                     ; tag === !!"cons" &&& (wrap "cons" (Field (S Z,Scru)) )
                     ])
               (*&&& (make_constraint2 el (Field (S Z,Scru)))
@@ -1092,13 +1092,13 @@ module N1 = IMPL1(struct
   include ArgMake(ArgTwoNilShort)
 end)
 
-let () = N1.test ()
+(*let () = N1.test ()*)
 
 module N2 = IMPL1(struct
   include ArgMake(ArgTwoNilLonger)
 end)
 
-let () = N2.test ()
+(*let () = N2.test ()*)
 
 
 
@@ -1802,17 +1802,28 @@ end
 
 
 
-module Fair1 = Algo_fair.Make(struct
+module F1 = Algo_fair.Make(ArgMake(ArgSimpleList))
+module F2 = Algo_fair.Make(ArgMake(ArgTwoNilShort))
+
+let () = F1.test ~n:10
+(*let () = F2.test ~n:2*)
+
+module Fair2_1 = Algo_fair2.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-
-module Fair2 = Algo_fair.Make(struct
+(*
+module Fair2_2 = Algo_fair2.Make(struct
   include ArgMake(ArgTwoNilShort)
 end)
+*)
 
+let () = Fair2_1.test ~n:10
+(*let () = Fair2_2.test ~n:2*)
 
-let () = Fair1.test ~n:10
+(* *************************************************************************** *)
+module Fair3_1 = Algo_fair3.Make(struct
+  include ArgMake(ArgSimpleList)
+end)
 
-let () = Fair2.test ~n:2
-
+let () = Fair3_1.test ~n:10

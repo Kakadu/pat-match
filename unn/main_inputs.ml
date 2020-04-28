@@ -99,7 +99,11 @@ module ArgSimpleList : ARG0 = struct
     ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
     ]
 
-  let max_height = 3
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (3 = n);
+    n
 
   let typs =
     let open Unn_pre.Typs in
@@ -235,6 +239,18 @@ module ArgTwoNilShort : ARG0 = struct
     ; ppair pwc pwc, IR.eint 60
     ]
 
+  let max_height =
+    (* although maximum height is 2 we can construct right examples yet *)
+    (* TODO: understand how to fix this *)
+    (*
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+    Format.printf "patterns max height = %d\n%!" n;
+    assert (3 = n);
+    n
+    *)
+    3
+
+
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
@@ -258,10 +274,6 @@ module ArgTwoNilShort : ARG0 = struct
     in
     helper root
 
-  let max_height =
-    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
-    Format.printf "patterns max height = %d\n%!" n;
-    n
 
   let prjp e =
     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in

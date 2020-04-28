@@ -1,6 +1,10 @@
 (*
-  Trying to fix algo_fair
-  *)
+ * Trying to fix algo_fair
+
+ * adding shortcut removes testing for constructor `pair` bu t
+ * synthtizer still doesn't know that after checking for `nil`
+ * we should not check for `cons`
+ *)
 open Main_inputs
 open Unn_pre
 open OCanren
@@ -71,206 +75,17 @@ module Make(Arg: ARG_FINAL) = struct
   in
 
 
-(*
-    let rec list_nth_nat idx xs ans =
-      conde
-        [ fresh (prev h tl)
-            (Nat.one === idx)
-            (xs === Std.(h % (ans % tl)))
-        ; fresh (x q63)
-            (Nat.z === idx)
-            (xs === Std.(ans % q63))
-        ]
-    in
-
-    let rec my_eval_m s h ans =
-      conde
-        [ (h === (scru ())) &&& (s === ans) &&& (fresh (a b) (Expr.constr !!"pair" Std.(a %< b) === ans))
-        ; fresh (n m q23 cname es)
-            (* field of scrutineee *)
-            (scru () === m)
-            (h === (field n m))
-            (conde [  n === (Nat.s (z())); n === z () ])
-            (q23 === (eConstr cname es))
-            (list_nth_nat n es ans)
-            (my_eval_m s m q23)
-
-        ; fresh (n m q23 q24 es)
-            (h === (field n m))
-            (m =/= scru())
-            (conde [ n === z (); n === (Nat.s (z())) ])
-            (q23 === (eConstr q24 es))
-            (list_nth_nat n es ans)
-            (my_eval_m s m q23)
-        ]
-    in
-*)
-    let make_constraint2 var scru =
-      (* we should not see the code which tests scru for this constructor *)
-      structural var (IR.reify) (fun ir ->
-        let rec helper ir =
-          match ir with
-          | Var (_,_) -> true
-          | Value (IFTag (Value _c, m, th_, el_)) -> begin
-              let matchable_ground = Matchable.to_ground m in
-              if (matchable_ground = Some scru)
-              then false
-              else (helper th_) && (helper el_)
-          end
-          | _ -> true
-        in
-        helper ir
-      )
-    in
-
-    let make_constraint var scru tag =
-      (* we should not see the code which tests scru for this constructor *)
-      structural var (IR.reify) (fun ir ->
-        let fail = false in
-        let ok = true in
-        let rec helper ir =
-          match ir with
-          | Var (_,_) -> ok
-          | Value (IFTag (Value _c, m, th_, el_)) -> begin
-              if (Matchable.to_ground m = Some scru) && (_c = tag)
-              then fail
-              else (helper th_) && (helper el_)
-          end
-          | _ -> true
-        in
-        helper ir
-      )
-    in
-(*
-    let my_membero xs x =
-      fresh (foo)
-(*        (debug_var xs (fun x env -> Std.List.reify OCanren.reify env x )
-          (fun xs -> Format.printf "mymembero %s\n%!"
-            (GT.show GT.list (GT.show Std.List.logic (GT.show OCanren.logic @@ GT.show GT.string)) xs)))
-        (debug_var x  (fun x env -> OCanren.reify env x)
-          (fun xs -> Format.printf "          %s\n%!"
-            (GT.show GT.list (GT.show OCanren.logic @@ GT.show GT.string) xs)))*)
-        (Std.List.membero xs x)
-    in
-*)
-
-(*
-  let rec list_mem x xs q178 =
-    let open Std in
-    conde
-      [ ((xs === (nil ())) &&& (q178 === (!! false)))
-      ; fresh (h tl q181)
-         (xs === (h % tl))
-         (conde
-           [ (x === h) &&& (q181 === (!! true))
-           ; (q181 === (!! false)) &&& (x =/= h)
-           ])
-         (conde
-           [ (q181 === (!! true)) &&& (q178 === (!! true))
-           ; (q181 === (!! false)) &&& (list_mem x tl q178)
-           ])
-      ]
-    in
-    *)
-
-    let rec list_mem x xs (q178 as ans) =
-      let open Std in
-      conde
-        [ ((xs === (nil ())) &&& (q178 === (!! false)))
-        ; fresh (h tl q181)
-           (xs === (h % tl))
-           (conde
-             [ (x === h) &&& (q178 === (!! true))
-             ; (x =/= h) &&& (list_mem x tl q178)
-             ])
-        ]
-    in
-
-    let structural_hack3 tag scru th =
-      let reifier env x = Std.Pair.reify OCanren.reify (Std.Pair.reify Matchable.reify IR.reify) env x in
-
-      structural (Std.Pair.pair tag (Std.Pair.pair scru th)) reifier
-        (fun (triple: (string OCanren.logic * (Matchable.logic * IR.logic) OCanren.logic) OCanren.logic ) ->
-          let fail = false in
-          let ok = true in
-(*          print_endline "something was reified";*)
-          match triple with
-          | Value (Value tag, Value ((Value _) as m, ((Value _) as ir))) ->
-            begin
-            try
-              let rec helper (ir: IR.logic) =
-                match ir with
-                | Var (_,_) -> ok
-                | Value (IFTag (Value _c, m1, th_, el_)) -> begin
-                    if (m1 = m) && (_c = tag)
-                    then raise FilteredOut
-                    else (helper th_) && (helper el_)
-                end
-                | _ -> ok
-              in
-              helper ir
-            with FilteredOut -> fail
-            end
-         | _ -> ok
-        )
-    in
-
-(*
-    let rec eval_m s typinfo0 path0 q52 =
-      let open Std in
-      let rec helper path q40 =
-        conde
-         [ ((path === (scru ())) &&& (q40 === (pair s typinfo0)))
-         ; fresh (nth scru q43 cname es next_tinfos arg_info q45 q46)
-             (path === (field nth scru))
-             (q43 === (pair (eConstr cname es) next_tinfos))
-             (q40 === (pair q45 q46))
-             (helper scru q43)
-             (info_assoc next_tinfos cname arg_info)
-             (list_nth_nat nth es q45)
-             (list_nth_nat nth arg_info q46)
-         ]
-      in
-      fresh (q49 ans info q50)
-        (q49 === (pair ans info))
-        (q52 === (pair ans q50))
-        (helper path0 q49)
-        (tinfo_names info q50)
-    in
-    *)
 
     let my_eval_ir ideal s tinfo ir rez =
-    (*
-      let open Std in
-      let rec inner =
-        Tabling.(tabledrec two) (fun inner irrr ans ->
-          conde
-            [ (irrr === (fail ())) &&& (ans === (none ()))
-            ; fresh (n) (irrr === (int n)) (ans === (some n))
-            ; fresh (tag scru th el q35 q29 tag2 args cnames q31 nnn)
-                (irrr === (iFTag tag scru th el))
-                (q29 === (pair (eConstr tag2 args) cnames))
-                (matchable_leq_nat scru max_height !!true)
-                (Work.eval_m s tinfo scru q29)
-                (*
-                (* with this stuff only it works 200-226 secs *)
-                (Std.List.membero cnames tag)
-                *)
-                (Work.list_mem tag cnames !!true )
-                (* reduces to 163 seconds *)
-                (*
-                (conde [ (tag === !!"pair") &&& failure ; (tag =/= !!"pair") ] )
-                *)
-                (conde
-                  [ (tag2 === tag) &&& (inner th ans)
-                  ; (tag2 =/= tag) &&& (inner el ans) ])
-            ]
-        )
+
+      let shortcut tag _scru _th rez =
+        conde [ (tag === !!"pair") &&& failure ; (tag =/= !!"pair") ]
+
       in
-      *)
+
       (height_hack ideal) &&&
       (* (inner ir rez) *)
-      (Work.eval_ir s max_height tinfo ideal rez)
+      (Work.eval_ir s max_height tinfo shortcut ideal rez)
     in
 
     let injected_pats = Clauses.inject clauses in
@@ -307,7 +122,7 @@ module Make(Arg: ARG_FINAL) = struct
 
 
     Helper.show_local_time ();
-    let info = Format.sprintf "almost fair  (%s)" Arg.info in
+    let info = Format.sprintf "algo fair 2 -- removing pairs (%s)" Arg.info in
     let open Mytester in
     runR IR.reify IR.show IR.show_logic n
       q qh (info, (fun ideal_IR ->

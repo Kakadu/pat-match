@@ -31,7 +31,7 @@ module Pattern = struct
   let wc = Work.wildCard
 
   let rec height = function
-  | WildCard  -> 0
+  | WildCard  -> 1
   | PConstr (_,ps) ->
     GT.foldl Std.List.ground (fun acc x -> max acc (height x)) 0 ps + 1
 

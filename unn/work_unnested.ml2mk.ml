@@ -180,7 +180,7 @@ let rec eval_m s typinfo0 path0 =
   match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
 
-let rec eval_ir s max_height tinfo ir =
+let rec eval_ir s max_height tinfo shortcut ir =
   let[@tabled] rec inner  irrr =
     match irrr with
     | Fail -> None
@@ -190,14 +190,15 @@ let rec eval_ir s max_height tinfo ir =
         | true ->
             match eval_m s tinfo scru with
             | (EConstr (tag2, args), cnames) ->
-                match list_mem tag cnames with
+                match shortcut tag scru th with
                 | true ->
-                    if tag2 = tag
-                    then inner th
-                    else inner el
+                    match list_mem tag cnames with
+                    | true ->
+                        if tag2 = tag
+                        then inner th
+                        else inner el
   in
-  (*let rec fix f x = f (fix f) x in
-  fix *)
+
   inner ir
 
 let rec eval_ir_hacky s tinfo ir =

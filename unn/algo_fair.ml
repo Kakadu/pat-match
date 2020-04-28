@@ -72,11 +72,11 @@ module Make(Arg: ARG_FINAL) = struct
   in
 
 
-
+    let shortcut _tag _Scru _th rez = (rez === !!true) in
 
     let my_eval_ir ideal s tinfo ir rez =
       (height_hack ideal) &&&
-      (Work.eval_ir s max_height tinfo ideal rez)
+      (Work.eval_ir s max_height tinfo shortcut ideal rez)
     in
 
     let injected_pats = Clauses.inject clauses in
