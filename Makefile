@@ -1,3 +1,5 @@
+.PHONY: unn
+
 DUNEOPTS=
 ifeq ($(VERBOSE),1)
 V=
@@ -24,7 +26,7 @@ run-mini:
 	dune exec mini/minirun.exe $(DUNEOPTS)
 
 unn:
-	dune exec ./main_unnested.exe $(DUNEOPTS)
+	dune exec unn/main_unnested.exe $(DUNEOPTS)
 
 nonlin:
 	dune exec ./main_nonlinear.exe $(DUNEOPTS)

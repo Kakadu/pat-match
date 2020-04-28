@@ -46,10 +46,6 @@
  (deps    work_nonlinear.ml2mk.ml)
  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
 
-(rule
- (targets work_unnested.ml)
- (deps    work_unnested.ml2mk.ml)
- (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
 
 (executable
   (name main2)
@@ -75,13 +71,7 @@
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
-(executable
-  (name main_unnested)
-  (modules main_unnested main_inputs work_unnested unn_pre)
-  (flags (-rectypes))
-  (libraries OCanren helper mytester)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
+
 
 (executable
   (name main_nonlinear)

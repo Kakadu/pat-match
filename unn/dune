@@ -1,0 +1,14 @@
+(executable
+  (name main_unnested)
+  (modules main_unnested main_inputs work_unnested unn_pre
+          algo_fair algo_fair2
+          )
+  (flags (-rectypes))
+  (libraries OCanren helper mytester)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+)
+
+(rule
+ (targets work_unnested.ml)
+ (deps    work_unnested.ml2mk.ml)
+ (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))

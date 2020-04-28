@@ -6,6 +6,9 @@ open Work
 let id x = x
 let (>>=?) x f = match x with None -> None | Some x -> f x
 
+exception FilteredOut
+
+
 (* TODO: put this to stdlib *)
 let rec inject_ground_list ps =
   (* TODO: tail recursion *)
