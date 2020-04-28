@@ -65,4 +65,14 @@ module Bools = struct
     Format.printf "\n%!"
 end
 
+module List = struct
+  include List
+  let max xs =
+    match xs with
+    | [] -> failwith "bad argument of List.max"
+    | x::xs -> List.fold_left max x xs
+end
 
+let show_local_time () =
+  let tm = Unix.(localtime @@ time ()) in
+  Format.printf "time: %d:%d\n%!" tm.Unix.tm_hour tm.Unix.tm_min

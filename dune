@@ -9,7 +9,7 @@
 
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
   (flags      (-rectypes))
-  (libraries  OCanren)
+  (libraries  OCanren unix)
 )
 
 (library
@@ -77,7 +77,7 @@
 
 (executable
   (name main_unnested)
-  (modules main_unnested work_unnested)
+  (modules main_unnested main_inputs work_unnested unn_pre)
   (flags (-rectypes))
   (libraries OCanren helper mytester)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))

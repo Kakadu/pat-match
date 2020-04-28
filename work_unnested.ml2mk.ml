@@ -2,6 +2,16 @@ type nat = Z | S of nat
 
 let fst z = match z with (a,_) -> a
 
+let rec list_mem x xs =
+  match xs with
+  | [] -> false
+  | h::tl -> if x=h then true else list_mem x tl
+(*
+let rec list_mem_stupid xs =
+  match xs with
+  | y::_ -> y
+  | _::xs -> list_mem_stupid xs
+*)
 let rec list_assoc name ys =
   match ys with
   | (k,v)::xs ->
@@ -117,6 +127,15 @@ let nat_leq a b =
   in
   helper (a,b)
 
+let matchable_leq_nat m n =
+  let rec helper root =
+    match root with
+    | (Scru, _) -> true
+    | (Field (_,m1), S n1) -> helper (m1,n1)
+    | (Field (_,_), Z) -> false
+  in
+  helper (m,n)
+
 (* *************************** Naive compilation *************************** *)
 let compile_naively pats: ir =
   let rec helper_pat scru pat rhs else_top =
@@ -158,25 +177,28 @@ let rec eval_m s typinfo0 path0 =
           let arg_info = info_assoc next_tinfos cname in
           (list_nth_nat nth es, list_nth_nat nth arg_info)
   in
-  match  helper path0 with
+  match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
 
-let rec eval_ir s maxheight tinfo ir =
-  let rec helper self irrr =
+let rec eval_ir s max_height tinfo ir =
+  let[@tabled] rec inner  irrr =
     match irrr with
     | Fail -> None
     | Int n -> Some n
     | IFTag (tag, scru, th, el) ->
-        match nat_leq (height_of_matchable scru) maxheight with
+        match nat_leq (height_of_matchable scru) max_height with
         | true ->
             match eval_m s tinfo scru with
             | (EConstr (tag2, args), cnames) ->
-                if tag2 = tag
-                then self th
-                else self el
+                match list_mem tag cnames with
+                | true ->
+                    if tag2 = tag
+                    then inner th
+                    else inner el
   in
-  let rec fix f x = f (fix f) x in
-  fix helper ir
+  (*let rec fix f x = f (fix f) x in
+  fix *)
+  inner ir
 
 let rec eval_ir_hacky s tinfo ir =
   match ir with
