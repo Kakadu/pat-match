@@ -27,6 +27,229 @@ module type ARG1 = sig
 end
 
 (* ************************************************************************** *)
+module ArgTrueFalse : ARG0 = struct
+  open OCanren
+
+  type g = bool
+  type l = bool logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let inhabit_pair :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === !!true)
+            ; (rez === !!false)
+            ])
+      ]
+
+  let inhabit n rez = inhabit_pair (Std.nat n) rez
+
+  let info = "bool"
+
+  let clauses =
+    [ ptrue, IR.eint 1
+    ; pfalse, IR.eint 0
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (1 = n);
+    n
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let grounded = Typs.construct @@ T [ ("true", []); ("false", []) ]  in
+    Typs.inject grounded
+
+  let rec optimize (root: IR.ground)  = root
+
+  let prjp e =
+    OCanren.prjc
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let wrap_demo (demo_exprs: bool list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | true  -> EConstr ("true", Std.List.Nil)
+    | false -> EConstr ("false", Std.List.Nil)
+    in
+    ListLabels.map demo_exprs ~f:helper
+end
+
+
+(* ************************************************************************** *)
+module ArgABC : ARG0 = struct
+  open OCanren
+
+  type abc = A | B | C
+  type g = abc
+  type l = abc  logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let inhabit_pair :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === !!A)
+            ; (rez === !!B)
+            ; (rez === !!C)
+            ])
+      ]
+
+  let inhabit n rez = inhabit_pair (Std.nat n) rez
+
+  let info = "A|B|C"
+
+  let clauses =
+    [ pleaf "A", IR.eint 1
+    ; pleaf "B", IR.eint 1
+    ; pleaf "C", IR.eint 0
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (1 = n);
+    n
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
+    Typs.inject grounded
+
+  let rec optimize (root: IR.ground)  = root
+
+  let prjp e =
+    OCanren.prjc
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let wrap_demo (demo_exprs: g list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | A  -> EConstr ("A", Std.List.Nil)
+    | B  -> EConstr ("B", Std.List.Nil)
+    | C  -> EConstr ("C", Std.List.Nil)
+    in
+    ListLabels.map demo_exprs ~f:helper
+end
+
+(* ************************************************************************** *)
+(* ************************************************************************** *)
+module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
+                               and  type l = (bool OCanren.logic, bool OCanren.logic) OCanren.Std.Pair.logic
+                               and qtyp_injected = (g, l) OCanren.injected
+                               *)
+                 = struct
+  open OCanren
+
+  type g = bool * bool
+  type l = (bool logic, bool logic) Std.Pair.logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let inhabit_bool :
+      Std.Nat.groundi ->
+      (bool, bool logic) injected  ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === !!true)
+            ; (rez === !!false)
+            ])
+      ]
+
+  let inhabit_pair :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (rez === Std.pair l r)
+          (inhabit_bool prev l)
+          (inhabit_bool prev r)
+      ]
+
+  let inhabit n rez = inhabit_pair (Std.nat n) rez
+
+  let info = "bool*bool"
+
+  let clauses =
+    [ ppair ptrue pwc , IR.eint 1
+    ; ppair pwc ptrue , IR.eint 1
+    ; ppair pfalse pfalse, IR.eint 0
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (2 = n);
+    n
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let bool = T [ ("true", []); ("false", []) ]  in
+    let p    = T [ ("pair", [bool; bool]) ] in
+    Typs.inject @@ Typs.construct p
+
+  let rec optimize (root: IR.ground)  =
+    let open Unn_pre.IR in
+    let open Unn_pre.Matchable in
+    let rec helper = function
+      | IFTag ("pair", Scru, then_, _) -> optimize then_
+      | IFTag (c, scru, then_, else_) ->
+          IFTag (c, scru, optimize then_, optimize else_)
+      | x -> x
+    in
+    helper root
+
+  let prjp e =
+    let prjl e =
+      OCanren.prjc
+        (fun _ _ -> failwith "should not happen2")
+        e
+      in
+      Std.Pair.prjc prjl prjl
+        (fun _ _ -> failwith "should not happen5")
+        e
+
+
+  let wrap_demo (demo_exprs: g list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | true  -> EConstr ("true", Std.List.Nil)
+    | false -> EConstr ("false", Std.List.Nil)
+    in
+    ListLabels.map demo_exprs ~f:(fun (a,b) ->
+      EConstr ("pair", Std.List.of_list id [ helper a; helper b])
+    )
+end
+
+(* ************************************************************************** *)
 module ArgPeanoSimple : ARG0 = struct
   open OCanren
 

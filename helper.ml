@@ -71,6 +71,14 @@ module List = struct
     match xs with
     | [] -> failwith "bad argument of List.max"
     | x::xs -> List.fold_left max x xs
+
+
+  let rec take n xs =
+    if n = 0 then [] else
+    match xs with
+    | x::xs ->  x :: (take (n-1) xs)
+    | [] -> failwith "bad argument"
+
 end
 
 let show_local_time () =

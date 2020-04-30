@@ -423,7 +423,7 @@ module EvalMRez = struct
   let reifier env x = Std.Pair.reify Expr.reify (Std.List.reify OCanren.reify) env x
 end
 
-let _f =
+let _f () =
   let e1 = Expr.(inject @@ econstr "pair" [ econstr "aab" []; econstr "bbb" [] ]) in
   let t1 = Typs.(inject @@ construct @@ T [ ("pair", [ T [ ("aab", []) ]; T [ ("bbb", []) ] ]) ]) in
   runR EvalMRez.reifier EvalMRez.show EvalMRez.show_logic 1 q qh ("test1 eval_m", fun q ->
@@ -841,6 +841,34 @@ end
 *)
 
 
+module FTrueFalse = Algo_fair.Make(struct
+  include ArgMake(ArgTrueFalse)
+end)
+(*let () = FTrueFalse.test ~n:10*)
+
+module FPairTrueFalse = Algo_fair.Make(struct
+  include ArgMake(ArgPairTrueFalse)
+  let max_ifs_count = 2
+(*
+  let inhabit (_:int) (rez : qtyp_injected) =
+    let pair a b = Std.Pair.pair a b in
+    let zero = Nat.z in
+    let su x = Nat.s x in
+    conde
+      [ rez === pair zero zero
+      ; rez === pair (su zero) (zero)
+      ; rez === pair zero (su zero)
+      ; rez === pair (su zero) (su zero)
+      ]
+      *)
+end)
+let () = FPairTrueFalse.test ~n:(-1) ~with_hack:true
+
+module FABC = Algo_fair.Make(struct
+  include ArgMake(ArgABC)
+  let max_ifs_count = 1
+end)
+(*let () = FABC.test ~n:10*)
 
 
 
@@ -884,7 +912,7 @@ module F3 = Algo_fair.Make(struct
 
 end)
 
-let () = F3.test ~n:40
+(*let () = F3.test ~n:40*)
 
 module Fair2_1 = Algo_fair2.Make(struct
   include ArgMake(ArgSimpleList)

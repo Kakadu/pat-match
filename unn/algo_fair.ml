@@ -9,7 +9,7 @@ open Unn_pre.IR
 
 module Make(Arg: ARG_FINAL) = struct
 
-  let work ?(n=10) clauses typs =
+  let work ?(n=10) ~with_hack clauses typs =
     let possible_answer = Arg.possible_answer in
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
@@ -70,6 +70,7 @@ module Make(Arg: ARG_FINAL) = struct
       try
         debug "height_hack `%s` = %!" (IR.show_logic ir);
         let n = count_if_constructors ir in
+        assert (n >= 0);
         debug "%d%!" n;
         match n with
         | x when x > !max_ifs_count ->
@@ -90,17 +91,18 @@ module Make(Arg: ARG_FINAL) = struct
       (rez === !!true) &&&
 
 (*      (Matchable.scru () =/= _Scru) &&&*)
-(*
-      (conde [ (_tag === !!"pair") &&& failure
+
+      (*(conde [ (_tag === !!"pair") &&& failure
              ; (_tag =/= !!"pair")
-             ]) &&&
-             *)
+             ]) &&&*)
+
 (*      (_tag =/= !!"pair") &&&*)
+(*      (conde [ _tag === !!"true" ;  _tag === !!"false" ]) &&&*)
       success
     in
 
     let my_eval_ir ideal s tinfo ir rez =
-      (_ifs_size_hack ideal) &&&
+      (if with_hack then _ifs_size_hack ideal else success) &&&
       (Work.eval_ir s max_height tinfo shortcut ir rez)
     in
 
@@ -110,6 +112,7 @@ module Make(Arg: ARG_FINAL) = struct
         run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Arg.prjp)
         |> OCanren.Stream.take ~n:(-1)
         |> Arg.wrap_demo
+(*        |> List.rev*)
       in
 
       let () =
@@ -134,36 +137,52 @@ module Make(Arg: ARG_FINAL) = struct
           )
       in
       List.map Expr.inject demo_exprs
-      |> List.rev
     in
 
 
-    Helper.show_local_time ();
-    let info = Format.sprintf "fair lozovML (%s)" Arg.info in
-    let open Mytester in
-    runR IR.reify IR.show IR.show_logic n q qh (info, (fun ideal_IR ->
-        let init = Arg.ir_hint ideal_IR in
+    let ex_count = List.length injected_exprs in
+    assert (List.length injected_exprs = 4);
 
-        List.fold_left (fun acc (scru: Expr.injected) ->
-          fresh (res_pat res_ir)
-            acc
-            (Work.eval_pat             scru injected_clauses res_pat)
-            (conde
-              [ fresh (n)
-                 (res_pat === Std.Option.some (IR.int n))
-                 (res_ir  === Std.Option.some n)
-              ; (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-              ])
-            (my_eval_ir  ideal_IR scru typs ideal_IR      res_ir)
-          )
-          init
-          injected_exprs
-      ));
-    Format.printf "%!\n"
+(*    for i = 1 to ex_count do
+      let injected_exprs = Helper.List.take i injected_exprs in
+      assert (List.length injected_exprs = i);*)
+
+      Helper.show_local_time ();
+      let info = Format.sprintf "fair lozovML (%s)" Arg.info in
+      let open Mytester in
+      runR IR.reify IR.show IR.show_logic n q qh (info, (fun ideal_IR ->
+          let init = Arg.ir_hint ideal_IR in
+
+          List.fold_left (fun acc (scru: Expr.injected) ->
+            Fresh.two (fun res_pat res_ir ->
+              acc &&&
+              (Work.eval_pat             scru injected_clauses res_pat) &&&
+              (conde
+                [
+                  Fresh.one (fun n ->
+                   (res_pat === Std.Option.some (IR.int n)) &&&
+                   (res_ir  === Std.Option.some n) )
+                ;
+                  (*fresh (n)
+                    (res_pat === Std.Option.some (IR.int n))
+                    (res_ir  === Std.Option.some n) *)
+
+                  (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
+                ]) &&&
+
+                (my_eval_ir  ideal_IR scru typs ideal_IR      res_ir)
+              )
+            )
+            init
+            injected_exprs
+        ));
+      Format.printf "%!\n"
+(*
+    done*)
 
 
-  let test ~n =
-    work ~n Arg.clauses Arg.typs
+  let test ?(with_hack=true) ~n =
+    work ~n ~with_hack Arg.clauses Arg.typs
 
 end
 
