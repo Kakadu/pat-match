@@ -1,4 +1,4 @@
-.PHONY: unn
+.PHONY: unn lorry gcw 
 
 DUNEOPTS=
 ifeq ($(VERBOSE),1)
@@ -30,6 +30,14 @@ unn:
 
 nonlin:
 	dune exec ./main_nonlinear.exe $(DUNEOPTS)
+
+
+lorry:
+	dune exec lorry/lorry_run.exe $(DUNEOPTS)
+
+
+gcw:
+	dune exec GCW/GCW_run.exe $(DUNEOPTS)
 
 celan: clean
 clean:
