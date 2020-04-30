@@ -139,7 +139,9 @@ let pconstr name xs = PConstr (name, Std.List.of_list id xs)
 let pleaf s = pconstr s []
 let pnil    = pleaf "nil"
 let pnil2   = pleaf "nil2"
+let pzero   = pleaf "zero"
 let pcons a b = pconstr "cons" [a;b]
+let psucc a   = pconstr "succ" [a]
 let psome a   = pconstr "some" [a]
 let ppair a b : Pattern.ground = pconstr "pair" [a;b]
 
@@ -178,6 +180,8 @@ module Nat = struct
     helper 0 n
 
   let rec reify env x = For_gnat.reify reify env x
+  let rec prjc onvar env xs = For_gnat.prjc (prjc onvar) onvar env xs
+
 
   let inject : ground -> injected = fun root ->
     let rec helper = function
@@ -277,9 +281,9 @@ module Matchable = struct
 
   let low_height_of_logic root =
     let rec helper len = function
-    | Value Scru -> len+1
     | Value (Field (_, next)) -> helper (len+1) next
-    | Var (_,_) -> len
+    | Value Scru
+    | Var (_,_) -> len+1
     in
     let ans = helper 0 root in
     (*      Format.printf "check_scrutinee: length `%s` = %d\n%!" (Matchable.show_logic root) ans;*)
@@ -335,9 +339,9 @@ module IR = struct
     helper e
 
   let show_ocl f = GT.show OCanren.logic f
-  let show_ocl_small f = function
+(*  let show_ocl_small f = function
     | Value x -> f x
-    | Var (n,_) -> Printf.sprintf "_.%d" n
+    | Var (n,_) -> Printf.sprintf "_.%d" n*)
 
   let show_ocl_small = show_ocl     (* PRINTING HACK *)
 
@@ -364,6 +368,20 @@ module IR = struct
         helper (helper (1+acc) th) el
     in
     helper 0 root
+
+  let count_ifs_low : logic -> int = fun root ->
+    let rec helper = function
+    | Var (_,_)     -> 0
+    | Value (Int _)
+    | Value (Fail)  -> 0
+    | Value (IFTag (tag_log,scru,then_,else_)) ->
+        let a = helper then_ in
+        let b = helper else_ in
+        (1+a+b)
+    in
+    helper root
+
+
 end
 
 

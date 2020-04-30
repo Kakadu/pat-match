@@ -1,4 +1,4 @@
-(* Executes exactly what is writtenin lozovML
+(* Executes exactly what is written in lozovML
  *
  * Downside: doesn't know that match in Pair is not okay
  *)
@@ -11,32 +11,42 @@ module Make(Arg: ARG_FINAL) = struct
 
   let work ?(n=10) clauses typs =
     let possible_answer = Arg.possible_answer in
-    let max_ifs_count = IR.count_ifs_ground possible_answer in
-    Format.printf "max IFs count = %d\n%!" max_ifs_count;
+    assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
+    let max_ifs_count = ref Arg.max_ifs_count in
+    Format.printf "optimized answer:\n%s\n%!" (IR.show possible_answer);
+    Format.printf "max IFs count = %d\n%!" !max_ifs_count;
+    Format.printf "Arg.max_height = %d\n%!" Arg.max_height;
 
     let max_height = Nat.inject @@ Nat.of_int Arg.max_height in
 
+    (** Raises [FilteredOut] when answer is not worth it *)
     let count_if_constructors : IR.logic -> int = fun root ->
       let rec helper seen = function
-      | Var (_,_)     -> 0
+      | Var (_,_)
       | Value (Int _)
-      | Value (Fail)  -> 0
+      | Value Fail -> 0
       | Value (IFTag (tag_log,scru,then_,else_)) ->
-          let () =
+
+          (*let () =
             if Matchable.low_height_of_logic scru > Arg.max_height
             then raise FilteredOut
           in
+          *)
+(*
           let seen_new =
-            match (tag_log,Matchable.to_ground scru) with
+            match (tag_log, Matchable.to_ground scru) with
             | (Value s, Some mat_ground) ->
                 let candidate = (s,mat_ground) in
                 if List.mem candidate seen
-                then raise FilteredOut
+                then
+                  raise FilteredOut
                 else
   (*                  let () = printf "Adding candidate (%s,%s)\n%!" s (Matchable.show mat_ground) in*)
                   candidate::seen
             | _ -> seen
           in
+*)
+          let seen_new = seen in
           let a = helper seen_new then_ in
           let b = helper seen_new else_ in
           (1+a+b)
@@ -44,14 +54,15 @@ module Make(Arg: ARG_FINAL) = struct
       helper [] root
     in
 
-  let height_hack ans =
+  let _ifs_size_hack (ans: IR.injected) =
     let do_debug = true in
     let do_debug = false in
 
-    let prev = ref (Obj.magic false) in
+(*    let prev = ref (Obj.magic false) in*)
     structural ans IR.reify (fun ir ->
-      let verbose = not (!prev = ir) in
-      prev := ir;
+(*      let verbose = not (!prev = ir) in*)
+      let verbose = true in
+(*      prev := ir;*)
       let debug fmt =
         Format.ksprintf (fun s -> if do_debug&&verbose then Format.printf "%s" s else ())
           fmt
@@ -61,7 +72,9 @@ module Make(Arg: ARG_FINAL) = struct
         let n = count_if_constructors ir in
         debug "%d%!" n;
         match n with
-        | x when x > max_ifs_count -> raise FilteredOut
+        | x when x > !max_ifs_count ->
+(*          let () = Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x in*)
+          raise FilteredOut
         | _ ->
             debug "\n%!";
             true
@@ -72,14 +85,26 @@ module Make(Arg: ARG_FINAL) = struct
   in
 
 
-    let shortcut _tag _Scru _th rez = (rez === !!true) in
+    let shortcut _tag _Scru _th rez =
 
-    let my_eval_ir ideal s tinfo ir rez =
-      (height_hack ideal) &&&
-      (Work.eval_ir s max_height tinfo shortcut ideal rez)
+      (rez === !!true) &&&
+
+(*      (Matchable.scru () =/= _Scru) &&&*)
+(*
+      (conde [ (_tag === !!"pair") &&& failure
+             ; (_tag =/= !!"pair")
+             ]) &&&
+             *)
+(*      (_tag =/= !!"pair") &&&*)
+      success
     in
 
-    let injected_pats = Clauses.inject clauses in
+    let my_eval_ir ideal s tinfo ir rez =
+      (_ifs_size_hack ideal) &&&
+      (Work.eval_ir s max_height tinfo shortcut ir rez)
+    in
+
+    let injected_clauses = Clauses.inject clauses in
     let injected_exprs =
       let demo_exprs =
         run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Arg.prjp)
@@ -95,10 +120,10 @@ module Make(Arg: ARG_FINAL) = struct
               let answer_demo = IR.inject possible_answer in
               let scru_demo = Expr.inject e in
               fresh (n rez)
-                (Work.eval_pat scru_demo injected_pats rez)
+                (Work.eval_pat scru_demo injected_clauses rez)
                 (rez === Std.Option.some ir)
                 (ir === IR.int n)
-                (my_eval_ir answer_demo scru_demo typs answer_demo (Std.Option.some n))
+                (Work.eval_ir  scru_demo max_height typs shortcut answer_demo (Std.Option.some n))
             )
             (fun r -> r)
             |> (fun s ->
@@ -109,18 +134,20 @@ module Make(Arg: ARG_FINAL) = struct
           )
       in
       List.map Expr.inject demo_exprs
+      |> List.rev
     in
+
 
     Helper.show_local_time ();
     let info = Format.sprintf "fair lozovML (%s)" Arg.info in
     let open Mytester in
-    runR IR.reify IR.show IR.show_logic n
-      q qh (info, (fun ideal_IR ->
-        let init = success in
+    runR IR.reify IR.show IR.show_logic n q qh (info, (fun ideal_IR ->
+        let init = Arg.ir_hint ideal_IR in
+
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (Work.eval_pat             scru injected_pats res_pat)
+            (Work.eval_pat             scru injected_clauses res_pat)
             (conde
               [ fresh (n)
                  (res_pat === Std.Option.some (IR.int n))

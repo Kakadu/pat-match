@@ -6,12 +6,15 @@ open Unn_pre
 open OCanren
 open Unn_pre.IR
 
+let simple_shortcut _ _ _ ans = (ans === !!true)
+
 module Make(Arg: ARG_FINAL) = struct
 
   let work ?(n=10) clauses typs =
     let possible_answer = Arg.possible_answer in
-    let max_ifs_count = IR.count_ifs_ground possible_answer in
-    Format.printf "max IFs count = %d\n%!" max_ifs_count;
+    let max_ifs_count = ref Arg.max_ifs_count in
+      (* IR.count_ifs_ground possible_answer  *)
+    Format.printf "max IFs count = %d\n%!" !max_ifs_count;
 
     let max_height = Nat.inject @@ Nat.of_int Arg.max_height in
 
@@ -29,6 +32,7 @@ module Make(Arg: ARG_FINAL) = struct
             match (tag_log,Matchable.to_ground scru) with
             | (Value s, Some mat_ground) ->
                 let candidate = (s,mat_ground) in
+
                 if List.mem candidate seen
                 then raise FilteredOut
                 else
@@ -60,7 +64,9 @@ module Make(Arg: ARG_FINAL) = struct
         let n = count_if_constructors ir in
         debug "%d%!" n;
         match n with
-        | x when x > max_ifs_count -> raise FilteredOut
+        | x when x > !max_ifs_count ->
+(*            Format.printf "  %s (size = %d) FILTERED OUT\n%!" (IR.show_logic ir) x;*)
+            raise FilteredOut
         | _ ->
             debug "\n%!";
             true
@@ -70,41 +76,8 @@ module Make(Arg: ARG_FINAL) = struct
     )
   in
 
-
 (*
-    let rec list_nth_nat idx xs ans =
-      conde
-        [ fresh (prev h tl)
-            (Nat.one === idx)
-            (xs === Std.(h % (ans % tl)))
-        ; fresh (x q63)
-            (Nat.z === idx)
-            (xs === Std.(ans % q63))
-        ]
-    in
 
-    let rec my_eval_m s h ans =
-      conde
-        [ (h === (scru ())) &&& (s === ans) &&& (fresh (a b) (Expr.constr !!"pair" Std.(a %< b) === ans))
-        ; fresh (n m q23 cname es)
-            (* field of scrutineee *)
-            (scru () === m)
-            (h === (field n m))
-            (conde [  n === (Nat.s (z())); n === z () ])
-            (q23 === (eConstr cname es))
-            (list_nth_nat n es ans)
-            (my_eval_m s m q23)
-
-        ; fresh (n m q23 q24 es)
-            (h === (field n m))
-            (m =/= scru())
-            (conde [ n === z (); n === (Nat.s (z())) ])
-            (q23 === (eConstr q24 es))
-            (list_nth_nat n es ans)
-            (my_eval_m s m q23)
-        ]
-    in
-*)
     let make_constraint2 var scru =
       (* we should not see the code which tests scru for this constructor *)
       structural var (IR.reify) (fun ir ->
@@ -124,26 +97,6 @@ module Make(Arg: ARG_FINAL) = struct
     in
 
 
-(*
-
-*)
-
-(*
-
-    *)
-
-    let rec list_mem x xs (q178 as ans) =
-      let open Std in
-      conde
-        [ ((xs === (nil ())) &&& (q178 === (!! false)))
-        ; fresh (h tl q181)
-           (xs === (h % tl))
-           (conde
-             [ (x === h) &&& (q178 === (!! true))
-             ; (x =/= h) &&& (list_mem x tl q178)
-             ])
-        ]
-    in
 
     let structural_hack3 tag scru th =
       let reifier env x = Std.Pair.reify OCanren.reify (Std.Pair.reify Matchable.reify IR.reify) env x in
@@ -173,7 +126,7 @@ module Make(Arg: ARG_FINAL) = struct
          | _ -> ok
         )
     in
-
+*)
 
 
     let my_eval_ir ideal s tinfo ir rez =
@@ -205,8 +158,10 @@ module Make(Arg: ARG_FINAL) = struct
             (conde
               [ (tag === !!"cons") &&& (scru_ === field0()) &&& (make_constraint th (Field(Z,Scru)) "cons")
               ; (tag === !!"nil")  &&& (scru_ === field0()) &&& (make_constraint th (Field(Z,Scru)) "nil")
+              ; (tag === !!"nil2") &&& (scru_ === field0()) &&& (make_constraint th (Field(Z,Scru)) "nil2")
               ; (tag === !!"cons") &&& (scru_ === field1()) &&& (make_constraint th (Field(S Z,Scru)) "cons")
               ; (tag === !!"nil")  &&& (scru_ === field1()) &&& (make_constraint th (Field(S Z,Scru)) "nil")
+              ; (tag === !!"nil2") &&& (scru_ === field1()) &&& (make_constraint th (Field(S Z,Scru)) "nil2")
               ])
           ]
 
@@ -236,7 +191,7 @@ module Make(Arg: ARG_FINAL) = struct
                 (Work.eval_pat scru_demo injected_pats rez)
                 (rez === Std.Option.some ir)
                 (ir === IR.int n)
-                (my_eval_ir answer_demo scru_demo typs answer_demo (Std.Option.some n))
+                (Work.eval_ir scru_demo max_height typs simple_shortcut answer_demo (Std.Option.some n))
             )
             (fun r -> r)
             |> (fun s ->

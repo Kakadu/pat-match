@@ -110,7 +110,10 @@ let rec eval_pat_hacky s on_fail pats =
 (* *************************** IR thing ********************************* *)
 
 type matchable = Scru | Field of nat * matchable
-type ir = Fail | IFTag of string * matchable * ir * ir | Int of int
+type ir =
+  | Fail
+  | IFTag of string * matchable * ir * ir
+  | Int of int
 type typ_info = T of (string * typ_info list) list
 
 let rec height_of_matchable root =
@@ -130,7 +133,8 @@ let nat_leq a b =
 let matchable_leq_nat m n =
   let rec helper root =
     match root with
-    | (Scru, _) -> true
+    | (Scru, Z) -> false
+    | (Scru, S _) -> true
     | (Field (_,m1), S n1) -> helper (m1,n1)
     | (Field (_,_), Z) -> false
   in
@@ -158,7 +162,6 @@ let compile_naively pats: ir =
   in
   helper pats
 
-(*let tinfo_args t = match t with T (_,args) -> args*)
 let tinfo_names tt = match tt with T xs -> list_map fst xs
 let tinfo_args tt name = match tt with
   | T xs -> list_assoc name xs
@@ -173,7 +176,6 @@ let rec eval_m s typinfo0 path0 =
     | Field (nth, scru) ->
       match helper scru with
       | (EConstr (cname, es), next_tinfos) ->
-(*          let ppp = list_combine es next_tinfos in*)
           let arg_info = info_assoc next_tinfos cname in
           (list_nth_nat nth es, list_nth_nat nth arg_info)
   in
@@ -181,22 +183,26 @@ let rec eval_m s typinfo0 path0 =
   | (ans, info) ->  (ans, tinfo_names info)
 
 let rec eval_ir s max_height tinfo shortcut ir =
-  let[@tabled] rec inner  irrr =
+  let[@tabled] rec inner irrr =
     match irrr with
     | Fail -> None
     | Int n -> Some n
-    | IFTag (tag, scru, th, el) ->
-        match nat_leq (height_of_matchable scru) max_height with
+    | IFTag (tag, m, th, el) ->
+(*        match nat_leq (height_of_matchable m) max_height with*)
+        match matchable_leq_nat m max_height with
         | true ->
-            match eval_m s tinfo scru with
+            match eval_m s tinfo m with
             | (EConstr (tag2, args), cnames) ->
-                match shortcut tag scru th with
+                match shortcut tag m th with
                 | true ->
-                    match list_mem tag cnames with
-                    | true ->
+
+                    (*match list_mem tag cnames with
+                    | true ->*)
                         if tag2 = tag
                         then inner th
                         else inner el
+
+    (* TODO: try to make Fail branch last *)
   in
 
   inner ir

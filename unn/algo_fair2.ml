@@ -1,7 +1,7 @@
 (*
  * Trying to fix algo_fair
 
- * adding shortcut removes testing for constructor `pair` bu t
+ * adding shortcut removes testing for constructor `pair` but
  * synthtizer still doesn't know that after checking for `nil`
  * we should not check for `cons`
  *)

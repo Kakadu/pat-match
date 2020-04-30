@@ -20,9 +20,117 @@ end
 module type ARG1 = sig
   include ARG0
   val possible_answer: IR.ground
+  (* maximum count of IFs in the example answer *)
+  val max_ifs_count : int
+
+  val ir_hint : IR.injected -> OCanren.goal
 end
 
+(* ************************************************************************** *)
+module ArgPeanoSimple : ARG0 = struct
+  open OCanren
 
+  type g = (Nat.ground, Nat.ground) OCanren.Std.Pair.ground
+  type l = (Nat.logic, Nat.logic) OCanren.Std.Pair.logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let rec inhabit_nat :
+      Std.Nat.groundi ->
+      Nat.injected ->
+      goal
+    = fun height r ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (r === Nat.z)
+            ; fresh (size_tl tl)
+                (Nat.s tl === r)
+                (inhabit_nat prev tl)
+            ])
+      ]
+
+  let inhabit_pair :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (rez === Std.pair l r)
+          (inhabit_nat prev l)
+          (inhabit_nat prev r)
+      ]
+
+  let inhabit n rez = inhabit_pair (Std.nat n) rez
+
+  let info = "simple nats (a la Maranget2008)"
+
+  let clauses =
+    [ ppair (psucc pwc) (psucc pwc), IR.eint 30
+    ; ppair pzero  pwc, IR.eint 10
+    ; ppair pwc  pzero, IR.eint 10
+    ;
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (3 = n);
+    n
+
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let make prev =
+      T [ ("zero", [])
+        ; ("succ", [ prev ])
+        ]
+    in
+    let empty = T [ ("zero", []);  ] in
+    let height1 = make empty in
+    let height2 = make height1 in
+    let height3 = make height2 in
+    let pairs = T [ ("pair", [ height3; height3 ]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
+
+  let rec optimize (root: IR.ground)  =
+    let open Unn_pre.IR in
+    let open Unn_pre.Matchable in
+    let rec helper = function
+      | IFTag ("pair", Scru, then_, _) -> optimize then_
+      | IFTag (c, scru, then_, else_) ->
+          IFTag (c, scru, optimize then_, optimize else_)
+      | x -> x
+    in
+    helper root
+
+  let prjp e =
+    let prjl e =
+      Nat.prjc
+        (fun _ _ -> failwith "should not happen2")
+        e
+      in
+    Std.Pair.prjc prjl prjl
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let wrap_demo (demo_exprs: (Nat.ground * Nat.ground) list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | Nat.Z -> EConstr ("zero", Std.List.Nil)
+    | Nat.S tl ->
+        EConstr ("succ", Std.List.of_list id [ helper tl ])
+    in
+    ListLabels.map demo_exprs ~f:(fun (a,b) ->
+      EConstr ("pair", Std.List.of_list id [ helper a; helper b])
+    )
+end
 
 module ArgSimpleList : ARG0 = struct
   open OCanren
@@ -219,6 +327,7 @@ module TwoNilList = struct
 
 end
 
+(* ************************************************************************** *)
 module ArgTwoNilShort : ARG0 = struct
   open OCanren
 
@@ -315,9 +424,24 @@ module ArgTwoNilLonger : ARG0 = struct
 
 end
 
+module ArgTwoNilSimpl : ARG0 = struct
+  include ArgTwoNilShort
+
+  let info = "two nil simplified (expect anwser size = two ifs)"
+
+  let clauses =
+    [ ppair pnil  pwc, IR.eint 10
+    ; ppair pwc  pnil, IR.eint 10
+    ; ppair pnil2 pwc, IR.eint 10
+    ; ppair pwc pnil2, IR.eint 10
+    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 60
+    ]
+
+end
 
 module ArgMake(Arg: ARG0) : ARG1 = struct
   include Arg
+
   let possible_answer : IR.ground =
     let run_ground clauses : IR.ground =
       let injected : Clauses.injected = Clauses.inject clauses in
@@ -329,11 +453,15 @@ module ArgMake(Arg: ARG0) : ARG1 = struct
 (*      print_endline "naive answer:";
       print_endline @@ IR.show first;*)
       let second = Arg.optimize first in
-      print_endline "\noptimized answer:";
-      print_endline @@ IR.show second;
+      (*print_endline "\noptimized answer:";
+      print_endline @@ IR.show second;*)
       second
     in
     run_ground clauses
+
+  let max_ifs_count = IR.count_ifs_ground possible_answer
+
+  let ir_hint _ = OCanren.success
 end
 
 module type ARG_FINAL = sig
