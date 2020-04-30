@@ -6,6 +6,8 @@ open Work
 let id x = x
 let (>>=?) x f = match x with None -> None | Some x -> f x
 
+let simple_shortcut _ _ _ _ ans = (ans === !!true)
+
 exception FilteredOut
 
 

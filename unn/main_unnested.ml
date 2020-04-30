@@ -372,7 +372,18 @@ end
 *)
 
 
+module EvalMRez = struct
+  type ground = (Expr.ground, GT.string Std.List.ground) Std.Pair.ground
+(*      [@@deriving gt ~options: { show; fmt }]*)
+  type logic = (Expr.logic, GT.string OCanren.logic Std.List.logic) Std.Pair.logic
+(*      [@@deriving gt ~options: { show; fmt }]*)
+  type injected = (ground, logic) OCanren.injected
 
+  let show x = GT.(show Std.Pair.ground Expr.show (show Std.List.ground @@ show GT.string)) x
+  let show_logic x = GT.(show Std.Pair.logic Expr.show_logic (show Std.List.logic (show OCanren.logic @@ show GT.string))) x
+
+  let reifier env x = Std.Pair.reify Expr.reify (Std.List.reify OCanren.reify) env x
+end
 
 
 let eval_ir :
@@ -383,19 +394,17 @@ let eval_ir :
     Work.eval_ir
 
 let eval_m : Expr.injected ->  Typs.injected -> Matchable.injected ->
-   ( Expr.ground * string Std.List.ground
-   , (Expr.logic, string OCanren.logic Std.List.logic) Std.Pair.logic
-   ) OCanren.injected ->
+  EvalMRez.injected ->
   goal
   = Work.eval_m
 
 let _f ()  =
-  run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("answers", fun q ->
+  run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("test eval_ir", fun q ->
     eval_ir
       (epair (eleaf "aaa") (eleaf "bbb"))
       (Nat.inject @@ Nat.of_int 2)
       Typs.(inject @@ construct @@ T [ ("pair", [ T [ ("aaa", []) ]; T [ ("bbb", []) ] ]) ])
-      (fun _ _ _ rez -> (rez === !!true))
+      simple_shortcut
       (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))
       q
   )
@@ -407,21 +416,10 @@ let _foo () =
         q
         (Nat.inject @@ Nat.of_int 2)
         Typs.(inject @@ construct @@ T [ ("pair", [ T [ ("aab", []) ]; T [ ("bbb", []) ] ]) ])
-        (fun _ _ _ rez -> (rez === !!true))
+        simple_shortcut
         (iFTag !!"aab" (field (z()) (scru ())) (int !!1) (int !!2))        
         (Std.some (!!2))
   )
-
-module EvalMRez = struct
-  type ground = (Expr.ground, GT.string Std.List.ground) Std.Pair.ground
-(*      [@@deriving gt ~options: { show; fmt }]*)
-  let show x = GT.(show Std.Pair.ground Expr.show (show Std.List.ground @@ show GT.string)) x
-  type logic = (Expr.logic, GT.string OCanren.logic Std.List.logic) Std.Pair.logic
-(*      [@@deriving gt ~options: { show; fmt }]*)
-  let show_logic x = GT.(show Std.Pair.logic Expr.show_logic (show Std.List.logic (show OCanren.logic @@ show GT.string))) x
-
-  let reifier env x = Std.Pair.reify Expr.reify (Std.List.reify OCanren.reify) env x
-end
 
 let _f () =
   let e1 = Expr.(inject @@ econstr "pair" [ econstr "aab" []; econstr "bbb" [] ]) in
@@ -445,23 +443,6 @@ let _f () =
   );
 
   ()
-
-
-(*
-(* Two nil lists types *)
-let typs1 =
-  let ints = T [ ("1",[]) ] in
-  let list_empty = T [  ("nil", []); ("nil2", []) ] in
-  let listints1 = T [ ("nil", []); ("nil2",  []); ("cons", [ ints; list_empty]) ] in
-  let listints2 = T [ ("nil", []); ("nil2", []); ("cons", [ ints; listints1]) ] in
-  let pairs = T [ ("pair", [ listints2; listints2]) ] in
-  let grounded = Typs.construct pairs in
-
-(*  Format.printf "types: %s\n%!" (GT.show Typs.ground grounded);*)
-  Typs.inject grounded
-*)
-
-
 
 
 open Main_inputs
@@ -862,7 +843,7 @@ module FPairTrueFalse = Algo_fair.Make(struct
       ]
       *)
 end)
-let () = FPairTrueFalse.test ~n:(-1) ~with_hack:true
+(*let () = FPairTrueFalse.test ~n:(-1) ~with_hack:true*)
 
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
@@ -912,9 +893,9 @@ module F3 = Algo_fair.Make(struct
 
 end)
 
-(*let () = F3.test ~n:40*)
+(*let () = F3.test 40*)
 
-module Fair2_1 = Algo_fair2.Make(struct
+module Fair2_1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
@@ -924,23 +905,24 @@ module Fair2_2 = Algo_fair2.Make(struct
 end)
 *)
 
-(*let () = Fair2_1.test ~n:10*)
+let () = Fair2_1.test 10
 (*let () = Fair2_2.test ~n:2*)
 
 (* *************************************************************************** *)
-module Fair3_1 = Algo_fair3.Make(struct
+module Fair3_1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-(*let () = Fair3_1.test ~n:10*)
+let () = Fair3_1.test 10
 
 
 
-module Fair4_1 = Algo_fair3.Make(struct
+module Fair4_1 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilSimpl)
-  let max_ifs_count = 3
+(*  let max_ifs_count = 3*)
 end)
-(*let () = Fair4_1.test ~n:20*)
+
+let () = Fair4_1.test 20
 
 
 

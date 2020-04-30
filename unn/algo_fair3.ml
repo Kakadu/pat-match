@@ -6,8 +6,6 @@ open Unn_pre
 open OCanren
 open Unn_pre.IR
 
-let simple_shortcut _ _ _ ans = (ans === !!true)
-
 module Make(Arg: ARG_FINAL) = struct
 
   let work ?(n=10) clauses typs =
@@ -148,7 +146,7 @@ module Make(Arg: ARG_FINAL) = struct
           helper ir
         )
       in
-      let shortcut tag scru_ th rez =
+      let shortcut tag scru_ th _ rez =
         let open Matchable in
         (rez === !!true) &&&
         conde

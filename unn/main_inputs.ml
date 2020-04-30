@@ -1,18 +1,26 @@
 open Unn_pre
 
+
 module type ARG0 = sig
+  open OCanren
+
   type g
   type l
-  type qtyp_injected = (g,l) OCanren.injected
+  type qtyp_injected = (g,l) injected
 
 
-  val inhabit: int -> qtyp_injected -> OCanren.goal
+  val inhabit: int -> qtyp_injected -> goal
   val clauses : Clauses.pre_ground
   val typs : Typs.injected
   val max_height : int
   val optimize: IR.ground -> IR.ground
   val prjp: OCanren.Env.t -> qtyp_injected -> g
   val wrap_demo: g list -> Expr.ground list
+
+  val shortcut:
+    (string, string logic) injected -> Matchable.injected ->
+    IR.injected -> IR.injected ->
+    (bool, bool logic) injected -> goal
 
   val info : string
 end
@@ -84,6 +92,8 @@ module ArgTrueFalse : ARG0 = struct
     | false -> EConstr ("false", Std.List.Nil)
     in
     ListLabels.map demo_exprs ~f:helper
+
+  let shortcut = simple_shortcut
 end
 
 
@@ -149,9 +159,10 @@ module ArgABC : ARG0 = struct
     | C  -> EConstr ("C", Std.List.Nil)
     in
     ListLabels.map demo_exprs ~f:helper
+
+  let shortcut = simple_shortcut
 end
 
-(* ************************************************************************** *)
 (* ************************************************************************** *)
 module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
                                and  type l = (bool OCanren.logic, bool OCanren.logic) OCanren.Std.Pair.logic
@@ -247,6 +258,8 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       EConstr ("pair", Std.List.of_list id [ helper a; helper b])
     )
+
+  let shortcut = simple_shortcut
 end
 
 (* ************************************************************************** *)
@@ -353,6 +366,8 @@ module ArgPeanoSimple : ARG0 = struct
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       EConstr ("pair", Std.List.of_list id [ helper a; helper b])
     )
+
+  let shortcut = simple_shortcut
 end
 
 module ArgSimpleList : ARG0 = struct
@@ -483,6 +498,7 @@ module ArgSimpleList : ARG0 = struct
       EConstr ("pair", Std.List.of_list id [ hack_list a; hack_list b])
     )
 
+  let shortcut = simple_shortcut
 end
 
 
@@ -547,6 +563,7 @@ module TwoNilList = struct
           (inhabit_twonil_list prev inh_list_arg l)
           (inhabit_twonil_list prev inh_list_arg r)
       ]
+
 
 end
 
@@ -630,6 +647,8 @@ module ArgTwoNilShort : ARG0 = struct
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       EConstr ("pair", Std.List.of_list id [ hack_list a; hack_list b])
     )
+
+  let shortcut = simple_shortcut
 end
 
 module ArgTwoNilLonger : ARG0 = struct

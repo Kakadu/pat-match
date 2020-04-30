@@ -86,7 +86,7 @@ module Make(Arg: ARG_FINAL) = struct
   in
 
 
-    let shortcut _tag _Scru _th rez =
+    let shortcut _tag _Scru _th _ rez =
 
       (rez === !!true) &&&
 
@@ -140,48 +140,36 @@ module Make(Arg: ARG_FINAL) = struct
     in
 
 
-    let ex_count = List.length injected_exprs in
-    assert (List.length injected_exprs = 4);
+    Helper.show_local_time ();
+    let info = Format.sprintf "fair lozovML (%s)" Arg.info in
+    let open Mytester in
+    runR IR.reify IR.show IR.show_logic n q qh (info, (fun ideal_IR ->
+        let init = Arg.ir_hint ideal_IR in
 
-(*    for i = 1 to ex_count do
-      let injected_exprs = Helper.List.take i injected_exprs in
-      assert (List.length injected_exprs = i);*)
+        List.fold_left (fun acc (scru: Expr.injected) ->
+          Fresh.two (fun res_pat res_ir ->
+            acc &&&
+            (Work.eval_pat             scru injected_clauses res_pat) &&&
+            (conde
+              [ fresh (n)
+                  (res_pat === Std.Option.some (IR.int n))
+                  (res_ir  === Std.Option.some n)
+              ; fresh ()
+                  (res_pat === Std.Option.none ())
+                  (res_ir === Std.Option.none())
+              ]) &&&
 
-      Helper.show_local_time ();
-      let info = Format.sprintf "fair lozovML (%s)" Arg.info in
-      let open Mytester in
-      runR IR.reify IR.show IR.show_logic n q qh (info, (fun ideal_IR ->
-          let init = Arg.ir_hint ideal_IR in
-
-          List.fold_left (fun acc (scru: Expr.injected) ->
-            Fresh.two (fun res_pat res_ir ->
-              acc &&&
-              (Work.eval_pat             scru injected_clauses res_pat) &&&
-              (conde
-                [
-                  Fresh.one (fun n ->
-                   (res_pat === Std.Option.some (IR.int n)) &&&
-                   (res_ir  === Std.Option.some n) )
-                ;
-                  (*fresh (n)
-                    (res_pat === Std.Option.some (IR.int n))
-                    (res_ir  === Std.Option.some n) *)
-
-                  (res_pat === Std.Option.none ()) &&& (res_ir === Std.Option.none())
-                ]) &&&
-
-                (my_eval_ir  ideal_IR scru typs ideal_IR      res_ir)
-              )
+              (my_eval_ir  ideal_IR scru typs ideal_IR      res_ir)
             )
-            init
-            injected_exprs
-        ));
-      Format.printf "%!\n"
-(*
-    done*)
+          )
+          init
+          injected_exprs
+      ));
+    Format.printf "%!\n"
 
 
-  let test ?(with_hack=true) ~n =
+
+  let test ?(with_hack=true) n =
     work ~n ~with_hack Arg.clauses Arg.typs
 
 end
