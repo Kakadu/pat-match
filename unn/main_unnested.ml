@@ -869,16 +869,55 @@ let () = FairLists.test 10
 
 
 
-module F2NilSimple = Algo_fair.Make(struct
-  include ArgMake(ArgTwoNilSimpl)
+module F2NilShort = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilLists2Cons)
 end)
 
-let () = F2NilSimple.test 10
-
-module F2NilShort = Algo_fair.Make(ArgMake(ArgTwoNilShort))
-
 (* There are only 4 answers here*)
-let () = F2NilShort.test (-1)
+(*let () = F2NilShort.test (-1)*)
+
+(* ************************************************************************** *)
+module WWW = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilLists2Simplified)
+end)
+let () = WWW.test 10
+
+module WWW2 = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilLists2Simplified)
+
+  let info = info ^ " + check_repeated_ifs"
+end)
+let () = WWW2.test ~check_repeated_ifs:true 10
+
+
+(* ************************************************************************** *)
+module XXX = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilLists2Simplified)
+  let shortcut tag _ _ _ rez =
+    fresh ()
+      (rez === !!true)
+      (tag =/= !!"pair")
+
+  let info = info ^ " + tag=/=pair"
+end)
+
+let () = XXX.test 10
+
+(* ************************************************************************** *)
+
+module XXX2 = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilLists2Simplified)
+  let shortcut tag _ _ _ rez =
+    fresh ()
+      (rez === !!true)
+      (tag =/= !!"pair")
+
+  let info = info ^ " + tag=/=pair + check_repeated_ifs"
+end)
+
+let () = XXX2.test ~check_repeated_ifs:true 10
+
+(* ************************************************************************** *)
 
 (*let () = Fair4_1.test 20*)
 

@@ -408,6 +408,12 @@ module Clauses = struct
     List.map (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
 
 
+  let pretty_print ch clauses =
+    Format.fprintf ch "@[match ... with@]@.";
+    clauses |> List.iter (fun (p,ir) ->
+      Format.fprintf ch "@[| %s@ ->@ %s@]@." (Pattern.show p) (IR.show ir)
+    )
+
 end
 
 

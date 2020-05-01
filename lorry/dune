@@ -2,7 +2,7 @@
   (name lorry_run)
   (modules lorry_run  lorry)
   (flags (-rectypes))
-  (libraries OCanren mytester)
+  (libraries OCanren mytester helper)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 

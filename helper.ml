@@ -83,4 +83,4 @@ end
 
 let show_local_time () =
   let tm = Unix.(localtime @@ time ()) in
-  Format.printf "starting time: %02d:%02d\n%!" tm.Unix.tm_hour tm.Unix.tm_min
+  Format.printf "starting time: %02d:%02d:%02d\n%!" tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec

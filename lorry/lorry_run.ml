@@ -67,6 +67,7 @@ let _f () =
 
 
 let () =
+  Helper.show_local_time ();
 (*  let start = Mtime_clock.counter () in*)
   for i=1 to 13 do
     let msg = Printf.sprintf "with structural (maxlength = %d)" i in
@@ -76,4 +77,5 @@ let () =
   done;
 (*  let span = Mtime_clock.count start in*)
 (*  print_span span;*)
+  Helper.show_local_time ();
   ()

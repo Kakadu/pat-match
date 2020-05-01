@@ -1,0 +1,296 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (true) -> 1
+| (false) -> 0
+A priori answer:
+(iftag "true" S 1 (iftag "false" S 0 (fail)))
+Initial upper bound of IFS = 2, max_matchable_height = 1
+Testing 2 examples:
+  true ~~> 1
+  false ~~> 0
+fair lozovML (bool), 10 answers {
+         1ms
+Set upper bound of IFs to 1
+q=(iftag "true" S 1 0);
+         0ms
+q=(iftag "false" S 0 1);
+}
+
+Total synthesis time:          2ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(succ [_]); (succ [_])]) -> 30
+| (pair [(zero); _]) -> 10
+| (pair [_; (zero)]) -> 10
+A priori answer:
+(iftag "succ" S[1] (iftag "succ" S[0] 30 (iftag "zero" S[0] 10 (iftag "zero" S[1] 10 (fail)))) (iftag "zero" S[0] 10 (iftag "zero" S[1] 10 (fail))))
+Initial upper bound of IFS = 6, max_matchable_height = 3
+Testing 4 examples:
+  "pair" [zero; zero] ~~> 10
+  "pair" [zero; "succ" [zero]] ~~> 10
+  "pair" ["succ" [zero]; zero] ~~> 10
+  "pair" ["succ" [zero]; "succ" [zero]] ~~> 30
+fair lozovML (simple nats (a la Maranget2008)), 10 answers {
+        69ms
+Set upper bound of IFs to 2
+q=(iftag "zero" S[0] 10 (iftag "zero" S[1] 10 30));
+        15ms
+q=(iftag "zero" S[0] 10 (iftag "succ" S[1] 30 10));
+        24ms
+q=(iftag "zero" S[1] 10 (iftag "zero" S[0] 10 30));
+        29ms
+q=(iftag "succ" S[0] (iftag "zero" S[1] 10 30) 10);
+        10ms
+q=(iftag "succ" S[0] (iftag "succ" S[1] 30 10) 10);
+        10ms
+q=(iftag "zero" S[1] 10 (iftag "succ" S[0] 30 10));
+        57ms
+q=(iftag "succ" S[1] (iftag "zero" S[0] 10 30) 10);
+         9ms
+q=(iftag "succ" S[1] (iftag "succ" S[0] 30 10) 10);
+}
+
+Total synthesis time:        459ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 20
+| (pair [(cons [_; _]); (cons [_; _])]) -> 30
+A priori answer:
+(iftag " nil" S[0] 10 (iftag " nil" S[1] 20 (iftag "cons" S[1] (iftag "cons" S[0] 30 (fail)) (fail))))
+Initial upper bound of IFS = 4, max_matchable_height = 3
+Testing 4 examples:
+  "pair" [nil; nil] ~~> 10
+  "pair" [nil; "cons" [int; nil]] ~~> 10
+  "pair" ["cons" [int; nil]; nil] ~~> 20
+  "pair" ["cons" [int; nil]; "cons" [int; nil]] ~~> 30
+fair lozovML (simple lists (from Maranget2008)), 10 answers {
+        70ms
+Set upper bound of IFs to 2
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 20 30));
+        23ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] 30 20));
+        60ms
+q=(iftag "cons" S[0] (iftag " nil" S[1] 20 30) 10);
+         8ms
+q=(iftag "cons" S[0] (iftag "cons" S[1] 30 20) 10);
+}
+
+Total synthesis time:        404ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 (fail)) (fail))))))
+Initial upper bound of IFS = 6, max_matchable_height = 3
+Testing 16 examples:
+  "pair" [nil; nil] ~~> 10
+  "pair" [nil; nil2] ~~> 10
+  "pair" [nil2; nil] ~~> 10
+  "pair" [nil2; nil2] ~~> 10
+  "pair" [nil; "cons" [int; nil]] ~~> 10
+  "pair" [nil; "cons" [int; nil2]] ~~> 10
+  "pair" [nil2; "cons" [int; nil]] ~~> 10
+  "pair" [nil2; "cons" [int; nil2]] ~~> 10
+  "pair" ["cons" [int; nil]; nil] ~~> 10
+  "pair" ["cons" [int; nil]; nil2] ~~> 10
+  "pair" ["cons" [int; nil2]; nil] ~~> 10
+  "pair" ["cons" [int; nil2]; nil2] ~~> 10
+  "pair" ["cons" [int; nil]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil]; "cons" [int; nil2]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil2]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS)), 10 answers {
+      4824ms
+Set upper bound of IFs to 4
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 60))));
+       933ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] 60 10))));
+      6927ms
+Set upper bound of IFs to 3
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag "cons" S[1] 60 10)));
+      4185ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10));
+      1187ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "nil2" S[0] 10 60) 10));
+       491ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+        26s
+q=(iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[0] 60 10)));
+      2810ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "nil2" S[1] 10 60) 10));
+       275ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10));
+      1672ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+}
+
+Total synthesis time:         50s
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 (fail)) (fail))))))
+Initial upper bound of IFS = 6, max_matchable_height = 3
+Testing 16 examples:
+  "pair" [nil; nil] ~~> 10
+  "pair" [nil; nil2] ~~> 10
+  "pair" [nil2; nil] ~~> 10
+  "pair" [nil2; nil2] ~~> 10
+  "pair" [nil; "cons" [int; nil]] ~~> 10
+  "pair" [nil; "cons" [int; nil2]] ~~> 10
+  "pair" [nil2; "cons" [int; nil]] ~~> 10
+  "pair" [nil2; "cons" [int; nil2]] ~~> 10
+  "pair" ["cons" [int; nil]; nil] ~~> 10
+  "pair" ["cons" [int; nil]; nil2] ~~> 10
+  "pair" ["cons" [int; nil2]; nil] ~~> 10
+  "pair" ["cons" [int; nil2]; nil2] ~~> 10
+  "pair" ["cons" [int; nil]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil]; "cons" [int; nil2]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil2]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS) + check_repeated_ifs), 10 answers {
+      2369ms
+Set upper bound of IFs to 4
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 60))));
+       801ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] 60 10))));
+      2883ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag "pair" S (iftag "cons" S[1] 60 10) _.112537)));
+      3692ms
+Set upper bound of IFs to 3
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag "cons" S[1] 60 10)));
+      2514ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10));
+      3027ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "nil2" S[0] 10 60) 10));
+       333ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+      9402ms
+q=(iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[0] 60 10)));
+      9050ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+      3927ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "nil2" S[1] 10 60) 10));
+}
+
+Total synthesis time:         38s
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 (fail)) (fail))))))
+Initial upper bound of IFS = 6, max_matchable_height = 3
+Testing 16 examples:
+  "pair" [nil; nil] ~~> 10
+  "pair" [nil; nil2] ~~> 10
+  "pair" [nil2; nil] ~~> 10
+  "pair" [nil2; nil2] ~~> 10
+  "pair" [nil; "cons" [int; nil]] ~~> 10
+  "pair" [nil; "cons" [int; nil2]] ~~> 10
+  "pair" [nil2; "cons" [int; nil]] ~~> 10
+  "pair" [nil2; "cons" [int; nil2]] ~~> 10
+  "pair" ["cons" [int; nil]; nil] ~~> 10
+  "pair" ["cons" [int; nil]; nil2] ~~> 10
+  "pair" ["cons" [int; nil2]; nil] ~~> 10
+  "pair" ["cons" [int; nil2]; nil2] ~~> 10
+  "pair" ["cons" [int; nil]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil]; "cons" [int; nil2]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil2]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS) + tag=/=pair), 10 answers {
+      2370ms
+Set upper bound of IFs to 4
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "nil2" S[1] 10 60))));
+       980ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "cons" S[1] 60 10))));
+      1254ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 (iftag "nil2" S[0] 10 60))));
+       692ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[0] 60 10))));
+      2507ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "nil2" S[1] 10 60) 10)));
+       393ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10)));
+      1310ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] (iftag "nil2" S[0] 10 60) 10)));
+       694ms
+q=(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10)));
+      3019ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 60))));
+       403ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] 60 10))));
+}
+
+Total synthesis time:         14s
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(iftag " nil" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[0] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 (fail)) (fail))))))
+Initial upper bound of IFS = 6, max_matchable_height = 3
+Testing 16 examples:
+  "pair" [nil; nil] ~~> 10
+  "pair" [nil; nil2] ~~> 10
+  "pair" [nil2; nil] ~~> 10
+  "pair" [nil2; nil2] ~~> 10
+  "pair" [nil; "cons" [int; nil]] ~~> 10
+  "pair" [nil; "cons" [int; nil2]] ~~> 10
+  "pair" [nil2; "cons" [int; nil]] ~~> 10
+  "pair" [nil2; "cons" [int; nil2]] ~~> 10
+  "pair" ["cons" [int; nil]; nil] ~~> 10
+  "pair" ["cons" [int; nil]; nil2] ~~> 10
+  "pair" ["cons" [int; nil2]; nil] ~~> 10
+  "pair" ["cons" [int; nil2]; nil2] ~~> 10
+  "pair" ["cons" [int; nil]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil]; "cons" [int; nil2]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil]] ~~> 60
+  "pair" ["cons" [int; nil2]; "cons" [int; nil2]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS) + tag=/=pair + check_repeated_ifs), 10 answers {
+      1588ms
+Set upper bound of IFs to 4
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 60))));
+       741ms
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag " nil" S[1] 10 (iftag "cons" S[1] 60 10))));
+      4347ms
+Set upper bound of IFs to 3
+q=(iftag " nil" S[0] 10 (iftag "nil2" S[0] 10 (iftag "cons" S[1] 60 10)));
+      2263ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10));
+      1756ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "nil2" S[0] 10 60) 10));
+       336ms
+q=(iftag " nil" S[0] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+      9793ms
+q=(iftag " nil" S[1] 10 (iftag "nil2" S[1] 10 (iftag "cons" S[0] 60 10)));
+      3502ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[1] (iftag "cons" S[0] 60 10) 10));
+      2826ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "nil2" S[1] 10 60) 10));
+       391ms
+q=(iftag " nil" S[1] 10 (iftag "cons" S[0] (iftag "cons" S[1] 60 10) 10));
+}
+
+Total synthesis time:         28s

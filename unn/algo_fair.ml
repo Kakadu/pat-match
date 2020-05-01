@@ -9,17 +9,19 @@ open Unn_pre.IR
 
 module Make(Arg: ARG_FINAL) = struct
 
-  let work ?(n=10) ~with_hack ~print_examples clauses typs =
+  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs clauses typs =
+    print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+    Clauses.pretty_print Format.std_formatter clauses;
     let possible_answer = Arg.possible_answer in
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
-    Format.printf "preliminary answer:\n%s\n%!" (IR.show possible_answer);
-    Format.printf "max IFs count = %d,\tArg.max_height = %d\n%!" !max_ifs_count Arg.max_height;
+    Format.printf "A priori answer:\n%s\n%!" (IR.show possible_answer);
+    Format.printf "Initial upper bound of IFS = %d,\tmax_matchable_height = %d\n%!" !max_ifs_count Arg.max_height;
 
     let upgrade_bound x =
       if !max_ifs_count > x
       then
-        let () = Format.printf "minimal bound is set to %d\n%!" x in
+        let () = Format.printf "Set upper bound of IFs to %d\n%!" x in
         max_ifs_count := x
     in
 
@@ -39,21 +41,22 @@ module Make(Arg: ARG_FINAL) = struct
             then raise FilteredOut
           in
           *)
-(*
+
           let seen_new =
-            match (tag_log, Matchable.to_ground scru) with
-            | (Value s, Some mat_ground) ->
-                let candidate = (s,mat_ground) in
-                if List.mem candidate seen
-                then
-                  raise FilteredOut
-                else
-  (*                  let () = printf "Adding candidate (%s,%s)\n%!" s (Matchable.show mat_ground) in*)
-                  candidate::seen
-            | _ -> seen
+            if check_repeated_ifs
+            then
+              match (tag_log, Matchable.to_ground scru) with
+              | (Value s, Some mat_ground) ->
+                  let candidate = (s,mat_ground) in
+                  if List.mem candidate seen
+                  then
+                    raise FilteredOut
+                  else
+    (*                  let () = printf "Adding candidate (%s,%s)\n%!" s (Matchable.show mat_ground) in*)
+                    candidate::seen
+              | _ -> seen
+            else seen
           in
-*)
-          let seen_new = seen in
           let a = helper seen_new then_ in
           let b = helper seen_new else_ in
           (1+a+b)
@@ -135,7 +138,6 @@ module Make(Arg: ARG_FINAL) = struct
     in
 
 
-    Helper.show_local_time ();
     let info = Format.sprintf "fair lozovML (%s)" Arg.info in
     let on_ground ir =
       let nextn = IR.count_ifs_ground ir in
@@ -148,6 +150,9 @@ module Make(Arg: ARG_FINAL) = struct
       IR.show_logic ir
     in
     let open Mytester in
+    let start = Mtime_clock.counter () in
+
+
     runR IR.reify on_ground on_logic n q qh (info, (fun ideal_IR ->
         let init = Arg.ir_hint ideal_IR in
 
@@ -168,12 +173,19 @@ module Make(Arg: ARG_FINAL) = struct
           init
           injected_exprs
       ));
-    Format.printf "%!\n"
+    let span = Mtime_clock.count start in
+
+    Format.printf "\n";
+    Format.printf "Total synthesis time: %s\n%!"
+      ( let ms = Mtime.Span.to_ms span in
+        if ms > 10000.0
+        then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
+        else Format.sprintf "%10.0fms\n%!" ms)
 
 
 
-  let test ?(with_hack=true) ?(print_examples=true) n =
-    work ~n ~with_hack ~print_examples Arg.clauses Arg.typs
+  let test ?(with_hack=true) ?(print_examples=true) ?(check_repeated_ifs=false) n =
+    work ~n ~with_hack ~print_examples ~check_repeated_ifs Arg.clauses Arg.typs
 
 end
 

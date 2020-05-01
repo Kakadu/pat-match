@@ -568,7 +568,7 @@ module TwoNilList = struct
 end
 
 (* ************************************************************************** *)
-module ArgTwoNilShort : ARG0 = struct
+module ArgTwoNilLists1 : ARG0 = struct
   open OCanren
 
   type g = (int TwoNilList.L.ground, int TwoNilList.L.ground) OCanren.Std.Pair.ground
@@ -577,14 +577,13 @@ module ArgTwoNilShort : ARG0 = struct
 
   let inhabit n rez = TwoNilList.inhabit_pair_lists (Std.nat n) Helper.inhabit_int rez
 
-  let info = "two nil lists 1 (no cons)"
+  let info = "two-nil lists (no cons -- use WCs)"
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
     ; ppair pwc  pnil, IR.eint 20
     ; ppair pnil2 pwc, IR.eint 30
     ; ppair pwc pnil2, IR.eint 40
-  (*    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30*)
     ; ppair pwc pwc, IR.eint 60
     ]
 
@@ -651,10 +650,10 @@ module ArgTwoNilShort : ARG0 = struct
   let shortcut = simple_shortcut
 end
 
-module ArgTwoNilLonger : ARG0 = struct
-  include ArgTwoNilShort
+module ArgTwoNilLists2Cons : ARG0 = struct
+  include ArgTwoNilLists1
 
-  let info = "two nil lists 2 (with cons)"
+  let info = "two-nil lists (with cons)"
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
@@ -666,10 +665,10 @@ module ArgTwoNilLonger : ARG0 = struct
 
 end
 
-module ArgTwoNilSimpl : ARG0 = struct
-  include ArgTwoNilShort
+module ArgTwoNilLists2Simplified : ARG0 = struct
+  include ArgTwoNilLists1
 
-  let info = "two nil simplified (expect anwser size = two ifs)"
+  let info = "two-nil lists (with cons, simplified RHS)"
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
