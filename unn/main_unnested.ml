@@ -457,17 +457,17 @@ end)
 
 let () = N0.test ()
 *)
-
+(*
 module N1 = Impl1.Make(struct
   include ArgMake(ArgTwoNilShort)
-end)
+end)*)
 
 (*let () = N1.test ()*)
-
+(*
 module N2 = Impl1.Make(struct
   include ArgMake(ArgTwoNilLonger)
 end)
-
+*)
 (*let () = N2.test ()*)
 
 
@@ -825,7 +825,7 @@ end
 module FTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgTrueFalse)
 end)
-(*let () = FTrueFalse.test ~n:10*)
+let () = FTrueFalse.test 10
 
 module FPairTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
@@ -847,57 +847,49 @@ end)
 
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
-  let max_ifs_count = 1
+(*  let max_ifs_count = 1*)
 end)
 (*let () = FABC.test ~n:10*)
 
 
 
-module F1 = Algo_fair.Make(struct
+module Peano = Algo_fair.Make(struct
+  include ArgMake(ArgPeanoSimple)
+end)
+
+let () = Peano.test 10
+
+
+(* *************************************************************************** *)
+module FairLists = Algo_fair.Make(struct
+  include ArgMake(ArgSimpleList)
+end)
+
+let () = FairLists.test 10
+
+
+
+module F2NilSimple = Algo_fair.Make(struct
+  include ArgMake(ArgTwoNilSimpl)
+end)
+
+let () = F2NilSimple.test 10
+
+module F2NilShort = Algo_fair.Make(ArgMake(ArgTwoNilShort))
+
+(* There are only 4 answers here*)
+let () = F2NilShort.test (-1)
+
+(*let () = Fair4_1.test 20*)
+
+(*module F1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
   let max_ifs_count = 2
 end)
-module F2 = Algo_fair.Make(ArgMake(ArgTwoNilShort))
-
-(*let () = F1.test ~n:10*)
-
-(*let () = F2.test ~n:2*)
-
-module F3 = Algo_fair.Make(struct
-  include ArgMake(ArgPeanoSimple)
-  let max_ifs_count = 2
-(*  let max_height = 2*)
-(*
-  let inhabit (_:int) (rez : qtyp_injected) =
-    let pair a b = Std.Pair.pair a b in
-    let zero = Nat.z in
-    let su x = Nat.s x in
-    conde
-      [ rez === pair zero zero
-      ; rez === pair (su zero) (zero)
-      ; rez === pair zero (su zero)
-      ; rez === pair (su zero) (su zero)
-      ]*)
-
-  let ir_hint ir =
-    fresh (a b c d t1 t2 )
-      success
-
-  (*    (ir === iFTag t1 (Matchable.field0())
-          a
-          b)*)
-
-
-(*      (t1 === !!"succ")*)
-(*      (a === (iFTag !!"succ" (Matchable.field1()) c d ))*)
-
-end)
-
-(*let () = F3.test 40*)
 
 module Fair2_1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
-end)
+end)*)
 
 (*
 module Fair2_2 = Algo_fair2.Make(struct
@@ -905,24 +897,9 @@ module Fair2_2 = Algo_fair2.Make(struct
 end)
 *)
 
-let () = Fair2_1.test 10
+(*let () = Fair2_1.test 10*)
 (*let () = Fair2_2.test ~n:2*)
 
-(* *************************************************************************** *)
-module Fair3_1 = Algo_fair.Make(struct
-  include ArgMake(ArgSimpleList)
-end)
-
-let () = Fair3_1.test 10
-
-
-
-module Fair4_1 = Algo_fair.Make(struct
-  include ArgMake(ArgTwoNilSimpl)
-(*  let max_ifs_count = 3*)
-end)
-
-let () = Fair4_1.test 20
 
 
 
