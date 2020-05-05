@@ -1,0 +1,14 @@
+(executable
+  (name main_switch)
+  (modules main_switch main_inputs work_switch unn_pre
+          algo_fair
+          )
+  (flags (-rectypes))
+  (libraries OCanren helper mytester)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+)
+
+(rule
+ (targets work_switch.ml)
+ (deps    work_switch.ml2mk.ml)
+ (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))

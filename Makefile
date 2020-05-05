@@ -1,4 +1,4 @@
-.PHONY: unn lorry gcw 
+.PHONY: unn switch nonlin guards gadt lorry gcw 
 
 DUNEOPTS=
 ifeq ($(VERBOSE),1)
@@ -27,6 +27,9 @@ run-mini:
 
 unn:
 	dune exec unn/main_unnested.exe $(DUNEOPTS)
+
+switch:
+	dune exec switch/main_switch.exe $(DUNEOPTS)
 
 nonlin:
 	dune exec ./main_nonlinear.exe $(DUNEOPTS)
