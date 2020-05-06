@@ -1,0 +1,176 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (true) -> 1
+| (false) -> 0
+A priori answer:
+(match S with | true -> 1 | _ -> (match S with | false -> 0 | _ -> fail))
+Initial upper bound of IF-ish constructions = 2,        max_matchable_height = 1
+Testing 2 examples:
+  true ~~> 1
+  false ~~> 0
+fair lozovML (bool), all answers {
+         2ms
+Set upper bound of IF-ish constructions to 1
+q=(match S with | true -> 1 | _ -> 0);
+         1ms
+q=(match S with | false -> 0 | _ -> 1);
+}
+
+Total synthesis time:          4ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(succ [_]); (succ [_])]) -> 30
+| (pair [(zero); _]) -> 10
+| (pair [_; (zero)]) -> 10
+A priori answer:
+(match S[1] with | succ -> (match S[0] with | succ -> 30 | _ -> (match S[0] with | zero -> 10 | _ -> (match S[1] with | zero -> 10 | _ -> fail))) | _ -> (match S[0] with | zero -> 10 | _ -> (match S[1] with | zero -> 10 | _ -> fail)))
+Initial upper bound of IF-ish constructions = 6,        max_matchable_height = 3
+Testing 4 examples:
+  pair [zero; zero] ~~> 10
+  pair [zero; succ [zero]] ~~> 10
+  pair [succ [zero]; zero] ~~> 10
+  pair [succ [zero]; succ [zero]] ~~> 30
+fair lozovML (simple nats (a la Maranget2008)), 10 answers {
+       115ms
+Set upper bound of IF-ish constructions to 2
+q=(match S[0] with | zero -> 10 | _ -> (match S[1] with | zero -> 10 | _ -> 30));
+        57ms
+q=(match S[0] with | zero -> 10 | _ -> (match S[1] with | succ -> 30 | _ -> 10));
+       145ms
+q=(match S[0] with | succ -> (match S[1] with | zero -> 10 | _ -> 30) | _ -> 10);
+        50ms
+q=(match S[0] with | succ -> (match S[1] with | succ -> 30 | _ -> 10) | _ -> 10);
+        42ms
+q=(match S[1] with | zero -> 10 | _ -> (match S[0] with | zero -> 10 | _ -> 30));
+       114ms
+q=(match S[1] with | zero -> 10 | _ -> (match S[0] with | succ -> 30 | _ -> 10));
+        82ms
+q=(match S[1] with | succ -> (match S[0] with | zero -> 10 | _ -> 30) | _ -> 10);
+        74ms
+q=(match S[1] with | succ -> (match S[0] with | succ -> 30 | _ -> 10) | _ -> 10);
+}
+
+Total synthesis time:       1380ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 20
+| (pair [(cons [_; _]); (cons [_; _])]) -> 30
+A priori answer:
+(match S[0] with | nil -> 10 | _ -> (match S[1] with | nil -> 20 | _ -> (match S[1] with | cons -> (match S[0] with | cons -> 30 | _ -> fail) | _ -> fail)))
+Initial upper bound of IF-ish constructions = 4,        max_matchable_height = 3
+Testing 4 examples:
+  pair [nil; nil] ~~> 10
+  pair [nil; cons [int; nil]] ~~> 10
+  pair [cons [int; nil]; nil] ~~> 20
+  pair [cons [int; nil]; cons [int; nil]] ~~> 30
+fair lozovML (simple lists (from Maranget2008)), 10 answers {
+       310ms
+Set upper bound of IF-ish constructions to 2
+q=(match S[0] with | nil -> 10 | _ -> (match S[1] with | nil -> 20 | _ -> 30));
+        84ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[1] with | cons -> 30 | _ -> 20));
+       198ms
+q=(match S[0] with | cons -> (match S[1] with | nil -> 20 | _ -> 30) | _ -> 10);
+        67ms
+q=(match S[0] with | cons -> (match S[1] with | cons -> 30 | _ -> 20) | _ -> 10);
+}
+
+Total synthesis time:       1816ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(match S[0] with | nil -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[0] with | nil2 -> 10 | _ -> (match S[1] with | nil2 -> 10 | _ -> (match S[1] with | cons -> (match S[0] with | cons -> 60 | _ -> fail) | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6,        max_matchable_height = 2
+Testing 9 examples:
+  pair [nil; nil] ~~> 10
+  pair [nil; nil2] ~~> 10
+  pair [nil2; nil] ~~> 10
+  pair [nil; cons [int; nil]] ~~> 10
+  pair [nil2; nil2] ~~> 10
+  pair [cons [int; nil]; nil] ~~> 10
+  pair [nil2; cons [int; nil]] ~~> 10
+  pair [cons [int; nil]; nil2] ~~> 10
+  pair [cons [int; nil]; cons [int; nil]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS)), 10 answers {
+      2187ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | nil2 -> 10 | _ -> 60));
+       229ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | cons -> 60 | _ -> 10));
+       576ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[1] with | nil2 -> 10 | _ -> 60)));
+       240ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10)));
+      2402ms
+Set upper bound of IF-ish constructions to 3
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10));
+      1279ms
+q=(match S[0] with | nil -> 10 | cons -> (match S[1] with | cons -> 60 | _ -> 10) | _ -> 10);
+      4922ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[0] with | nil2 -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10)));
+      4593ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[0] with | cons -> (match S[1] with | cons -> 60 | _ -> 10) | _ -> 10));
+      1367ms
+q=(match S[1] with | nil -> 10 | nil2 -> 10 | _ -> (match S[0] with | cons -> 60 | _ -> 10));
+       959ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[1] with | cons -> (match S[0] with | nil2 -> 10 | _ -> 60) | _ -> 10));
+}
+
+Total synthesis time:         19s
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| (pair [(nil); _]) -> 10
+| (pair [_; (nil)]) -> 10
+| (pair [(nil2); _]) -> 10
+| (pair [_; (nil2)]) -> 10
+| (pair [(cons [_; _]); (cons [_; _])]) -> 60
+A priori answer:
+(match S[0] with | nil -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[0] with | nil2 -> 10 | _ -> (match S[1] with | nil2 -> 10 | _ -> (match S[1] with | cons -> (match S[0] with | cons -> 60 | _ -> fail) | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6,        max_matchable_height = 2
+Testing 9 examples:
+  pair [nil; nil] ~~> 10
+  pair [nil; nil2] ~~> 10
+  pair [nil2; nil] ~~> 10
+  pair [nil; cons [int; nil]] ~~> 10
+  pair [nil2; nil2] ~~> 10
+  pair [cons [int; nil]; nil] ~~> 10
+  pair [nil2; cons [int; nil]] ~~> 10
+  pair [cons [int; nil]; nil2] ~~> 10
+  pair [cons [int; nil]; cons [int; nil]] ~~> 60
+fair lozovML (two-nil lists (with cons, simplified RHS) + tag=/=pair), 10 answers {
+      1348ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | nil2 -> 10 | _ -> 60));
+       127ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | cons -> 60 | _ -> 10));
+       467ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[1] with | nil2 -> 10 | _ -> 60)));
+       274ms
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | nil -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10)));
+      1640ms
+Set upper bound of IF-ish constructions to 3
+q=(match S[0] with | nil -> 10 | nil2 -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10));
+      1080ms
+q=(match S[0] with | nil -> 10 | cons -> (match S[1] with | cons -> 60 | _ -> 10) | _ -> 10);
+      3999ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[0] with | nil2 -> 10 | _ -> (match S[1] with | cons -> 60 | _ -> 10)));
+      3059ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[0] with | cons -> (match S[1] with | cons -> 60 | _ -> 10) | _ -> 10));
+       798ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[1] with | cons -> (match S[0] with | nil2 -> 10 | _ -> 60) | _ -> 10));
+       294ms
+q=(match S[0] with | nil -> 10 | _ -> (match S[1] with | cons -> (match S[0] with | cons -> 60 | _ -> 10) | _ -> 10));
+}
+
+Total synthesis time:         13s
+

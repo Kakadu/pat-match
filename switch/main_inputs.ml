@@ -184,7 +184,7 @@ let optimize_pair: IR.ground -> IR.ground = fun ir ->
     ir
     *)
 
-  (* I dont' know why but implementation above doesn't work *)
+  (* I dont' know why but implementation above doesn't work (hangs) *)
   let rec helper = function
   | Lit n -> Lit n
   | Fail -> Fail
@@ -639,7 +639,7 @@ module ArgTwoNilLists1 : ARG0 = struct
     ; ppair pwc  pnil, IR.eint 20
     ; ppair pnil2 pwc, IR.eint 30
     ; ppair pwc pnil2, IR.eint 40
-    ; ppair pwc pwc, IR.eint 60
+    ; ppair pwc   pwc, IR.eint 60
     ]
 
   let max_height =

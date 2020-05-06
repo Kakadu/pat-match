@@ -141,7 +141,7 @@ let () = M2.test ()
 module FTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgTrueFalse)
 end)
-(*let () = FTrueFalse.test 10*)
+let () = FTrueFalse.test (-1)
 
 
 
@@ -153,7 +153,8 @@ end)
 
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
-(*  let max_ifs_count = 1*)
+
+  (* in this demo merging cases can be helpful *)
 end)
 (*let () = FABC.test 10*)
 
@@ -161,43 +162,54 @@ end)
 
 module Peano = Algo_fair.Make(struct
   include ArgMake(ArgPeanoSimple)
+  let shortcut tag _ rez =
+    fresh ()
+      (rez === !!true)
+      (tag =/= !!(tag_of_string_exn "pair"))
 end)
 
-(*let () = Peano.test 10*)
+let () = Peano.test 10
 
 
 (* *************************************************************************** *)
-module FairLists = Algo_fair.Make(struct
+module FairLists1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-(*let () = FairLists.test 10*)
+let () = FairLists1.test 10
 
+module FairLists2 = Algo_fair.Make(struct
+  include ArgMake(ArgSimpleList)
+  (* adding non-pair shourtcut optimizes from 1.8 (for all answers) to 1.4 (for all answers) *)
+  let shortcut tag _ rez =
+    fresh ()
+      (rez === !!true)
+      (tag =/= !!(tag_of_string_exn "pair"))
+
+  let info = info ^ " + (=/= pair)"
+end)
+
+(*let () = FairLists2.test 10*)
 
 
 module F2NilShort = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Cons)
-
-  let max_height = 2
-
-  let info = info ^ "+ max_height = 2"
 end)
 
 (* There are only 4 answers here*)
-(*let () = F2NilShort.test (-1)*)
+(*let () = F2NilShort.test (4)*)
 
 
 (* ************************************************************************** *)
 module WWW = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 end)
-(*let () = WWW.test 10*)
+let () = WWW.test 10
 
 
 module WWW2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 
-  let max_height = 2
   let info = info ^ "+ max_height=2 + check_repeated_ifs"
 end)
 (*let () = WWW2.test ~check_repeated_ifs:true 10*)
@@ -215,7 +227,7 @@ module XXX = Algo_fair.Make(struct
   let info = info ^ " + tag=/=pair"
 end)
 
-let () = XXX.test 15
+let () = XXX.test 10
 
 (* ************************************************************************** *)
 
