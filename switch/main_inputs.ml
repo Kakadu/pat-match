@@ -163,23 +163,38 @@ module ArgABC : ARG0 = struct
 end
 
 
-let optimize_pair: IR.ground -> IR.ground =
+let optimize_pair: IR.ground -> IR.ground = fun ir ->
   let open OCanren  in
   let open Unn_pre.IR in
   let open Unn_pre.Matchable in
 
 
+(*
   GT.transform IR.ground
     (fun fself -> object
       inherit [_,_] IR.gmap_ground_t fself
       method! c_Switch acc me _m xs default =
+        Format.printf "optimize_pair %a\n%!" (GT.fmt IR.ground) me;
         match xs with
         | Std.List.Nil -> fself () default
         | Std.List.Cons ( (t, then_), Std.List.Nil) when string_of_tag_exn t = "pair" -> fself () then_
         | _ -> fself () me
     end)
     ()
+    ir
+    *)
 
+  (* I dont' know why but implementation above doesn't work *)
+  let rec helper = function
+  | Lit n -> Lit n
+  | Fail -> Fail
+  | Switch (_, Std.List.Nil, default) -> helper default
+  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when string_of_tag_exn t = "pair" -> helper code
+  | Switch (m, xs, default) ->
+      let ys = GT.gmap Std.List.ground (fun (t,c) -> (t, helper c)) xs in
+      Switch (m, ys, helper default)
+  in
+  helper ir
 
 (* ************************************************************************** *)
 module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
@@ -519,7 +534,53 @@ module TwoNilList = struct
     let rec reify r1 h = T.reify r1 (reify r1) h
 
     let rec prjc fa onvar env xs = T.prjc fa (prjc fa onvar) onvar env xs
+
+    let inject arg (e: _ ground) : (_,_) injected =
+      let rec helper = function
+      | Nil -> nil ()
+      | Nil2 -> nil2 ()
+      | Cons (x,xs) -> cons (arg x) (helper xs)
+      in
+      helper e
   end
+
+
+  let wrap root: Expr.ground =
+    let open Expr in
+    let rec helper = function
+    | L.Nil -> Expr.econstr "nil" []
+    | L.Nil2 -> Expr.econstr "nil2" []
+    | L.Cons (_,tl) ->
+        econstr "cons" [ econstr "int" []; helper tl ]
+    in
+    helper root
+
+  let rec all_inhabitants_2nillist inh_arg rez =
+    conde
+      [ (rez === L.nil ())
+      ; (rez === L.nil2 ())
+      ; fresh (x tl)
+          (L.cons x tl === rez)
+          (inh_arg x)
+          (all_inhabitants_2nillist inh_arg tl)
+      ]
+(*
+  let () =
+    let open Mytester in
+    let show = GT.(show L.ground @@ show int) in
+    let showl = GT.(show L.logic (show OCanren.logic @@ show int)) in
+    runR (L.reify OCanren.reify) show showl  1 q qh
+      ("wtf", all_inhabitants_2nillist (fun _ -> success))
+*)
+  let make_wildcard_inhabitant on_arg: _ L.ground =
+    run q (all_inhabitants_2nillist on_arg)
+      (fun rr -> rr#prjc @@ L.prjc
+          (fun _ _ -> failwith "A")
+              (fun _ _ -> failwith "B")
+      )
+      |> OCanren.Stream.hd
+
+  let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))
 
   let rec inhabit_twonil_list :
       Std.Nat.groundi ->
@@ -527,8 +588,10 @@ module TwoNilList = struct
       ('a, 'b) L.injected ->
       goal
     = fun height inh_arg r ->
+
+    let default = (make_wildcard_inhabitant inh_arg) in
     conde
-      [ (Std.Nat.zero === height) &&& failure
+      [ (Std.Nat.zero === height) &&& (r === L.inject (!!) default)
       ; fresh (prev)
           (Std.Nat.succ prev === height)
           (conde
@@ -582,13 +645,13 @@ module ArgTwoNilLists1 : ARG0 = struct
   let max_height =
     (* although maximum height is 2 we can construct right examples yet *)
     (* TODO: understand how to fix this *)
-    (*
+
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
     Format.printf "patterns max height = %d\n%!" n;
-    assert (3 = n);
+    assert (2 = n);
     n
-    *)
-    3
+
+
 
 
   let typs =
@@ -659,6 +722,10 @@ module ArgTwoNilLists2Simplified : ARG0 = struct
     ; ppair pwc pnil2, IR.eint 10
     ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 60
     ]
+
+  let () = assert (max_height = 2)
+
+
 
 end
 

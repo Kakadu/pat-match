@@ -9,19 +9,19 @@ open Unn_pre.IR
 
 module Make(Arg: ARG_FINAL) = struct
 
-  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs clauses typs =
+  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
     Clauses.pretty_print Format.std_formatter clauses;
     let possible_answer = Arg.possible_answer in
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
     Format.printf "A priori answer:\n%s\n%!" (IR.show possible_answer);
-    Format.printf "Initial upper bound of IFS = %d,\tmax_matchable_height = %d\n%!" !max_ifs_count Arg.max_height;
+    Format.printf "Initial upper bound of IF-ish constructions = %d,\tmax_matchable_height = %d\n%!" !max_ifs_count Arg.max_height;
 
     let upgrade_bound x =
       if !max_ifs_count > x
       then
-        let () = Format.printf "Set upper bound of IFs to %d\n%!" x in
+        let () = Format.printf "Set upper bound of IF-ish constructions to %d\n%!" x in
         max_ifs_count := x
     in
 
@@ -64,7 +64,10 @@ module Make(Arg: ARG_FINAL) = struct
           debug "%d%!" n;
           match n with
           | x when x > !max_ifs_count ->
-  (*          let () = Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x in*)
+            let () =
+              if debug_filtered_by_size
+              then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x
+            in
             raise FilteredOut
           | _ ->
               debug "\n%!";
@@ -167,8 +170,8 @@ module Make(Arg: ARG_FINAL) = struct
 
 
 
-  let test ?(with_hack=true) ?(print_examples=true) ?(check_repeated_ifs=false) n =
-    work ~n ~with_hack ~print_examples ~check_repeated_ifs Arg.clauses Arg.typs
+  let test ?(with_hack=true) ?(print_examples=true) ?(check_repeated_ifs=false) ?(debug_filtered_by_size=false) n =
+    work ~n ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size Arg.clauses Arg.typs
 
 end
 

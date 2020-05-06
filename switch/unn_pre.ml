@@ -111,6 +111,19 @@ let tag =
       method gmap x = x
   end}
 
+type tagl = GT.int OCanren.logic
+  [@@deriving gt]
+
+let tagl =
+  { GT.gcata = gcata_tagl
+  ; GT.fix = tagl.GT.fix
+  ; GT.plugins = object
+      method show = GT.show OCanren.logic string_of_tag_exn
+      method fmt f l = GT.fmt OCanren.logic (fun fmt x -> Format.fprintf fmt "%s" (string_of_tag_exn x)) f l
+      method gmap x = x
+  end}
+
+
 (* TODO: put this to stdlib *)
 let rec inject_ground_list (xs : ('a, 'b) OCanren.injected Std.List.ground) : ('a, 'b) Std.List.groundi =
   (* TODO: tail recursion *)
@@ -428,7 +441,12 @@ module IR = struct
       | Lit ln -> fmt_ocl fmt (GT.fmt GT.int) ln
       | Switch  (m, xs, default) ->
         Format.fprintf fmt "(switch %a with" (GT.fmt Matchable.logic) m;
-        GT.foldl Std.List.logic (fun () p -> Format.fprintf fmt "<item>") () xs;
+        GT.foldl Std.List.logic (
+          GT.foldl OCanren.logic
+            (fun () (tag, irl) ->
+              Format.fprintf fmt "@[@ |@ %a@ ->@ %a@]" (GT.fmt tagl) tag fmt_logic irl
+            )
+        ) () xs;
         Format.fprintf fmt "%a)" fmt_logic default
     in
     fmt_ocl fmt helper e

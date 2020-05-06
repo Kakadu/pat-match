@@ -141,7 +141,7 @@ let () = M2.test ()
 module FTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgTrueFalse)
 end)
-let () = FTrueFalse.test 10
+(*let () = FTrueFalse.test 10*)
 
 
 
@@ -149,13 +149,13 @@ module FPairTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
   let max_ifs_count = 2
 end)
-let () = FPairTrueFalse.test (-1)
+(*let () = FPairTrueFalse.test (-1)*)
 
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
 (*  let max_ifs_count = 1*)
 end)
-(*let () = FABC.test ~n:10*)
+(*let () = FABC.test 10*)
 
 
 
@@ -165,63 +165,80 @@ end)
 
 (*let () = Peano.test 10*)
 
-(*
+
 (* *************************************************************************** *)
 module FairLists = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-let () = FairLists.test 10
+(*let () = FairLists.test 10*)
 
 
 
 module F2NilShort = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Cons)
+
+  let max_height = 2
+
+  let info = info ^ "+ max_height = 2"
 end)
 
 (* There are only 4 answers here*)
 (*let () = F2NilShort.test (-1)*)
 
+
 (* ************************************************************************** *)
 module WWW = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 end)
-let () = WWW.test 10
+(*let () = WWW.test 10*)
+
 
 module WWW2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 
-  let info = info ^ " + check_repeated_ifs"
+  let max_height = 2
+  let info = info ^ "+ max_height=2 + check_repeated_ifs"
 end)
-let () = WWW2.test ~check_repeated_ifs:true 10
+(*let () = WWW2.test ~check_repeated_ifs:true 10*)
 
 
 (* ************************************************************************** *)
 module XXX = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
-  let shortcut tag _ _ _ rez =
+  let shortcut tag _ rez =
     fresh ()
       (rez === !!true)
-      (tag =/= !!"pair")
+      (tag =/= !!(tag_of_string_exn "pair"))
 
+(*  let max_height = 2*)
   let info = info ^ " + tag=/=pair"
 end)
 
-let () = XXX.test 10
+let () = XXX.test 15
 
 (* ************************************************************************** *)
 
 module XXX2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
-  let shortcut tag _ _ _ rez =
+  let shortcut tag _ rez =
     fresh ()
       (rez === !!true)
-      (tag =/= !!"pair")
+      (tag =/= !!(tag_of_string_exn "pair"))
 
   let info = info ^ " + tag=/=pair + check_repeated_ifs"
+
+  let ir_hint ir =
+    print_endline "applying hint";
+    let open Std in
+    fresh (c tl def)
+      (ir === IR.switch (Matchable.field1 ())
+                ((Std.Pair.pair !!(tag_of_string_exn "cons") c)%tl)
+                def)
+
 end)
 
-let () = XXX2.test ~check_repeated_ifs:true 10
+(*let () = XXX2.test ~check_repeated_ifs:true 10*)
 
 (* ************************************************************************** *)
 
@@ -244,14 +261,3 @@ end)
 
 (*let () = Fair2_1.test 10*)
 (*let () = Fair2_2.test ~n:2*)
-
-*)
-
-
-
-
-
-
-
-
-
