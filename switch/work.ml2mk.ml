@@ -6,12 +6,7 @@ let rec list_mem x xs =
   match xs with
   | [] -> false
   | h::tl -> if x=h then true else list_mem x tl
-(*
-let rec list_mem_stupid xs =
-  match xs with
-  | y::_ -> y
-  | _::xs -> list_mem_stupid xs
-*)
+
 let rec list_assoc name ys =
   match ys with
   | (k,v)::xs ->
@@ -70,8 +65,10 @@ let rec list_nth_nat idx xs = match (idx, xs) with
 | (Z, x::_) -> x
 | (S n, _::xs) -> list_nth_nat n xs
 
-type pattern = WildCard | PConstr of string * pattern list
-type expr = EConstr of string * expr list
+(* we can't make proper alias becauase noCanren doesn't support it *)
+(* type tag = int *)
+type pattern = WildCard | PConstr of int * pattern list
+type expr = EConstr of int * expr list
 
 let rec match1pat s p =
   match s,p with
@@ -112,9 +109,10 @@ let rec eval_pat_hacky s on_fail pats =
 type matchable = Scru | Field of nat * matchable
 type ir =
   | Fail
-  | IFTag of string * matchable * ir * ir
-  | Int of int
-type typ_info = T of (string * typ_info list) list
+  | Switch of matchable * (int * ir) list * ir
+(*  | IFTag of tag * matchable * ir * ir*)
+  | Lit of int
+type typ_info = T of (int * typ_info list) list
 
 let rec height_of_matchable root =
   match root with
@@ -151,7 +149,7 @@ let compile_naively pats: ir =
               helper_pat (Field (idx, scru)) pat1 acc else_top
           ) rhs dec_args
         in
-        IFTag (tag, scru, rhs, else_)
+        Switch (scru, [ (tag, rhs) ], else_)
   in
   let rec helper pats =
     match pats with
@@ -182,30 +180,37 @@ let rec eval_m s typinfo0 path0 =
   match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
 
-let rec eval_ir expr_start max_height0 tinfo0 shortcut ir =
-  let rec inner s max_height tinfo irrr =
+let rec eval_ir s max_height tinfo shortcut ir =
+  let rec inner test_list irrr =
     match irrr with
     | Fail -> None
-    | Int n -> Some n
-    | IFTag (tag, m, th, el) ->
+    | Lit n -> Some n
+    | Switch (m, xs, on_default) ->
 (*        match nat_leq (height_of_matchable m) max_height with*)
         match matchable_leq_nat m max_height with
         | true ->
             match eval_m s tinfo m with
-            | (EConstr (tag2, args), cnames) ->
-                match shortcut tag m th el with
+            | (EConstr (etag, args), cnames) ->
+                match shortcut etag m with
                 | true ->
-                    match list_mem tag cnames with
-                    | true ->
-                        if tag2 = tag
-                        then inner s max_height tinfo th
-                        else inner s max_height tinfo el
-
+                    test_list etag cnames on_default xs
     (* TODO: try to make Fail branch last *)
   in
 
-  inner expr_start max_height0 tinfo0 ir
+  let rec test_list etag cnames on_default xs =
+    match xs with
+    | [] -> inner test_list on_default
+    | (qtag, ontag) :: tl ->
+        match list_mem qtag cnames with
+        | true ->
+            if qtag = etag
+            then inner test_list ontag
+            else test_list etag cnames on_default tl
 
+  in
+
+  inner test_list ir
+(*
 let rec eval_ir_hacky s tinfo ir =
   match ir with
   | Fail -> Fail
@@ -216,7 +221,7 @@ let rec eval_ir_hacky s tinfo ir =
         if tag2 = tag
         then eval_ir_hacky s tinfo th
         else eval_ir_hacky s tinfo el
-
+*)
 
 (* *************************** Naive compilation *************************** *)
 let compile_naively pats : ir =
@@ -230,7 +235,7 @@ let compile_naively pats : ir =
               helper_pat (Field (idx, scru)) pat1 acc else_top
           ) rhs dec_args
         in
-        IFTag (tag, scru, then_, else_top)
+        Switch (scru, [(tag,then_)], else_top)
   in
   let rec helper pats =
     match pats with

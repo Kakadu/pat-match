@@ -18,8 +18,7 @@ module type ARG0 = sig
   val wrap_demo: g list -> Expr.ground list
 
   val shortcut:
-    (string, string logic) injected -> Matchable.injected ->
-    IR.injected -> IR.injected ->
+    (tag, tag logic) injected -> Matchable.injected ->
     (bool, bool logic) injected -> goal
 
   val info : string
@@ -88,8 +87,8 @@ module ArgTrueFalse : ARG0 = struct
   let wrap_demo (demo_exprs: bool list) =
     let open Unn_pre.Expr in
     let rec helper = function
-    | true  -> EConstr ("true", Std.List.Nil)
-    | false -> EConstr ("false", Std.List.Nil)
+    | true  -> econstr "true" []
+    | false -> econstr "false" []
     in
     ListLabels.map demo_exprs ~f:helper
 
@@ -154,14 +153,33 @@ module ArgABC : ARG0 = struct
   let wrap_demo (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
-    | A  -> EConstr ("A", Std.List.Nil)
-    | B  -> EConstr ("B", Std.List.Nil)
-    | C  -> EConstr ("C", Std.List.Nil)
+    | A  -> econstr "A" []
+    | B  -> econstr "B" []
+    | C  -> econstr "C" []
     in
     ListLabels.map demo_exprs ~f:helper
 
   let shortcut = simple_shortcut
 end
+
+
+let optimize_pair: IR.ground -> IR.ground =
+  let open OCanren  in
+  let open Unn_pre.IR in
+  let open Unn_pre.Matchable in
+
+
+  GT.transform IR.ground
+    (fun fself -> object
+      inherit [_,_] IR.gmap_ground_t fself
+      method! c_Switch acc me _m xs default =
+        match xs with
+        | Std.List.Nil -> fself () default
+        | Std.List.Cons ( (t, then_), Std.List.Nil) when string_of_tag_exn t = "pair" -> fself () then_
+        | _ -> fself () me
+    end)
+    ()
+
 
 (* ************************************************************************** *)
 module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
@@ -220,23 +238,14 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     assert (2 = n);
     n
 
+  let optimize = optimize_pair
+
   let typs =
     let open Unn_pre.Typs in
 
     let bool = T [ ("true", []); ("false", []) ]  in
     let p    = T [ ("pair", [bool; bool]) ] in
     Typs.inject @@ Typs.construct p
-
-  let rec optimize (root: IR.ground)  =
-    let open Unn_pre.IR in
-    let open Unn_pre.Matchable in
-    let rec helper = function
-      | IFTag ("pair", Scru, then_, _) -> optimize then_
-      | IFTag (c, scru, then_, else_) ->
-          IFTag (c, scru, optimize then_, optimize else_)
-      | x -> x
-    in
-    helper root
 
   let prjp e =
     let prjl e =
@@ -252,14 +261,15 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
   let wrap_demo (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
-    | true  -> EConstr ("true", Std.List.Nil)
-    | false -> EConstr ("false", Std.List.Nil)
+    | true  -> econstr "true" []
+    | false -> econstr "false" []
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      EConstr ("pair", Std.List.of_list id [ helper a; helper b])
+      econstr "pair" [ helper a; helper b]
     )
 
   let shortcut = simple_shortcut
+
 end
 
 (* ************************************************************************** *)
@@ -335,16 +345,7 @@ module ArgPeanoSimple : ARG0 = struct
     let grounded = Typs.construct pairs in
     Typs.inject grounded
 
-  let rec optimize (root: IR.ground)  =
-    let open Unn_pre.IR in
-    let open Unn_pre.Matchable in
-    let rec helper = function
-      | IFTag ("pair", Scru, then_, _) -> optimize then_
-      | IFTag (c, scru, then_, else_) ->
-          IFTag (c, scru, optimize then_, optimize else_)
-      | x -> x
-    in
-    helper root
+  let optimize = optimize_pair
 
   let prjp e =
     let prjl e =
@@ -359,12 +360,12 @@ module ArgPeanoSimple : ARG0 = struct
   let wrap_demo (demo_exprs: (Nat.ground * Nat.ground) list) =
     let open Unn_pre.Expr in
     let rec helper = function
-    | Nat.Z -> EConstr ("zero", Std.List.Nil)
+    | Nat.Z -> econstr "zero" []
     | Nat.S tl ->
-        EConstr ("succ", Std.List.of_list id [ helper tl ])
+        econstr "succ" [ helper tl ]
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      EConstr ("pair", Std.List.of_list id [ helper a; helper b])
+      econstr "pair" [ helper a; helper b ]
     )
 
   let shortcut = simple_shortcut
@@ -453,7 +454,7 @@ module ArgSimpleList : ARG0 = struct
 
   let typs =
     let open Unn_pre.Typs in
-    let ints = T [ ("1",[]) ] in
+    let ints = T [ ("int",[]) ] in
     let list_empty = T [  ("nil", []);  ] in
     let listints1 = T [ ("nil", []);  ("cons", [ ints; list_empty]) ] in
     let listints2 = T [ ("nil", []);  ("cons", [ ints; listints1]) ] in
@@ -462,16 +463,7 @@ module ArgSimpleList : ARG0 = struct
     Typs.inject grounded
 
 
-  let rec optimize (root: IR.ground)  =
-    let open Unn_pre.IR in
-    let open Unn_pre.Matchable in
-    let rec helper = function
-      | IFTag ("pair", Scru, then_, _) -> optimize then_
-      | IFTag (c, scru, then_, else_) ->
-          IFTag (c, scru, optimize then_, optimize else_)
-      | x -> x
-    in
-    helper root
+  let optimize = optimize_pair
 
   module L = OCanren.Std.List
 
@@ -490,12 +482,12 @@ module ArgSimpleList : ARG0 = struct
   let wrap_demo demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
-    | L.Nil -> EConstr ("nil", Std.List.Nil)
+    | L.Nil -> econstr "nil" []
     | L.Cons (_,tl) ->
-        EConstr ("cons", Std.List.of_list id [EConstr ("int", Std.List.Nil); hack_list tl])
+        econstr "cons"  [ econstr "int" []; hack_list tl ]
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      EConstr ("pair", Std.List.of_list id [ hack_list a; hack_list b])
+      econstr "pair" [ hack_list a; hack_list b ]
     )
 
   let shortcut = simple_shortcut
@@ -602,7 +594,7 @@ module ArgTwoNilLists1 : ARG0 = struct
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
-    let ints = T [ ("1",[]) ] in
+    let ints = T [ ("int",[]) ] in
     let list_empty = T [ ("nil", []); ("nil2", []) ] in
     let listints1  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; list_empty]) ] in
     let listints2  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; listints1]) ] in
@@ -610,18 +602,7 @@ module ArgTwoNilLists1 : ARG0 = struct
     let grounded = Typs.construct pairs in
     Typs.inject grounded
 
-
-  let rec optimize (root: IR.ground)  =
-    let open Unn_pre.IR in
-    let open Unn_pre.Matchable in
-    let rec helper = function
-      | IFTag ("pair", Scru, then_, _) -> optimize then_
-      | IFTag (c, scru, then_, else_) ->
-          IFTag (c, scru, optimize then_, optimize else_)
-      | x -> x
-    in
-    helper root
-
+  let optimize = optimize_pair
 
   let prjp e =
     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
@@ -638,14 +619,15 @@ module ArgTwoNilLists1 : ARG0 = struct
   let wrap_demo demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
-    | TwoNilList.L.Nil -> EConstr ("nil", Std.List.Nil)
-    | TwoNilList.L.Nil2 -> EConstr ("nil2", Std.List.Nil)
+    | TwoNilList.L.Nil -> econstr "nil" []
+    | TwoNilList.L.Nil2 -> econstr "nil2" []
     | TwoNilList.L.Cons (_,tl) ->
-        EConstr ("cons", Std.List.of_list id [EConstr ("int", Std.List.Nil); hack_list tl])
+        econstr "cons"  [ econstr "int" []; hack_list tl ]
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      EConstr ("pair", Std.List.of_list id [ hack_list a; hack_list b])
+      econstr "pair" [ hack_list a; hack_list b ]
     )
+
 
   let shortcut = simple_shortcut
 end
@@ -708,3 +690,4 @@ end
 module type ARG_FINAL = sig
   include ARG1
 end
+

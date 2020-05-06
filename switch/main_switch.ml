@@ -1,4 +1,3 @@
-module Work = Work_switch
 open Printf
 open Work
 open OCanren
@@ -8,8 +7,8 @@ open Unn_pre
 
 
 
-let eleaf s = eConstr !!s @@ Std.List.nil ()
-let epair a b = eConstr !!"pair" (Std.List.list [a;b])
+let eleaf s = eConstr !!(tag_of_string_exn s) @@ Std.List.nil ()
+let epair a b = eConstr !!(tag_of_string_exn "pair") @@ Std.List.list [a;b]
 
 let print_demos msg xs =
   Printf.printf "<%s>\n" msg;
@@ -20,9 +19,9 @@ let print_demos msg xs =
 
 
 module EvalMRez = struct
-  type ground = (Expr.ground, GT.string Std.List.ground) Std.Pair.ground
+  type ground = (Expr.ground, tag Std.List.ground) Std.Pair.ground
 (*      [@@deriving gt ~options: { show; fmt }]*)
-  type logic = (Expr.logic, GT.string OCanren.logic Std.List.logic) Std.Pair.logic
+  type logic = (Expr.logic, tag OCanren.logic Std.List.logic) Std.Pair.logic
 (*      [@@deriving gt ~options: { show; fmt }]*)
   type injected = (ground, logic) OCanren.injected
 
@@ -44,7 +43,7 @@ let eval_m : Expr.injected ->  Typs.injected -> Matchable.injected ->
   EvalMRez.injected ->
   goal
   = Work.eval_m
-
+(*
 let _f ()  =
   run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("test eval_ir", fun q ->
     eval_ir
@@ -90,7 +89,7 @@ let _f () =
   );
 
   ()
-
+*)
 
 open Main_inputs
 
@@ -144,23 +143,13 @@ module FTrueFalse = Algo_fair.Make(struct
 end)
 let () = FTrueFalse.test 10
 
+
+
 module FPairTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
   let max_ifs_count = 2
-(*
-  let inhabit (_:int) (rez : qtyp_injected) =
-    let pair a b = Std.Pair.pair a b in
-    let zero = Nat.z in
-    let su x = Nat.s x in
-    conde
-      [ rez === pair zero zero
-      ; rez === pair (su zero) (zero)
-      ; rez === pair zero (su zero)
-      ; rez === pair (su zero) (su zero)
-      ]
-      *)
 end)
-(*let () = FPairTrueFalse.test ~n:(-1) ~with_hack:true*)
+let () = FPairTrueFalse.test (-1)
 
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
@@ -174,9 +163,9 @@ module Peano = Algo_fair.Make(struct
   include ArgMake(ArgPeanoSimple)
 end)
 
-let () = Peano.test 10
+(*let () = Peano.test 10*)
 
-
+(*
 (* *************************************************************************** *)
 module FairLists = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
@@ -256,7 +245,7 @@ end)
 (*let () = Fair2_1.test 10*)
 (*let () = Fair2_2.test ~n:2*)
 
-
+*)
 
 
 

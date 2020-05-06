@@ -32,73 +32,56 @@ module Make(Arg: ARG_FINAL) = struct
     let count_if_constructors : IR.logic -> int = fun root ->
       let rec helper seen = function
       | Var (_,_)
-      | Value (Int _)
+      | Value (Lit _)
       | Value Fail -> 0
-      | Value (IFTag (tag_log,scru,then_,else_)) ->
-
-          (*let () =
-            if Matchable.low_height_of_logic scru > Arg.max_height
-            then raise FilteredOut
-          in
-          *)
-
-          let seen_new =
-            if check_repeated_ifs
-            then
-              match (tag_log, Matchable.to_ground scru) with
-              | (Value s, Some mat_ground) ->
-                  let candidate = (s,mat_ground) in
-                  if List.mem candidate seen
-                  then
-                    raise FilteredOut
-                  else
-    (*                  let () = printf "Adding candidate (%s,%s)\n%!" s (Matchable.show mat_ground) in*)
-                    candidate::seen
-              | _ -> seen
-            else seen
-          in
-          let a = helper seen_new then_ in
-          let b = helper seen_new else_ in
-          (1+a+b)
+      | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOut
+      | Value (Switch (scru, xs, on_default)) ->
+          GT.foldl Std.List.logic (fun acc -> function
+            | Value (_, code) -> acc + (helper seen code)
+            | Var _ -> acc)
+            (logic_list_len_lo xs)
+            xs
+          +
+          (helper seen on_default)
       in
       helper [] root
     in
 
-  let _ifs_size_hack (ans: IR.injected) =
-    let _do_debug = true in
-    let _do_debug = false in
+    let _ifs_size_hack (ans: IR.injected) =
+      let _do_debug = true in
+      let _do_debug = false in
 
-(*    let prev = ref (Obj.magic false) in*)
-    structural ans IR.reify (fun ir ->
-(*      let verbose = not (!prev = ir) in*)
-      let verbose = true in
-(*      prev := ir;*)
-      let debug fmt =
-        Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
-          fmt
-      in
-      try
-        debug "height_hack `%s` = %!" (IR.show_logic ir);
-        let n = count_if_constructors ir in
-        assert (n >= 0);
-        debug "%d%!" n;
-        match n with
-        | x when x > !max_ifs_count ->
-(*          let () = Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x in*)
-          raise FilteredOut
-        | _ ->
-            debug "\n%!";
-            true
-      with FilteredOut ->
-        debug " FILTERED OUT\n%!";
-        false
-    )
-  in
+      structural ans IR.reify (fun ir ->
+        let verbose = true in
+        let debug fmt =
+          Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
+            fmt
+        in
+        try
+          debug "height_hack `%s` = %!" (IR.show_logic ir);
+          let n = count_if_constructors ir in
+          assert (n >= 0);
+          debug "%d%!" n;
+          match n with
+          | x when x > !max_ifs_count ->
+  (*          let () = Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x in*)
+            raise FilteredOut
+          | _ ->
+              debug "\n%!";
+              true
+        with FilteredOut ->
+          debug " FILTERED OUT\n%!";
+          false
+      )
+    in
 
-    let my_eval_ir ideal s tinfo ir rez =
+    let my_eval_ir ideal (s: Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success) &&&
       (Work.eval_ir s max_height tinfo Arg.shortcut ir rez)
     in
+
+(*    let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> IR.injected -> _ -> goal) = Work.eval_ir in*)
+    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in
 
     let injected_clauses = Clauses.inject clauses in
     let injected_exprs =
