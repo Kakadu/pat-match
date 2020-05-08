@@ -42,11 +42,11 @@ module Make(Arg: ARG_FINAL) = struct
         if not check_repeated_ifs
         then seen
         else
-            match (Matchable.to_ground scru, Tag.to_ground tag) with
-            | (Some mground, Some tagg) ->
-                if List.mem (mground, tagg) seen
+            match (Matchable.to_ground scru) with
+            | Some mground ->
+                if List.mem mground seen
                 then raise FilteredOutByForm
-                else (mground,tagg) :: seen
+                else mground :: seen
             | _ -> seen
       in
       let rec helper acc seen = function
@@ -93,11 +93,13 @@ module Make(Arg: ARG_FINAL) = struct
         with
           | FilteredOutBySize n ->
             if debug_filtered_by_size
-            then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) n;
+            then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!"
+              (IR.show_logic ir) n ;
             false
           | FilteredOutByForm ->
             if debug_filtered_by_size
-            then Format.printf "  %s FILTERED OUT because of form \n%!" (IR.show_logic ir);
+            then Format.printf "  %s FILTERED OUT because of form \n%!"
+                (IR.show_logic ir) ;
             false
       )
     in

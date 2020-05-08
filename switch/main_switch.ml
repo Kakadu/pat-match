@@ -261,6 +261,9 @@ module TripleBoolHack4 = struct
       (branches === Std.(!< h))
 
   let info = Printf.sprintf "%s + tag=/=\'triple' + single_switch_branch" info
+
+  let max_ifs_count = 14
+  let info = Printf.sprintf "%s + max_ifs_count=%d" info max_ifs_count
 end
 module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
 
@@ -268,9 +271,10 @@ module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
 (* 8 seconds *)
 let () =
   FTripleBool4.test
-    ~prunes_period:(Some 100)
+(*    ~prunes_period:(Some 100)*)
+    ~prunes_period:None
     ~check_repeated_ifs:true
-(*    ~debug_filtered_by_size:true*)
+    ~debug_filtered_by_size:true
     1
 
 

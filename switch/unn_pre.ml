@@ -473,10 +473,10 @@ module IR = struct
         GT.foldl Std.List.logic (
           GT.foldl OCanren.logic
             (fun () (tag, irl) ->
-              Format.fprintf fmt "@[@ |@ %a@ ->@ %a@]" (GT.fmt Tag.logic) tag fmt_logic irl
+              Format.fprintf fmt "@[ | %a@ ->@ %a@]" (GT.fmt Tag.logic) tag fmt_logic irl
             )
         ) () xs;
-        Format.fprintf fmt "%a)" fmt_logic default
+        Format.fprintf fmt "@[ | _ -> %a@])" fmt_logic default
     in
     fmt_ocl fmt helper e
 
@@ -517,6 +517,7 @@ module IR = struct
         method fmt  = fmt_logic
         method show = show_logic
         method gmap = logic.GT.plugins#gmap
+        method show_ast = logic.GT.plugins#show
       end
     }
 
