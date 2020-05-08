@@ -15,7 +15,7 @@ module type ARG0 = sig
   val max_height : int
   val optimize: IR.ground -> IR.ground
   val prjp: OCanren.Env.t -> qtyp_injected -> g
-  val wrap_demo: g list -> Expr.ground list
+  val to_expr: g list -> Expr.ground list
 
   val shortcut:
     (string, string logic) injected -> Matchable.injected ->
@@ -85,7 +85,7 @@ module ArgTrueFalse : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let wrap_demo (demo_exprs: bool list) =
+  let to_expr (demo_exprs: bool list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | true  -> EConstr ("true", Std.List.Nil)
@@ -151,7 +151,7 @@ module ArgABC : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let wrap_demo (demo_exprs: g list) =
+  let to_expr (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | A  -> EConstr ("A", Std.List.Nil)
@@ -249,7 +249,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
         e
 
 
-  let wrap_demo (demo_exprs: g list) =
+  let to_expr (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | true  -> EConstr ("true", Std.List.Nil)
@@ -260,6 +260,121 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     )
 
   let shortcut = simple_shortcut
+end
+
+let optimize_pair (root: IR.ground)  =
+  let open Unn_pre.IR in
+  let open Unn_pre.Matchable in
+  let rec helper = function
+    | IFTag ("pair", Scru, then_, _) -> helper then_
+    | IFTag (c, scru, then_, else_) ->
+        IFTag (c, scru, helper then_, helper else_)
+    | x -> x
+  in
+  helper root
+
+let optimize_triple: IR.ground -> IR.ground = fun ir ->
+  let open OCanren  in
+  let open Unn_pre.IR in
+  let open Unn_pre.Matchable in
+
+  let rec helper = function
+  | Int n -> Int n
+  | Fail -> Fail
+  | IFTag ("triple", Scru, then_, _) -> helper then_
+  | IFTag (c, scru, then_, else_) ->
+      IFTag (c, scru, helper then_, helper else_)
+(*  | x -> x*)
+  in
+  helper ir
+
+
+(* ************************************************************************** *)
+module ArgTripleBool : ARG0 = struct
+  open OCanren
+
+  type g = bool * bool * bool
+  type l = (bool logic, bool logic, bool logic) Triple.logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let to_expr (demo_exprs: g list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | true  -> econstr "true" []
+    | false -> econstr "false" []
+    in
+    ListLabels.map demo_exprs ~f:(fun (a,b,c) ->
+      econstr "triple" [ helper a; helper b; helper c; ]
+    )
+
+  let inhabit_bool :
+      Std.Nat.groundi ->
+      (bool, bool logic) injected  ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === !!true)
+            ; (rez === !!false)
+            ])
+      ]
+
+  let inhabit_triple :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev a b c)
+          (Std.Nat.succ prev === height)
+          (rez === Triple.make a b c)
+          (inhabit_bool prev a)
+          (inhabit_bool prev b)
+          (inhabit_bool prev c)
+      ]
+
+  let inhabit n rez = inhabit_triple (Std.nat n) rez
+
+  let info = "triple bool (Maranget,page1)"
+
+  let clauses =
+    [ ptriple pwc    pfalse ptrue , IR.eint 1
+    ; ptriple pfalse ptrue  pwc   , IR.eint 2
+    ; ptriple pwc    pwc    pfalse, IR.eint 3
+    ; ptriple pwc    pwc    ptrue , IR.eint 4
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (2 = n);
+    n
+
+  let optimize = optimize_triple
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let bool = T [ ("true", []); ("false", []) ]  in
+    let p    = T [ ("triple", [bool; bool; bool]) ] in
+    Typs.inject @@ Typs.construct p
+
+  let prjp e =
+    let prjl e =
+      OCanren.prjc
+        (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+        e
+      in
+      Triple.prjc prjl prjl prjl
+        (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+        e
+
+  let shortcut = simple_shortcut
+
 end
 
 (* ************************************************************************** *)
@@ -335,16 +450,7 @@ module ArgPeanoSimple : ARG0 = struct
     let grounded = Typs.construct pairs in
     Typs.inject grounded
 
-  let rec optimize (root: IR.ground)  =
-    let open Unn_pre.IR in
-    let open Unn_pre.Matchable in
-    let rec helper = function
-      | IFTag ("pair", Scru, then_, _) -> optimize then_
-      | IFTag (c, scru, then_, else_) ->
-          IFTag (c, scru, optimize then_, optimize else_)
-      | x -> x
-    in
-    helper root
+  let optimize = optimize_pair
 
   let prjp e =
     let prjl e =
@@ -356,7 +462,7 @@ module ArgPeanoSimple : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let wrap_demo (demo_exprs: (Nat.ground * Nat.ground) list) =
+  let to_expr (demo_exprs: (Nat.ground * Nat.ground) list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | Nat.Z -> EConstr ("zero", Std.List.Nil)
@@ -487,7 +593,7 @@ module ArgSimpleList : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let wrap_demo demo_exprs =
+  let to_expr demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
     | L.Nil -> EConstr ("nil", Std.List.Nil)
@@ -635,7 +741,7 @@ module ArgTwoNilLists1 : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let wrap_demo demo_exprs =
+  let to_expr demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
     | TwoNilList.L.Nil -> EConstr ("nil", Std.List.Nil)

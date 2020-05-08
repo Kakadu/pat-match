@@ -141,16 +141,133 @@ let () = M2.test ()
 module FTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgTrueFalse)
 end)
-let () = FTrueFalse.test (-1)
+(*let () = FTrueFalse.test (-1)*)
 
 
 
-module FPairTrueFalse = Algo_fair.Make(struct
+module FPairBool = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
   let max_ifs_count = 2
 end)
 (*let () = FPairTrueFalse.test (-1)*)
 
+(* ************************************************************************** *)
+module TripleBoolHack1 = struct
+  include ArgMake(ArgTripleBool)
+
+  (* we default bound (14) it works very long time *)
+  let max_ifs_count = 4
+  let info = Printf.sprintf "%s + max_ifs_count=%d" info max_ifs_count
+
+(*  let ir_hint (rez: IR.injected) =
+    let open IR in
+    fresh (t a b c d)
+      (rez === IR.switch  (Matchable.field1()) Std.((Pair.pair !!(tag_of_string_exn "true") c) % d) b)
+
+  let info = Printf.sprintf "%s + hint" info*)
+
+end
+
+module FTripleBool1 = Algo_fair.Make(TripleBoolHack1)
+
+(* first answer ~ 47 seconds*)
+(*let () = FTripleBool1.test (-1)*)
+
+module TripleBoolHack2 = struct
+  include TripleBoolHack1
+
+  let shortcut t _ _ rez =
+    fresh ()
+      (rez === !!true)
+      (t =/= !!(tag_of_string_exn "triple"))
+
+  let info = Printf.sprintf "%s + tag=/=\'triple'" info
+end
+module FTripleBool2 = Algo_fair.Make(TripleBoolHack2)
+
+(* first answer -- 34s *)
+(*let () = FTripleBool2.test ~prunes_period:None 1*)
+
+(*let () = Format.printf "skipped prunes = %d\n%!" (OCanren.PrunesControl.skipped_prunes ())*)
+
+(* 2.5s *)
+let () =
+  FTripleBool2.test
+    ~prunes_period:(Some 100)
+    (* increasin 100 -> 1000 slightly increases time (probably because later cuts) *)
+    ~check_repeated_ifs:true
+(*    ~debug_filtered_by_size:true*)
+    1
+
+(*let () =
+  Format.printf "skipped prunes = %d\n%!" (OCanren.PrunesControl.skipped_prunes ())*)
+
+
+module TripleBoolHack3 = struct
+  include TripleBoolHack1
+
+  let shortcut t _ cases rez =
+    fresh (q)
+      (rez === !!true)
+      (t =/= !!(tag_of_string_exn "triple"))
+      (cases === Std.List.cons (Std.Pair.pair !!(tag_of_string_exn "true") q) (Std.nil()))
+
+
+  let info = Printf.sprintf "%s + tag=/=\'triple'" info
+  let info = Printf.sprintf "%s + match_on_true" info
+end
+module FTripleBool3 = Algo_fair.Make(TripleBoolHack3)
+
+(* 2s *)
+(*let () = FTripleBool3.test ~debug_filtered_by_size:false
+    ~check_repeated_ifs:true
+    1*)
+
+module TripleBoolHack4 = struct
+  include TripleBoolHack1
+
+  let shortcut t _ cases rez =
+    fresh (q te)
+      (rez === !!true)
+      (t =/= !!(tag_of_string_exn "triple"))
+      (cases === Std.List.cons (Std.Pair.pair te q) (Std.nil()))
+      (te =/= !!(tag_of_string_exn "false"))
+
+
+  let info = Printf.sprintf "%s + tag=/=\'triple'" info
+  let info = Printf.sprintf "%s + match_on_not_false" info
+end
+module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
+
+
+(* 2s *)
+(*let () = FTripleBool4.test ~debug_filtered_by_size:false
+    ~check_repeated_ifs:true
+    1*)
+
+module TripleBoolHack5 = struct
+  include TripleBoolHack1
+
+  let shortcut t _ cases rez =
+    fresh (q te)
+      (rez === !!true)
+      (t =/= !!(tag_of_string_exn "triple"))
+      (cases === Std.List.cons (Std.Pair.pair te q) (Std.nil()))
+(*      (te =/= !!(tag_of_string_exn "false"))*)
+
+
+  let info = Printf.sprintf "%s + tag=/=\'triple'" info
+  let info = Printf.sprintf "%s + match_like_if" info
+end
+
+(* ? *)
+let () =
+  let module M = Algo_fair.Make(TripleBoolHack5) in
+(*  M.test ~debug_filtered_by_size:false ~check_repeated_ifs:true 1;*)
+  ()
+
+
+(* ************************************************************************** *)
 module FABC = Algo_fair.Make(struct
   include ArgMake(ArgABC)
 
@@ -162,13 +279,13 @@ end)
 
 module Peano = Algo_fair.Make(struct
   include ArgMake(ArgPeanoSimple)
-  let shortcut tag _ rez =
+  let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
       (tag =/= !!(tag_of_string_exn "pair"))
 end)
 
-let () = Peano.test 10
+(*let () = Peano.test 10*)
 
 
 (* *************************************************************************** *)
@@ -176,12 +293,12 @@ module FairLists1 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-let () = FairLists1.test 10
+(*let () = FairLists1.test 10*)
 
 module FairLists2 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
   (* adding non-pair shourtcut optimizes from 1.8 (for all answers) to 1.4 (for all answers) *)
-  let shortcut tag _ rez =
+  let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
       (tag =/= !!(tag_of_string_exn "pair"))
@@ -190,6 +307,7 @@ module FairLists2 = Algo_fair.Make(struct
 end)
 
 (*let () = FairLists2.test 10*)
+
 
 
 module F2NilShort = Algo_fair.Make(struct
@@ -204,7 +322,7 @@ end)
 module WWW = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 end)
-let () = WWW.test 10
+(*let () = WWW.test 10*)
 
 
 module WWW2 = Algo_fair.Make(struct
@@ -218,22 +336,21 @@ end)
 (* ************************************************************************** *)
 module XXX = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
-  let shortcut tag _ rez =
+  let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
       (tag =/= !!(tag_of_string_exn "pair"))
 
-(*  let max_height = 2*)
   let info = info ^ " + tag=/=pair"
 end)
 
-let () = XXX.test 10
+(*let () = XXX.test 10*)
 
 (* ************************************************************************** *)
 
 module XXX2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
-  let shortcut tag _ rez =
+  let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
       (tag =/= !!(tag_of_string_exn "pair"))

@@ -105,7 +105,7 @@ module Make(Arg: ARG_FINAL) = struct
       let demo_exprs =
         run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Arg.prjp)
         |> OCanren.Stream.take ~n:(-1)
-        |> Arg.wrap_demo
+        |> Arg.to_expr
       in
 
 
@@ -115,24 +115,42 @@ module Make(Arg: ARG_FINAL) = struct
 
         demo_exprs |> List.iter (fun e ->
           if print_examples then Format.printf "  %s ~~> %!" (Expr.show e);
-          let open OCanren in
-          run one (fun ir ->
-              let answer_demo = IR.inject possible_answer in
-              let scru_demo = Expr.inject e in
-              fresh (n rez)
-                (Work.eval_pat scru_demo injected_clauses rez)
-                (rez === Std.Option.some ir)
-                (ir === IR.int n)
-                (Work.eval_ir  scru_demo max_height typs simple_shortcut answer_demo (Std.Option.some n))
-            )
-            (fun r -> r)
-            |> (fun s ->
-                  assert (not (OCanren.Stream.is_empty s));
-                  if print_examples
-                  then Format.printf "%s\n%!" @@
-                        IR.show_logic ((OCanren.Stream.hd s)#reify IR.reify);
-            )
+          let scru_demo = Expr.inject e in
+
+          let hack make_example_ir k =
+            let open OCanren in
+            run one (fun ir ->
+                fresh (n rez answer_demo)
+                  (Work.eval_pat scru_demo injected_clauses rez)
+                  (rez === Std.Option.some ir)
+                  (ir === IR.int n)
+                  (make_example_ir answer_demo)
+                  (Work.eval_ir scru_demo max_height typs simple_shortcut answer_demo (Std.Option.some n))
+              )
+              (fun r -> r)
+              |> k
+          in
+          hack ((===) (IR.inject possible_answer)) (fun s ->
+            if (OCanren.Stream.is_empty s)
+            then failwith "Possible answer deosn't work correctly for this input";
+
+            if print_examples
+            then Format.printf "%s\n%!" @@
+                  IR.show_logic ((OCanren.Stream.hd s)#reify IR.reify);
+          );
+          (* now we check that IR_hint is adequate *)
+          hack Arg.ir_hint (fun s ->
+            if (OCanren.Stream.is_empty s)
+            then
+              let () = Format.printf "Bad IR hint:\n" in
+              let () =
+                run one Arg.ir_hint (fun r -> r#reify IR.reify)
+                |> OCanren.Stream.hd
+                |> (fun x -> Format.printf "%s\n%!" (GT.show  IR.logic x))
+              in
+              failwith "IR hint is bad"
           )
+        )
       in
       List.map Expr.inject demo_exprs
     in

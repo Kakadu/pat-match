@@ -4,8 +4,9 @@ open Work
 
 let id x = x
 let (>>=?) x f = match x with None -> None | Some x -> f x
+let failwiths fmt = Printf.ksprintf failwith fmt
 
-let simple_shortcut _ _ ans = (ans === !!true)
+let simple_shortcut _ _ _ ans = (ans === !!true)
 
 exception FilteredOut
 
@@ -82,6 +83,7 @@ let string_of_tag_exn = function
 | 11 -> "B"
 | 12 -> "C"
 | 13 -> "int"
+| 14 -> "triple"
 | n -> failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
 
 let tag_of_string_exn = function
@@ -97,6 +99,7 @@ let tag_of_string_exn = function
 | "B"    -> 11
 | "C"    -> 12
 | "int"  -> 13
+| "triple" -> 14
 | s -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
 
 type tag = GT.int
@@ -270,6 +273,7 @@ let pcons a b = pconstr (tag_of_string_exn "cons") [a;b]
 let psucc a   = pconstr (tag_of_string_exn "succ") [a]
 let psome a   = pconstr (tag_of_string_exn "some") [a]
 let ppair a b = pconstr (tag_of_string_exn "pair") [a;b]
+let ptriple a b c = pconstr (tag_of_string_exn "triple") [a;b;c]
 
 (* ************************************************************************** *)
 
@@ -293,26 +297,6 @@ module Matchable = struct
   let field01 () = field (s(z())) @@ field0 ()
   let field10 () = field (z())    @@ field1 ()
   let field11  () : injected = field (s(z())) @@ field1 ()
-
-  let rec reify env x =
-    For_gmatchable.reify Nat.reify reify env x
-
-  let inject : ground -> injected = fun root ->
-    let rec helper = function
-    | Scru -> scru ()
-    | Field (n, prev) -> field (Nat.inject n) (helper prev)
-    in
-    helper root
-
-  let height_ground m : int =
-    GT.transform ground
-      (fun fself -> object
-        inherit [_,_] foldl_ground_t fself
-        method m_Scru acc _ = acc+1
-        method m_Field acc _ _ prev = fself (acc+1) prev
-      end)
-     0
-     m
 
   let rec show_logic x =
     let rec helper = function
@@ -348,6 +332,26 @@ module Matchable = struct
       end
     }
 
+
+  let rec reify env x =
+    For_gmatchable.reify Nat.reify reify env x
+
+  let inject : ground -> injected = fun root ->
+    let rec helper = function
+    | Scru -> scru ()
+    | Field (n, prev) -> field (Nat.inject n) (helper prev)
+    in
+    helper root
+
+  let height_ground m : int =
+    GT.transform ground
+      (fun fself -> object
+        inherit [_,_] foldl_ground_t fself
+        method m_Scru acc _ = acc+1
+        method m_Field acc _ _ prev = fself (acc+1) prev
+      end)
+     0
+     m
 
   let to_ground l =
     let rec helper = function
@@ -476,7 +480,7 @@ module IR = struct
     { GT.gcata = gcata_ground
     ; GT.fix = ground.GT.fix
     ; GT.plugins = object
-        method fmt f x = Format.fprintf f "%s" (show x)
+        method fmt  = fmt
         method show = show
         method gmap = ground.GT.plugins#gmap
       end
@@ -485,7 +489,7 @@ module IR = struct
     { GT.gcata = gcata_logic
     ; GT.fix = logic.GT.fix
     ; GT.plugins = object
-        method fmt f x = Format.fprintf f "%s" (show_logic x)
+        method fmt  = fmt_logic
         method show = show_logic
         method gmap = logic.GT.plugins#gmap
       end
@@ -591,7 +595,23 @@ module Typs = struct
 
   let mkt xs: ground = T (Std.List.of_list id xs)
 
-  let rec construct root : ground =
+  type pre_typ = (string * pre_typ list) list t
+  let rec construct (root: pre_typ) : ground =
     match root with
     | T xs -> mkt @@ List.map (fun (p,xs) -> (tag_of_string_exn p, Std.List.of_list construct xs)) xs
+end
+
+
+module Triple = struct
+  type ('a,'b,'c) ground = 'a * 'b * 'c [@@deriving gt ~options:{fmt;gmap}]
+  module F = Fmap3(struct
+      type ('a,'b,'c) t = ('a,'b,'c) ground
+      let fmap eta = GT.gmap ground eta
+    end)
+
+  type nonrec ('a,'b,'c) logic = ('a,'b,'c) ground OCanren.logic
+
+  let reify fa fb fc = F.reify fa fb fc
+  let prjc = F.prjc
+  let make x y z = inj @@ F.distrib (x,y,z)
 end

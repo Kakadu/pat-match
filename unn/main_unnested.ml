@@ -825,7 +825,7 @@ end
 module FTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgTrueFalse)
 end)
-let () = FTrueFalse.test 10
+(*let () = FTrueFalse.test 10*)
 
 module FPairTrueFalse = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
@@ -857,7 +857,7 @@ module Peano = Algo_fair.Make(struct
   include ArgMake(ArgPeanoSimple)
 end)
 
-let () = Peano.test 10
+(*let () = Peano.test 10*)
 
 
 (* *************************************************************************** *)
@@ -865,7 +865,7 @@ module FairLists = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
 end)
 
-let () = FairLists.test 10
+(*let () = FairLists.test 10*)
 
 
 
@@ -880,14 +880,14 @@ end)
 module WWW = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 end)
-let () = WWW.test 10
+(*let () = WWW.test 10*)
 
 module WWW2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 
   let info = info ^ " + check_repeated_ifs"
 end)
-let () = WWW2.test ~check_repeated_ifs:true 10
+(*let () = WWW2.test ~check_repeated_ifs:true 10*)
 
 
 (* ************************************************************************** *)
@@ -901,7 +901,7 @@ module XXX = Algo_fair.Make(struct
   let info = info ^ " + tag=/=pair"
 end)
 
-let () = XXX.test 10
+(*let () = XXX.test 10*)
 
 (* ************************************************************************** *)
 
@@ -915,7 +915,7 @@ module XXX2 = Algo_fair.Make(struct
   let info = info ^ " + tag=/=pair + check_repeated_ifs"
 end)
 
-let () = XXX2.test ~check_repeated_ifs:true 10
+(*let () = XXX2.test ~check_repeated_ifs:true 10*)
 
 (* ************************************************************************** *)
 
@@ -942,6 +942,35 @@ end)
 
 
 
+module FTripleBool = Algo_fair.Make(struct
+  include ArgMake(ArgTripleBool)
+
+  (* we default bound (14) it works very long time *)
+  let max_ifs_count = 4
+  let info = Printf.sprintf "%s + max_ifs_count=%d" info max_ifs_count
+
+  let ir_hint rez =
+    print_endline "IR hint construction";
+    let open IR in
+
+    fresh (t a b c d)
+      (rez === IR.iftag !!"true" (Matchable.field1()) a b)
+
+(*
+      (rez === IR.iftag !!"true" (Matchable.field1())
+                  (IR.iftag !!"true" (Matchable.field0())
+                      (IR.iftag !!"true" (Matchable.field2())
+                        (int !!4)
+                        (int !!3))
+                      (int !!2))
+
+                  (IR.iftag !!"true" (Matchable.field2()) (int !!1) (int !!3) )
+      )
+*)
+  let info = Printf.sprintf "%s + hint" info
+
+end)
+let () = FTripleBool.test (-1)
 
 
 

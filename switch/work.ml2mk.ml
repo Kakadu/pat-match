@@ -191,7 +191,7 @@ let rec eval_ir s max_height tinfo shortcut ir =
         | true ->
             match eval_m s tinfo m with
             | (EConstr (etag, args), cnames) ->
-                match shortcut etag m with
+                match shortcut etag m xs with
                 | true ->
                     test_list etag cnames on_default xs
     (* TODO: try to make Fail branch last *)

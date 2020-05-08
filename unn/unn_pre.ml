@@ -5,6 +5,8 @@ open Work
 
 let id x = x
 let (>>=?) x f = match x with None -> None | Some x -> f x
+let failwiths fmt = Printf.ksprintf failwith fmt
+
 
 let simple_shortcut _ _ _ _ ans = (ans === !!true)
 
@@ -148,14 +150,17 @@ let pcons a b = pconstr "cons" [a;b]
 let psucc a   = pconstr "succ" [a]
 let psome a   = pconstr "some" [a]
 let ppair a b : Pattern.ground = pconstr "pair" [a;b]
-
+let ptriple a b c = pconstr ("triple") [a;b;c]
 
 (* ************************************************************************** *)
 
 module Nat = struct
-  type 'a gnat = 'a Work.gnat = Z | S of 'a [@@deriving gt ~options:{fmt; foldl}]
-  type ground = ground gnat [@@deriving gt ~options:{fmt; foldl}]
-  type logic = logic gnat OCanren.logic
+  type 'a t = 'a Work.gnat = Z | S of 'a
+    [@@deriving gt ~options:{ foldl; fmt; gmap }]
+  type ground = ground t
+    [@@deriving gt ~options:{ foldl; fmt; gmap }]
+  type logic = logic t OCanren.logic
+    [@@deriving gt ~options:{ foldl; fmt; gmap }]
   type injected = (ground, logic) OCanren.injected
 
   let z : injected = Work.z ()
@@ -209,13 +214,13 @@ module Nat = struct
 end
 
 module Matchable = struct
-  type ('a1, 'a0) gmatchable = ('a1, 'a0) Work.gmatchable =
+  type nonrec ('a1, 'a0) t = ('a1, 'a0) Work.gmatchable =
     | Scru
     | Field of 'a1 * 'a0
-    [@@deriving gt ~options:{ foldl }]
-  type ground = (Nat.ground, ground) gmatchable
-    [@@deriving gt ~options:{ foldl }]
-  type logic = (Nat.logic, logic) gmatchable OCanren.logic
+    [@@deriving gt ~options:{ foldl; fmt; gmap }]
+  type ground = (Nat.ground, ground) t
+    [@@deriving gt ~options:{ foldl; fmt; gmap }]
+  type logic = (Nat.logic, logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let scru = scru
@@ -223,19 +228,12 @@ module Matchable = struct
 
   let field0  () = field (z())    @@ scru()
   let field1  () = field (s(z())) @@ scru()
+  let field2  () = field (s(s(z()))) @@ scru()
   let field00 () = field (z())    @@ field0 ()
   let field01 () = field (s(z())) @@ field0 ()
   let field10 () = field (z())    @@ field1 ()
   let field11  () : injected = field (s(z())) @@ field1 ()
-(*
-  let field000 () : injected = field (z())    @@ field00 ()
-  let field001 () : injected = field (z())    @@ field01 ()
-  let field010 () : injected = field (z())    @@ field10 ()
-  let field011 () : injected = field (z())    @@ field11 ()
-  let field100 () : injected = field (s(z())) @@ field00 ()
-  let field101 () : injected = field (s(z())) @@ field01 ()
-  let field110 () : injected = field (s(z())) @@ field10 ()
-  let field111 () : injected = field (s(z())) @@ field11 ()*)
+
 
   let rec reify env x =
     For_gmatchable.reify Nat.reify reify env x
@@ -272,6 +270,25 @@ module Matchable = struct
     in
     helper x
 
+  let ground =
+    { GT.gcata = gcata_ground
+    ; GT.fix = ground.GT.fix
+    ; GT.plugins = object
+        method fmt f x = Format.fprintf f "%s" (show x)
+        method show = show
+        method gmap = ground.GT.plugins#gmap
+      end
+    }
+  let logic =
+    { GT.gcata = gcata_logic
+    ; GT.fix = logic.GT.fix
+    ; GT.plugins = object
+        method fmt f x = Format.fprintf f "%s" (show_logic x)
+        method show = show_logic
+        method gmap = logic.GT.plugins#gmap
+      end
+    }
+
   let to_ground l =
     let rec helper = function
     | Value Scru -> Some Scru
@@ -304,9 +321,12 @@ module IR = struct
   | Fail
   | IFTag of 'a3 * 'a2 * 'a1 * 'a1
   | Int of 'a0
+  [@@deriving gt ~options: { show; fmt; gmap} ]
 
-  type ground = (string, Matchable.ground, ground, int) gir
-  type logic = (string OCanren.logic, Matchable.logic, logic, int OCanren.logic) gir OCanren.logic
+  type ground = (GT.string, Matchable.ground, ground, GT.int) t
+    [@@deriving gt ~options: { show; fmt } ]
+  type logic = (GT.string OCanren.logic, Matchable.logic, logic, GT.int OCanren.logic) t OCanren.logic
+    [@@deriving gt ~options: { show; fmt } ]
   type injected = (ground, logic) OCanren.injected
 
   let fail = fail
@@ -328,7 +348,46 @@ module IR = struct
     in
     helper e
 
+  let fmt f (ir: ground) =
+    GT.transform ground
+      (fun fself -> object
+        inherit [_] fmt_ground_t fself
+        method! c_Fail fmt _ = Format.fprintf fmt "fail"
+        method! c_Int fmt _ n = Format.fprintf fmt "%d" n
+        method! c_IFTag fmt _ tag m th el =
+          Format.fprintf fmt "@[(@[<v>@[if@ %S@ %a@ @]@,@[then %a @]@,@[else %a@]@])@]" tag
+            (GT.fmt Matchable.ground) m
+            fself th
+            fself el;
+      end)
+      f
+      ir
+
   let show e =
+    let (_:string) = Format.flush_str_formatter () in
+    Format.pp_set_margin Format.str_formatter 10000;
+    Format.pp_set_max_indent Format.str_formatter (Format.pp_get_margin Format.std_formatter () - 1);
+    Format.fprintf Format.str_formatter "%a" fmt e;
+    Format.flush_str_formatter ()
+
+  let fmt_logic f (ir: logic) =
+    GT.fmt OCanren.logic
+      (GT.transform t
+        (fun fself -> object
+          inherit [_,_,_,_,_] fmt_t_t (fun _ _ -> assert false) (fun _ _ -> assert false) (fun _ _ -> assert false) (fun _ _ -> assert false) (fun _ _ -> assert false)
+          method c_Fail fmt _ = Format.fprintf fmt "fail"
+          method c_Int fmt _ n = Format.fprintf fmt "%a" (GT.fmt OCanren.logic (GT.fmt GT.int)) n
+          method c_IFTag fmt _ tag m th el =
+            Format.fprintf fmt "@[(@[<v>@[if@ %a@ %a@ @]@,@[then@ @[%a@] @]@,@[else %a@]@])@]"
+              (GT.fmt OCanren.logic @@ GT.fmt GT.string) tag
+              (GT.fmt Matchable.logic) m
+              (GT.fmt OCanren.logic fself) th
+              (GT.fmt OCanren.logic fself) el;
+        end))
+      f
+      ir
+
+(*  let show e =
     let rec helper = function
     | Fail -> "(fail)"
     | Int n -> string_of_int n
@@ -340,7 +399,7 @@ module IR = struct
         (helper th_)
         (helper el_)
     in
-    helper e
+    helper e*)
 
   let show_ocl f = GT.show OCanren.logic f
 (*  let show_ocl_small f = function
@@ -348,7 +407,7 @@ module IR = struct
     | Var (n,_) -> Printf.sprintf "_.%d" n*)
 
   let show_ocl_small = show_ocl     (* PRINTING HACK *)
-
+(*
   let rec show_logic e =
     let rec helper = function
     | Fail -> "(fail)"
@@ -359,10 +418,34 @@ module IR = struct
         (Matchable.show_logic m)
         (show_logic th_)
         (show_logic el_)
-(*    | _ -> Printf.sprintf "<logic ir>"*)
     in
     show_ocl_small helper e
+*)
+  let show_logic e =
+    let (_:string) = Format.flush_str_formatter () in
+    Format.pp_set_margin Format.str_formatter 10000;
+    Format.pp_set_max_indent Format.str_formatter (Format.pp_get_margin Format.std_formatter () - 1);
+    Format.fprintf Format.str_formatter "%a" fmt_logic e;
+    Format.flush_str_formatter ()
 
+  let ground =
+    { GT.gcata = gcata_ground
+    ; GT.fix = ground.GT.fix
+    ; GT.plugins = object
+        method fmt  = fmt
+        method show = show
+        method gmap = id
+      end
+    }
+  let logic =
+    { GT.gcata = gcata_logic
+    ; GT.fix = logic.GT.fix
+    ; GT.plugins = object
+        method fmt  = fmt_logic
+        method show = show_logic
+        method gmap = id
+      end
+    }
 
   let count_ifs_ground root =
     let rec helper acc = function
@@ -442,4 +525,20 @@ module Typs = struct
   let rec construct root : ground =
     match root with
     | T xs -> mkt @@ List.map (fun (p,xs) -> (p, Std.List.of_list construct xs)) xs
+end
+
+
+
+module Triple = struct
+  type ('a,'b,'c) ground = 'a * 'b * 'c [@@deriving gt ~options:{fmt;gmap}]
+  module F = Fmap3(struct
+      type ('a,'b,'c) t = ('a,'b,'c) ground
+      let fmap eta = GT.gmap ground eta
+    end)
+
+  type nonrec ('a,'b,'c) logic = ('a,'b,'c) ground OCanren.logic
+
+  let reify fa fb fc = F.reify fa fb fc
+  let prjc = F.prjc
+  let make x y z = inj @@ F.distrib (x,y,z)
 end
