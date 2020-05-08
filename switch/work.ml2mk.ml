@@ -1,5 +1,23 @@
 type nat = Z | S of nat
 
+let nat_lt a b =
+  let rec helper root =
+    match root with
+    | (_, Z) -> false
+    | (Z, S _) -> true
+    | (S x, S y) -> helper (x,y)
+  in
+  helper (a,b)
+
+let nat_leq a b =
+  let rec helper root =
+    match root with
+    | (Z,_) -> true
+    | (S _, Z) -> false
+    | (S x, S y) -> helper (x,y)
+  in
+  helper (a,b)
+
 let fst z = match z with (a,_) -> a
 
 let rec list_mem x xs =
@@ -65,10 +83,13 @@ let rec list_nth_nat idx xs = match (idx, xs) with
 | (Z, x::_) -> x
 | (S n, _::xs) -> list_nth_nat n xs
 
-(* we can't make proper alias becauase noCanren doesn't support it *)
+(* ************************************************************************** *)
+(* we can't make proper alias because noCanren doesn't support it *)
 (* type tag = int *)
-type pattern = WildCard | PConstr of int * pattern list
-type expr = EConstr of int * expr list
+type pattern =
+  | WildCard
+  | PConstr of nat * pattern list
+type expr = EConstr of nat * expr list
 
 let rec match1pat s p =
   match s,p with
@@ -109,24 +130,15 @@ let rec eval_pat_hacky s on_fail pats =
 type matchable = Scru | Field of nat * matchable
 type ir =
   | Fail
-  | Switch of matchable * (int * ir) list * ir
+  | Switch of matchable * (nat * ir) list * ir
 (*  | IFTag of tag * matchable * ir * ir*)
   | Lit of int
-type typ_info = T of (int * typ_info list) list
+type typ_info = T of (nat * typ_info list) list
 
 let rec height_of_matchable root =
   match root with
   | Scru -> S Z
   | Field (_, ss) -> S (height_of_matchable ss)
-
-let nat_leq a b =
-  let rec helper root =
-    match root with
-    | (Z,_) -> true
-    | (S _, Z) -> false
-    | (S x, S y) -> helper (x,y)
-  in
-  helper (a,b)
 
 let matchable_leq_nat m n =
   let rec helper root =
@@ -180,33 +192,52 @@ let rec eval_m s typinfo0 path0 =
   match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
 
-let rec eval_ir s max_height tinfo shortcut ir =
+let is_ordered prev next =
+  match prev with
+  | None -> true
+  | Some p -> nat_lt p next
+
+let bound_cases cases upper =
+  let rec helper arg =
+    match arg with
+    | (_,[]) -> false
+    | ([], _::_) -> true
+    | (_::ys, _::zs) -> helper (ys, zs)
+    in
+  (* cases *)
+  match cases = [] with
+  | false -> helper (cases, upper)
+
+let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir =
   let rec inner test_list irrr =
     match irrr with
     | Fail -> None
     | Lit n -> Some n
     | Switch (m, xs, on_default) ->
-(*        match nat_leq (height_of_matchable m) max_height with*)
         match matchable_leq_nat m max_height with
         | true ->
             match eval_m s tinfo m with
             | (EConstr (etag, args), cnames) ->
-                match shortcut etag m xs with
+                match shortcut1 etag m xs with
                 | true ->
                     test_list etag cnames on_default xs
     (* TODO: try to make Fail branch last *)
   in
 
-  let rec test_list etag cnames on_default xs =
-    match xs with
-    | [] -> inner test_list on_default
-    | (qtag, ontag) :: tl ->
-        match list_mem qtag cnames with
-        | true ->
-            if qtag = etag
-            then inner test_list ontag
-            else test_list etag cnames on_default tl
-
+  let rec test_list etag cnames on_default cases =
+    let rec helper prev xs =
+      match xs with
+      | [] -> inner test_list on_default
+      | (qtag, ontag) :: tl ->
+          match list_mem qtag cnames with
+          | true ->
+              match shortcut_tag prev qtag with
+              | true ->
+                  if qtag = etag
+                  then inner test_list ontag
+                  else helper (Some qtag) tl
+    in
+    helper None cases
   in
 
   inner test_list ir

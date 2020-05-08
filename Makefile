@@ -10,7 +10,7 @@ endif
 
 .PHONY: run run-mini celan
 
-all: nonlin unn #guards
+all: switch #nonlin unn #guards
 
 
 run:

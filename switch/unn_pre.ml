@@ -7,8 +7,7 @@ let (>>=?) x f = match x with None -> None | Some x -> f x
 let failwiths fmt = Printf.ksprintf failwith fmt
 
 let simple_shortcut _ _ _ ans = (ans === !!true)
-
-exception FilteredOut
+let simple_shortcut_tag _ _ ans = (ans === !!true)
 
 (* ************************************************************************** *)
 module Nat = struct
@@ -44,6 +43,28 @@ module Nat = struct
     in
     helper 0 n
 
+  let ground =
+    { ground with
+      GT.plugins = object
+        method show  = show
+        method fmt   = ground.GT.plugins#fmt
+        method foldl = ground.GT.plugins#foldl
+        method gmap  = id
+      end
+    }
+
+  let logic =
+    { logic with
+      GT.plugins = object
+        method show  = show_logic
+        method fmt   = logic.GT.plugins#fmt
+        method foldl = logic.GT.plugins#foldl
+        method gmap  = id
+      end
+    }
+
+  (* *********** *)
+
   let rec reify env x = For_gnat.reify reify env x
   let rec prjc onvar env xs = For_gnat.prjc (prjc onvar) onvar env xs
 
@@ -67,64 +88,89 @@ module Nat = struct
     in
     if n < 0 then assert false
     else helper Z n
+
+  let to_int =
+    let rec helper acc = function
+    | Z -> acc
+    | S x -> helper (acc+1) x
+    in
+    helper 0
+
 end
 
 (* ************************************************************************** *)
-let string_of_tag_exn = function
-| 0 -> "zero"
-| 1 -> "succ"
-| 2 -> "true"
-| 3 -> "false"
-| 5 -> "nil"
-| 6 -> "cons"
-| 7 -> "nil2"
-| 9 -> "pair"
-| 10 -> "A"
-| 11 -> "B"
-| 12 -> "C"
-| 13 -> "int"
-| 14 -> "triple"
-| n -> failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
+module Tag = struct
+  type ground = Nat.ground [@@deriving gt]
+  type logic = Nat.logic [@@deriving gt]
+  type injected = (ground, logic) OCanren.injected
 
-let tag_of_string_exn = function
-| "zero" -> 0
-| "succ" -> 1
-| "true" -> 2
-| "false" -> 3
-| "nil" -> 5
-| "cons" -> 6
-| "nil2" -> 7
-| "pair" -> 9
-| "A"    -> 10
-| "B"    -> 11
-| "C"    -> 12
-| "int"  -> 13
-| "triple" -> 14
-| s -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
+  let string_of_tag_exn tag =
+    match Nat.to_int tag with
+    | 0 -> "zero"
+    | 1 -> "succ"
+    | 2 -> "true"
+    | 3 -> "false"
+    | 5 -> "nil"
+    | 6 -> "cons"
+    | 7 -> "nil2"
+    | 9 -> "pair"
+    | 10 -> "A"
+    | 11 -> "B"
+    | 12 -> "C"
+    | 13 -> "int"
+    | 14 -> "triple"
+    | n -> failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
 
-type tag = GT.int
-  [@@deriving gt]
+  let inttag_of_string_exn = function
+    | "zero" -> 0
+    | "succ" -> 1
+    | "true" -> 2
+    | "false" -> 3
+    | "nil" -> 5
+    | "cons" -> 6
+    | "nil2" -> 7
+    | "pair" -> 9
+    | "A"    -> 10
+    | "B"    -> 11
+    | "C"    -> 12
+    | "int"  -> 13
+    | "triple" -> 14
+    | s -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
 
-let tag =
-  { GT.gcata = gcata_tag
-  ; GT.fix = tag.GT.fix
-  ; GT.plugins = object
-      method show = string_of_tag_exn
-      method fmt f x = Format.fprintf f "%s" (string_of_tag_exn x)
-      method gmap x = x
-  end}
+  let tag_of_string_exn s : ground = Nat.of_int (inttag_of_string_exn s)
 
-type tagl = GT.int OCanren.logic
-  [@@deriving gt]
+  exception HasFreeVars
+  let show_logic l =
+    let rec helper acc = function
+      | Value Z -> acc
+      | Value (S next) -> helper (1+acc) next
+      | Var _ -> raise HasFreeVars
+    in
+    try string_of_tag_exn (Nat.of_int (helper 0 l))
+    with HasFreeVars -> GT.show Nat.logic l
 
-let tagl =
-  { GT.gcata = gcata_tagl
-  ; GT.fix = tagl.GT.fix
-  ; GT.plugins = object
-      method show = GT.show OCanren.logic string_of_tag_exn
-      method fmt f l = GT.fmt OCanren.logic (fun fmt x -> Format.fprintf fmt "%s" (string_of_tag_exn x)) f l
-      method gmap x = x
-  end}
+  let ground =
+    { ground with
+      GT.plugins = object
+        method show = string_of_tag_exn
+        method fmt f x = Format.fprintf f "%s" (string_of_tag_exn x)
+        method gmap x = x
+    end}
+
+  let logic =
+    { logic with
+      GT.plugins = object
+        method show = show_logic
+        method fmt f l = Format.fprintf f "%s" (show_logic l)
+        method gmap x = x
+    end}
+
+(*  let (_:int) =GT.show logic*)
+  let reify = Nat.reify
+  let inject = Nat.inject
+  let to_ground = Nat.to_ground
+end
+
 
 
 (* TODO: put this to stdlib *)
@@ -154,8 +200,8 @@ module Pattern = struct
     | PConstr of 'a * 'b
     [@@deriving gt ~options:{fmt; gmap}]
 
-  type ground = (tag, ground Std.List.ground) t
-  type logic = (tag OCanren.logic, logic Std.List.logic) t OCanren.logic
+  type ground = (Tag.ground, ground Std.List.ground) t
+  type logic = (Tag.logic, logic Std.List.logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let constr = Work.pConstr
@@ -169,46 +215,25 @@ module Pattern = struct
   let show : ground -> string =
     let rec helper = function
     | WildCard -> "_"
-    | PConstr (s, Std.List.Nil) -> Printf.sprintf "(%s)" (GT.show tag s)
+    | PConstr (s, Std.List.Nil) -> Printf.sprintf "(%s)" (GT.show Tag.ground s)
     | PConstr (s, ps) ->
-      Printf.sprintf "(%s %s)" (GT.show tag s) (GT.show Std.List.ground helper ps)
+      Printf.sprintf "(%s %s)" (GT.show Tag.ground s) (GT.show Std.List.ground helper ps)
     in
     helper
 
-  let rec show_logic (p: logic) =
-    let rec helper = function
+  let show_logic : logic -> string =
+    let rec helper : (Tag.logic, logic Std.List.logic) t -> string = function
     | WildCard -> "_"
     | PConstr (s, OCanren.Value Std.List.Nil) ->
-        GT.show OCanren.logic (GT.show tag) s
+        let (_: Tag.logic) = s in
+        GT.show Tag.logic s
     | PConstr (s, ps) ->
       Printf.sprintf "(%s %s)"
-        (match s with
-          | OCanren.Value s -> GT.show tag s
-          | s -> GT.show OCanren.logic (GT.show tag) s)
-        (GT.show Std.List.logic show_logic ps)
+        (GT.show Tag.logic s)
+        (GT.show Std.List.logic (GT.show OCanren.logic helper) ps)
     in
-    GT.show OCanren.logic helper p
+    GT.show OCanren.logic helper
 
-
-  module ArityMap = Map.Make(Base.Int)
-  exception Bad
-
-  let get_arities (pat: ground) =
-    let rec helper acc = function
-      | WildCard -> acc
-      | PConstr (name, xs) ->
-          let acc =
-            let arity = ground_list_length xs in
-            try
-              match ArityMap.find name acc with
-              | ar when ar = arity -> acc
-              | _ -> raise Bad
-            with  Not_found -> ArityMap.add name arity acc
-          in
-          GT.foldl OCanren.Std.List.ground (fun acc p -> helper acc p) acc xs
-    in
-    try Some (helper ArityMap.empty pat)
-    with Bad -> None
 end
 
 
@@ -216,25 +241,25 @@ end
 module Expr = struct
   type ('a1, 'a0) t = ('a1, 'a0) Work.gexpr = EConstr of 'a1 * 'a0
 
-  type ground = (tag, ground Std.List.ground) gexpr
-  type logic  = (tag OCanren.logic, logic Std.List.logic) gexpr OCanren.logic
+  type ground = (Tag.ground, ground Std.List.ground) gexpr
+  type logic  = (Tag.logic, logic Std.List.logic) gexpr OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let constr = eConstr
-  let econstr s xs = EConstr (tag_of_string_exn s, Std.List.of_list id xs)
+  let econstr s xs = EConstr (Tag.tag_of_string_exn s, Std.List.of_list id xs)
 
   let show : ground -> string   =
     let rec helper pars x =
      match x with
-    | EConstr (c, Std.List.Nil) when pars -> Printf.sprintf "(%s)" (GT.show tag c)
-    | EConstr (c, Std.List.Nil)           -> GT.show tag c
+    | EConstr (c, Std.List.Nil) when pars -> Printf.sprintf "(%s)" (GT.show Tag.ground c)
+    | EConstr (c, Std.List.Nil)           -> GT.show Tag.ground c
     | EConstr (s, xs) when pars ->
       Printf.sprintf "(%s %s)"
-        (GT.show tag s)
+        (GT.show Tag.ground s)
         (GT.show Std.List.ground (helper false) xs)
     | EConstr (s, xs) ->
       Printf.sprintf "%s %s"
-        (GT.show tag s)
+        (GT.show Tag.ground s)
         (GT.show Std.List.ground (helper false) xs)
     in
     helper false
@@ -244,7 +269,7 @@ module Expr = struct
       match x with
       | EConstr (s, xs) ->
         Printf.sprintf "(%s %s)"
-          (GT.show OCanren.logic (GT.show tag) s)
+          (GT.show Tag.logic s)
           (GT.show Std.List.logic show_logic xs)
     in
     GT.show OCanren.logic helper x
@@ -254,26 +279,26 @@ module Expr = struct
 
   let inject (e: ground) : injected =
     let rec helper = function
-    | EConstr (s,xs) ->
-        constr !!s (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
+    | EConstr (t, xs) ->
+        constr (Tag.inject t) (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
     in
     helper e
 end
 
 
 let pwc = WildCard
-let pconstr name xs = PConstr (name, Std.List.of_list id xs)
-let pleaf s = pconstr (tag_of_string_exn s) []
+let pconstr name xs = PConstr (Tag.tag_of_string_exn name, Std.List.of_list id xs)
+let pleaf s = pconstr s []
 let pnil    = pleaf "nil"
 let pnil2   = pleaf "nil2"
 let pzero   = pleaf "zero"
 let ptrue   = pleaf "true"
 let pfalse  = pleaf "false"
-let pcons a b = pconstr (tag_of_string_exn "cons") [a;b]
-let psucc a   = pconstr (tag_of_string_exn "succ") [a]
-let psome a   = pconstr (tag_of_string_exn "some") [a]
-let ppair a b = pconstr (tag_of_string_exn "pair") [a;b]
-let ptriple a b c = pconstr (tag_of_string_exn "triple") [a;b;c]
+let pcons a b = pconstr "cons" [a;b]
+let psucc a   = pconstr "succ" [a]
+let psome a   = pconstr "some" [a]
+let ppair a b = pconstr "pair" [a;b]
+let ptriple a b c = pconstr "triple" [a;b;c]
 
 (* ************************************************************************** *)
 
@@ -388,9 +413,9 @@ module IR = struct
   | Lit of 'a0
   [@@deriving gt ~options: { show; fmt; gmap} ]
 
-  type ground = (Matchable.ground, (tag, ground) Std.Pair.ground Std.List.ground, ground, GT.int) t
+  type ground = (Matchable.ground, (Tag.ground, ground) Std.Pair.ground Std.List.ground, ground, GT.int) t
     [@@deriving gt ~options: { show; fmt; gmap } ]
-  type logic = (Matchable.logic, (tag OCanren.logic, logic) Std.Pair.logic Std.List.logic, logic, GT.int OCanren.logic) t OCanren.logic
+  type logic = (Matchable.logic, (Tag.logic, logic) Std.Pair.logic Std.List.logic, logic, GT.int OCanren.logic) t OCanren.logic
     [@@deriving gt ~options: { show; fmt; gmap} ]
   type injected = (ground, logic) OCanren.injected
 
@@ -401,8 +426,8 @@ module IR = struct
 
   let eint n = Lit n
 
-  let rec reify env =
-    For_gir.reify Matchable.reify (Std.List.reify @@ Std.Pair.reify OCanren.reify reify)
+  let rec reify env : injected -> logic =
+    For_gir.reify Matchable.reify (Std.List.reify @@ Std.Pair.reify Tag.reify reify)
       reify OCanren.reify env
 
   let fmt f (ir: ground) =
@@ -410,12 +435,12 @@ module IR = struct
       (fun fself -> object
         inherit [_] fmt_ground_t fself
         method! c_Fail fmt _ = Format.fprintf fmt "fail"
-        method! c_Lit fmt _ n = Format.fprintf fmt "%d" n
+        method! c_Lit fmt _ n = Format.fprintf fmt "%d " n
         method! c_Switch fmt _ m xs on_default =
           Format.fprintf fmt "@[(@[match@ %a@ with@]@ " (GT.fmt Matchable.ground) m;
           GT.foldl Std.List.ground (fun () (t, code) ->
-            Format.fprintf fmt "@[| %a ->@ %a @]"
-              (GT.fmt tag) t
+            Format.fprintf fmt "@[| %a ->@ %a@]@ "
+              (GT.fmt Tag.ground) t
               fself code
           ) () xs;
           Format.fprintf fmt "@[| _ ->@ %a@]" fself on_default;
@@ -442,13 +467,13 @@ module IR = struct
     let fmt_ocl fmt f x = GT.fmt OCanren.logic f fmt x in
     let rec helper fmt = function
       | Fail -> Format.fprintf fmt "fail"
-      | Lit ln -> fmt_ocl fmt (GT.fmt GT.int) ln
+      | Lit ln -> Format.fprintf fmt "%a " (GT.fmt OCanren.logic (GT.fmt GT.int))  ln
       | Switch  (m, xs, default) ->
         Format.fprintf fmt "(switch %a with" (GT.fmt Matchable.logic) m;
         GT.foldl Std.List.logic (
           GT.foldl OCanren.logic
             (fun () (tag, irl) ->
-              Format.fprintf fmt "@[@ |@ %a@ ->@ %a@]" (GT.fmt tagl) tag fmt_logic irl
+              Format.fprintf fmt "@[@ |@ %a@ ->@ %a@]" (GT.fmt Tag.logic) tag fmt_logic irl
             )
         ) () xs;
         Format.fprintf fmt "%a)" fmt_logic default
@@ -501,12 +526,9 @@ module IR = struct
     | Fail -> fail ()
     | Switch (m, xs, default) ->
         let clauses = inject_ground_list @@
-          GT.gmap Std.List.ground (fun (tag,code) -> Std.Pair.pair !!tag (helper code)) xs
+          GT.gmap Std.List.ground (fun (tag,code) -> Std.Pair.pair (Tag.inject tag) (helper code)) xs
        in
        switch (Matchable.inject m) clauses (helper default)
-    (*| IFTag (str, matchable, th, el) ->
-      iftag !!str (Matchable.inject matchable) (helper th) (helper el)*)
-
     in
     helper
 
@@ -556,7 +578,7 @@ module Clauses = struct
     let rec one : Pattern.ground -> _ = function
     | WildCard -> Pattern.wc ()
     | PConstr (name,ps) ->
-        Pattern.constr !!name @@
+        Pattern.constr (Tag.inject name) @@
         (inject_ground_list @@ GT.gmap Std.List.ground one ps)
     in
 
@@ -577,18 +599,18 @@ end
 module Typs = struct
   type 'a t = 'a Work.gtyp_info = T of 'a
     [@@deriving gt ~options: { show; fmt }]
-  type ground = (tag,             ground Std.List.ground) Std.Pair.ground  Std.List.ground t
+  type ground = (Tag.ground,  ground Std.List.ground) Std.Pair.ground  Std.List.ground t
     [@@deriving gt ~options: { show; fmt }]
-  type logic  = (tag OCanren.logic, logic Std.List.logic) Std.Pair.logic   Std.List.logic t OCanren.logic
+  type logic  = (Tag.logic,   logic Std.List.logic) Std.Pair.logic   Std.List.logic t OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
   let t eta = Work.t eta
   let t_item name xs = Std.Pair.pair name xs
 
   let rec inject (e: ground) : injected =
-    let rec helper : tag * ground Std.List.ground -> _ = function
+    let rec helper : _ -> _ = function
     | (s, xs) ->
-        t_item !!s (inject_ground_list @@ GT.gmap Std.List.ground inject xs)
+        t_item (Tag.inject s) (inject_ground_list @@ GT.gmap Std.List.ground inject xs)
     in
     match e with
     | T xs -> t (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
@@ -598,7 +620,7 @@ module Typs = struct
   type pre_typ = (string * pre_typ list) list t
   let rec construct (root: pre_typ) : ground =
     match root with
-    | T xs -> mkt @@ List.map (fun (p,xs) -> (tag_of_string_exn p, Std.List.of_list construct xs)) xs
+    | T xs -> mkt @@ List.map (fun (p,xs) -> (Tag.tag_of_string_exn p, Std.List.of_list construct xs)) xs
 end
 
 

@@ -11,6 +11,9 @@ let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
 
+exception FilteredOutBySize of int
+exception FilteredOutByForm
+
 
 module Make(Arg: ARG_FINAL) = struct
 
@@ -35,14 +38,14 @@ module Make(Arg: ARG_FINAL) = struct
 
     (** Raises [FilteredOut] when answer is not worth it *)
     let count_if_constructors : IR.logic -> int = fun root ->
-      let next_seen seen (scru: Matchable.logic) (tag: tag) =
+      let next_seen seen scru tag =
         if not check_repeated_ifs
         then seen
         else
-            match (Matchable.to_ground scru, tag) with
-            | (Some mground, tagg) ->
+            match (Matchable.to_ground scru, Tag.to_ground tag) with
+            | (Some mground, Some tagg) ->
                 if List.mem (mground, tagg) seen
-                then raise FilteredOut
+                then raise FilteredOutByForm
                 else (mground,tagg) :: seen
             | _ -> seen
       in
@@ -50,11 +53,11 @@ module Make(Arg: ARG_FINAL) = struct
       | Var (_,_)
       | Value (Lit _)
       | Value Fail -> acc
-      | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOut
+      | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOutByForm
       | Value (Switch (scru, xs, on_default)) ->
           GT.foldl Std.List.logic (fun acc -> function
             | Value (Var _, code) -> helper acc seen code
-            | Value (Value tagl, code) ->
+            | Value (tagl, code) ->
                 let seen = next_seen seen scru tagl in
                 helper acc seen code
             | Var _ -> acc)
@@ -70,7 +73,7 @@ module Make(Arg: ARG_FINAL) = struct
       let _do_debug = true in
       let _do_debug = false in
 
-      structural ans IR.reify (fun ir ->
+      structural ans IR.reify (fun (ir: IR.logic) ->
         let verbose = true in
         let debug fmt =
           Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
@@ -83,27 +86,24 @@ module Make(Arg: ARG_FINAL) = struct
           debug "%d%!" n;
           match n with
           | x when x > !max_ifs_count ->
-            let () =
-              if debug_filtered_by_size
-              then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) x
-            in
-            raise FilteredOut
+            raise (FilteredOutBySize x)
           | _ ->
               debug "\n%!";
               true
-        with FilteredOut ->
-          debug " FILTERED OUT\n%!";
-          false
+        with
+          | FilteredOutBySize n ->
+            if debug_filtered_by_size
+            then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!" (IR.show_logic ir) n;
+            false
+          | FilteredOutByForm ->
+            if debug_filtered_by_size
+            then Format.printf "  %s FILTERED OUT because of form \n%!" (IR.show_logic ir);
+            false
       )
     in
 
-    let my_eval_ir ideal (s: Expr.injected) tinfo ir rez =
-      (if with_hack then _ifs_size_hack ideal else success) &&&
-      (Work.eval_ir s max_height tinfo Arg.shortcut ir rez)
-    in
-
 (*    let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> IR.injected -> _ -> goal) = Work.eval_ir in*)
-    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in
+(*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
 
     let injected_clauses = Clauses.inject clauses in
     let injected_exprs =
@@ -112,7 +112,6 @@ module Make(Arg: ARG_FINAL) = struct
         |> OCanren.Stream.take ~n:(-1)
         |> Arg.to_expr
       in
-
 
       let () =
         if print_examples
@@ -128,7 +127,7 @@ module Make(Arg: ARG_FINAL) = struct
                 (Work.eval_pat scru_demo injected_clauses rez)
                 (rez === Std.Option.some ir)
                 (ir === IR.int n)
-                (Work.eval_ir scru_demo max_height typs simple_shortcut answer_demo (Std.Option.some n))
+                (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
             )
             (fun r -> r)
             |> (fun s ->
@@ -139,7 +138,7 @@ module Make(Arg: ARG_FINAL) = struct
                         let open Mytester in
                         runR (Std.Option.reify OCanren.reify) (GT.show Std.Option.ground @@ GT.show GT.int)
                             (GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int)) 1 q qh
-                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut answer_demo))
+                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo))
                       in
                       failwith "Bad (?) example"
                   in
@@ -173,6 +172,12 @@ module Make(Arg: ARG_FINAL) = struct
       upgrade_bound nextn;
       IR.show_logic ir
     in
+
+    let my_eval_ir ideal (s: Expr.injected) tinfo ir rez =
+      (if with_hack then _ifs_size_hack ideal else success) &&&
+      (Work.eval_ir s max_height tinfo Arg.shortcut Arg.shortcut_tag ir rez)
+    in
+
     let start = Mtime_clock.counter () in
 
     let open Mytester in

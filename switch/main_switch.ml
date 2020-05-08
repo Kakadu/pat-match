@@ -7,8 +7,8 @@ open Unn_pre
 
 
 
-let eleaf s = eConstr !!(tag_of_string_exn s) @@ Std.List.nil ()
-let epair a b = eConstr !!(tag_of_string_exn "pair") @@ Std.List.list [a;b]
+(*let eleaf s = eConstr !!(tag_of_string_exn s) @@ Std.List.nil ()
+let epair a b = eConstr !!(tag_of_string_exn "pair") @@ Std.List.list [a;b]*)
 
 let print_demos msg xs =
   Printf.printf "<%s>\n" msg;
@@ -19,14 +19,14 @@ let print_demos msg xs =
 
 
 module EvalMRez = struct
-  type ground = (Expr.ground, tag Std.List.ground) Std.Pair.ground
+  type ground = (Expr.ground, Tag.ground Std.List.ground) Std.Pair.ground
 (*      [@@deriving gt ~options: { show; fmt }]*)
-  type logic = (Expr.logic, tag OCanren.logic Std.List.logic) Std.Pair.logic
+  type logic = (Expr.logic, Tag.logic Std.List.logic) Std.Pair.logic
 (*      [@@deriving gt ~options: { show; fmt }]*)
   type injected = (ground, logic) OCanren.injected
 
-  let show x = GT.(show Std.Pair.ground Expr.show (show Std.List.ground @@ show GT.string)) x
-  let show_logic x = GT.(show Std.Pair.logic Expr.show_logic (show Std.List.logic (show OCanren.logic @@ show GT.string))) x
+  let show x = GT.(show Std.Pair.ground Expr.show (show Std.List.ground @@ show Tag.ground)) x
+  let show_logic x = GT.(show Std.Pair.logic Expr.show_logic (show Std.List.logic @@ show Tag.logic)) x
 
   let reifier env x = Std.Pair.reify Expr.reify (Std.List.reify OCanren.reify) env x
 end
@@ -34,6 +34,7 @@ end
 
 let eval_ir :
   Expr.injected -> Nat.injected -> Typs.injected ->
+  _ ->
   _ ->
   IR.injected  ->
   (int, int OCanren.logic) Std.Option.groundi -> goal =
@@ -43,6 +44,7 @@ let eval_m : Expr.injected ->  Typs.injected -> Matchable.injected ->
   EvalMRez.injected ->
   goal
   = Work.eval_m
+
 (*
 let _f ()  =
   run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("test eval_ir", fun q ->
@@ -179,7 +181,7 @@ module TripleBoolHack2 = struct
   let shortcut t _ _ rez =
     fresh ()
       (rez === !!true)
-      (t =/= !!(tag_of_string_exn "triple"))
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
 
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
 end
@@ -188,10 +190,8 @@ module FTripleBool2 = Algo_fair.Make(TripleBoolHack2)
 (* first answer -- 34s *)
 (*let () = FTripleBool2.test ~prunes_period:None 1*)
 
-(*let () = Format.printf "skipped prunes = %d\n%!" (OCanren.PrunesControl.skipped_prunes ())*)
-
-(* 2.5s *)
-let () =
+(* 18s *)
+let __ () =
   FTripleBool2.test
     ~prunes_period:(Some 100)
     (* increasin 100 -> 1000 slightly increases time (probably because later cuts) *)
@@ -199,45 +199,120 @@ let () =
 (*    ~debug_filtered_by_size:true*)
     1
 
-(*let () =
-  Format.printf "skipped prunes = %d\n%!" (OCanren.PrunesControl.skipped_prunes ())*)
 
-
+(* ** *)
 module TripleBoolHack3 = struct
+  include TripleBoolHack1
+
+  let rec nat_lt (x: Nat.injected) y (rez: (bool, _) injected) =
+    conde
+      [ (y === Nat.z) &&& (rez === !!false)
+      ; (x === Nat.z) &&& (y =/= Nat.z) &&& (rez === !!true)
+      ; fresh (px py)
+          (x === Nat.s px)
+          (y === Nat.s py)
+          (nat_lt px py rez)
+      ]
+
+  (* this can save a couple of seconds *)
+  let shortcut_tag prev next rez =
+    conde
+      [ (prev === Std.Option.none ()) &&& (rez === !!true)
+      ; fresh (p)
+          (prev === Std.Option.some p)
+          (nat_lt p next rez)
+      ]
+
+  let info = Printf.sprintf "%s + shortcut_tag " info
+
+  let () =
+    assert
+      (OCanren.(run one) (fun q -> (shortcut_tag (Std.Option.some Nat.z) Nat.z !!true) &&& (q === !!true) )
+        (fun x -> x)
+        |> OCanren.Stream.is_empty
+        )
+
+
+  let shortcut t _ _ rez =
+    fresh ()
+      (rez === !!true)
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
+
+  let info = Printf.sprintf "%s + tag=/=\'triple' " info
+end
+module FTripleBool3 = Algo_fair.Make(TripleBoolHack3)
+
+
+(* 14 seconds *)
+let __ () =
+  FTripleBool3.test
+    ~prunes_period:(Some 100)
+    ~check_repeated_ifs:true
+(*    ~debug_filtered_by_size:true*)
+    1
+
+module TripleBoolHack4 = struct
+  include TripleBoolHack1
+
+  let shortcut t _ branches rez =
+    fresh (h)
+      (rez === !!true)
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
+      (branches === Std.(!< h))
+
+  let info = Printf.sprintf "%s + tag=/=\'triple' + single_switch_branch" info
+end
+module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
+
+
+(* 8 seconds *)
+let () =
+  FTripleBool4.test
+    ~prunes_period:(Some 100)
+    ~check_repeated_ifs:true
+(*    ~debug_filtered_by_size:true*)
+    1
+
+
+(*
+(** This we give hint because we know answer. it is very bad *)
+module TripleBoolHack4 = struct
   include TripleBoolHack1
 
   let shortcut t _ cases rez =
     fresh (q)
       (rez === !!true)
-      (t =/= !!(tag_of_string_exn "triple"))
-      (cases === Std.List.cons (Std.Pair.pair !!(tag_of_string_exn "true") q) (Std.nil()))
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
+      (cases === Std.List.cons (Std.Pair.pair Tag.(inject @@ tag_of_string_exn "true") q) (Std.nil()))
 
 
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
   let info = Printf.sprintf "%s + match_on_true" info
 end
-module FTripleBool3 = Algo_fair.Make(TripleBoolHack3)
+module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
 
 (* 2s *)
-(*let () = FTripleBool3.test ~debug_filtered_by_size:false
+(*let () = FTripleBool4.test ~debug_filtered_by_size:false
     ~check_repeated_ifs:true
     1*)
+*)
 
-module TripleBoolHack4 = struct
+
+module TripleBoolHack41 = struct
   include TripleBoolHack1
 
   let shortcut t _ cases rez =
     fresh (q te)
       (rez === !!true)
-      (t =/= !!(tag_of_string_exn "triple"))
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
       (cases === Std.List.cons (Std.Pair.pair te q) (Std.nil()))
-      (te =/= !!(tag_of_string_exn "false"))
+      (te =/= Tag.(inject @@ tag_of_string_exn "false"))
 
 
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
   let info = Printf.sprintf "%s + match_on_not_false" info
 end
-module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
+module FTripleBool41 = Algo_fair.Make(TripleBoolHack41)
 
 
 (* 2s *)
@@ -251,7 +326,7 @@ module TripleBoolHack5 = struct
   let shortcut t _ cases rez =
     fresh (q te)
       (rez === !!true)
-      (t =/= !!(tag_of_string_exn "triple"))
+      (t =/= Tag.(inject @@ tag_of_string_exn "triple"))
       (cases === Std.List.cons (Std.Pair.pair te q) (Std.nil()))
 (*      (te =/= !!(tag_of_string_exn "false"))*)
 
@@ -282,7 +357,7 @@ module Peano = Algo_fair.Make(struct
   let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
-      (tag =/= !!(tag_of_string_exn "pair"))
+      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 end)
 
 (*let () = Peano.test 10*)
@@ -300,8 +375,8 @@ module FairLists2 = Algo_fair.Make(struct
   (* adding non-pair shourtcut optimizes from 1.8 (for all answers) to 1.4 (for all answers) *)
   let shortcut tag _ _ rez =
     fresh ()
-      (rez === !!true)
-      (tag =/= !!(tag_of_string_exn "pair"))
+      (rez === !!true)      
+      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 
   let info = info ^ " + (=/= pair)"
 end)
@@ -339,7 +414,7 @@ module XXX = Algo_fair.Make(struct
   let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
-      (tag =/= !!(tag_of_string_exn "pair"))
+      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 
   let info = info ^ " + tag=/=pair"
 end)
@@ -353,7 +428,7 @@ module XXX2 = Algo_fair.Make(struct
   let shortcut tag _ _ rez =
     fresh ()
       (rez === !!true)
-      (tag =/= !!(tag_of_string_exn "pair"))
+      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 
   let info = info ^ " + tag=/=pair + check_repeated_ifs"
 
@@ -362,7 +437,7 @@ module XXX2 = Algo_fair.Make(struct
     let open Std in
     fresh (c tl def)
       (ir === IR.switch (Matchable.field1 ())
-                ((Std.Pair.pair !!(tag_of_string_exn "cons") c)%tl)
+                ((Std.Pair.pair Tag.(inject @@ tag_of_string_exn "cons") c)%tl)
                 def)
 
 end)
@@ -371,22 +446,3 @@ end)
 
 (* ************************************************************************** *)
 
-(*let () = Fair4_1.test 20*)
-
-(*module F1 = Algo_fair.Make(struct
-  include ArgMake(ArgSimpleList)
-  let max_ifs_count = 2
-end)
-
-module Fair2_1 = Algo_fair.Make(struct
-  include ArgMake(ArgSimpleList)
-end)*)
-
-(*
-module Fair2_2 = Algo_fair2.Make(struct
-  include ArgMake(ArgTwoNilShort)
-end)
-*)
-
-(*let () = Fair2_1.test 10*)
-(*let () = Fair2_2.test ~n:2*)

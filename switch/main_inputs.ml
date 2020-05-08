@@ -18,9 +18,16 @@ module type ARG0 = sig
   val to_expr: g list -> Expr.ground list
 
   val shortcut:
-    (tag, tag logic) injected -> Matchable.injected ->
-    (tag * IR.ground, (tag logic, IR.logic) Std.Pair.logic) Std.List.groundi ->
-    (bool, bool logic) injected -> goal
+    Tag.injected -> Matchable.injected ->
+    (Tag.ground * IR.ground, (Tag.logic, IR.logic) Std.Pair.logic) Std.List.groundi ->
+    (bool, bool logic) injected ->
+    goal
+
+  val shortcut_tag:
+    (Tag.ground, Tag.logic) Std.Option.groundi ->
+    Tag.injected ->
+    (bool, bool logic) injected ->
+    goal
 
   val info : string
 end
@@ -94,6 +101,7 @@ module ArgTrueFalse : ARG0 = struct
     ListLabels.map demo_exprs ~f:helper
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 end
 
 
@@ -160,6 +168,7 @@ module ArgABC : ARG0 = struct
       e
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 end
 
 
@@ -189,7 +198,7 @@ let optimize_pair: IR.ground -> IR.ground = fun ir ->
   | Lit n -> Lit n
   | Fail -> Fail
   | Switch (_, Std.List.Nil, default) -> helper default
-  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when string_of_tag_exn t = "pair" -> helper code
+  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when Tag.string_of_tag_exn t = "pair" -> helper code
   | Switch (m, xs, default) ->
       let ys = GT.gmap Std.List.ground (fun (t,c) -> (t, helper c)) xs in
       Switch (m, ys, helper default)
@@ -205,7 +214,7 @@ let optimize_triple: IR.ground -> IR.ground = fun ir ->
   | Lit n -> Lit n
   | Fail -> Fail
   | Switch (_, Std.List.Nil, default) -> helper default
-  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when string_of_tag_exn t = "triple" -> helper code
+  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when Tag.string_of_tag_exn t = "triple" -> helper code
   | Switch (m, xs, default) ->
       let ys = GT.gmap Std.List.ground (fun (t,c) -> (t, helper c)) xs in
       Switch (m, ys, helper default)
@@ -299,6 +308,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
         e
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 
 end
 
@@ -387,7 +397,7 @@ module ArgTripleBool : ARG0 = struct
         e
 
   let shortcut = simple_shortcut
-
+  let shortcut_tag = simple_shortcut_tag
 end
 
 (* ************************************************************************** *)
@@ -487,6 +497,7 @@ module ArgPeanoSimple : ARG0 = struct
     )
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 end
 
 module ArgSimpleList : ARG0 = struct
@@ -609,6 +620,7 @@ module ArgSimpleList : ARG0 = struct
     )
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 end
 
 
@@ -796,6 +808,7 @@ module ArgTwoNilLists1 : ARG0 = struct
 
 
   let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
 end
 
 module ArgTwoNilLists2Cons : ARG0 = struct
