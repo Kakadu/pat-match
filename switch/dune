@@ -1,7 +1,7 @@
 (executable
   (name main_switch)
   (modules main_switch main_inputs work unn_pre
-          algo_fair
+          algo_fair algo_fair_manual
           )
   (flags (-rectypes))
   (libraries OCanren helper mytester)
