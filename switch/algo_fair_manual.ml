@@ -13,15 +13,7 @@ let is_enabled = ref true
 module Work2 = struct
   include Work
 
-let rec not_in_history x xs =
-  let open Std in
-  conde
-    [ (xs === Std.nil ())
-    ; fresh (h tl)
-        (xs === Std.(h%tl))
-        (x =/= h)
-        (not_in_history x tl)
-    ]
+let rec not_in_history x xs = Work.not_in_history x xs !!true
 
 let rec eval_ir (s: Expr.injected) max_height tinfo shortcut1 shortcut_tag ir q32 =
   let open OCanren.Std in

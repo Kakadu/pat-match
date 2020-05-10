@@ -110,6 +110,22 @@ module TripleBoolHack1 = struct
 
   let shortcut _tag m _branches history rez =
     (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
+
+  let shortcut_tag constr_names cases rez =
+    let open OCanren.Std in
+    (rez === !!true) &&&
+    (conde
+      [ (constr_names === nil()) &&& failure
+      ; fresh (u)
+          (constr_names === u % (nil()))
+          (cases === nil())
+      ; fresh (u v w)
+          (constr_names === u % (v % w) )
+  (*
+      ; fresh (u v)
+          (constr_names === u % v )
+  *)
+      ])
 end
 
 
