@@ -151,7 +151,7 @@ module Tag = struct
     { ground with
       GT.plugins = object
         method show = string_of_tag_exn
-        method fmt f x = Format.fprintf f "%s" (string_of_tag_exn x)
+        method fmt f x = Format.fprintf f "@[%s@]" (string_of_tag_exn x)
         method gmap x = x
         method foldl = ground.GT.plugins#foldl
     end}
@@ -160,7 +160,7 @@ module Tag = struct
     { logic with
       GT.plugins = object
         method show = show_logic
-        method fmt f l = Format.fprintf f "%s" (show_logic l)
+        method fmt f l = Format.fprintf f "@[%s@]" (show_logic l)
         method gmap x = x
         method foldl = logic.GT.plugins#foldl
     end}
@@ -353,7 +353,7 @@ module Matchable = struct
     { GT.gcata = gcata_ground
     ; GT.fix = ground.GT.fix
     ; GT.plugins = object
-        method fmt f x = Format.fprintf f "%s" (show x)
+        method fmt f x = Format.fprintf f "@[%s@]" (show x)
         method show = show
         method gmap = ground.GT.plugins#gmap
       end
@@ -362,7 +362,7 @@ module Matchable = struct
     { GT.gcata = gcata_logic
     ; GT.fix = logic.GT.fix
     ; GT.plugins = object
-        method fmt f x = Format.fprintf f "%s" (show_logic x)
+        method fmt f x = Format.fprintf f "@[%s@]" (show_logic x)
         method show = show_logic
         method gmap = logic.GT.plugins#gmap
       end
@@ -448,13 +448,13 @@ module IR = struct
         method! c_Fail fmt _ = Format.fprintf fmt "fail"
         method! c_Lit fmt _ n = Format.fprintf fmt "%d " n
         method! c_Switch fmt _ m xs on_default =
-          Format.fprintf fmt "@[(@[match@ %a@ with@]@ " (GT.fmt Matchable.ground) m;
+          Format.fprintf fmt "@[(@[match %a with @]" (GT.fmt Matchable.ground) m;
           GT.foldl Std.List.ground (fun () (t, code) ->
-            Format.fprintf fmt "@[| %a ->@ %a@]@ "
+            Format.fprintf fmt "@[ | %a -> %a@]@;"
               (GT.fmt Tag.ground) t
               fself code
           ) () xs;
-          Format.fprintf fmt "@[| _ ->@ %a@]" fself on_default;
+          Format.fprintf fmt "@[ | _ -> %a@]" fself on_default;
           Format.fprintf fmt ")@]"
       end)
       f

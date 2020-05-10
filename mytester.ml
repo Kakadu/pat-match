@@ -49,7 +49,9 @@ let run_gen onOK onFree n num handler (repr, goal) =
     let stream_rez = Stream.retrieve ~n:1 st in
     let span = Mtime_clock.count start in
     match stream_rez with
-    | [],_ -> raise NoMoreAnswers
+    | [],_ ->
+        print_span span;
+        raise NoMoreAnswers
     | [f],tl ->
       f ~span ();
       printf "\n%!";

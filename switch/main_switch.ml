@@ -7,24 +7,24 @@ open Unn_pre
 open Main_inputs
 
 [%% define TrueFalse]
-[%% undef  TrueFalse]
+(*[%% undef  TrueFalse]*)
 [%% define ABC]
-[%% undef  ABC]
+(*[%% undef  ABC]*)
 [%% define PairTrueFalse]
-[%% undef  PairTrueFalse]
+(*[%% undef  PairTrueFalse]*)
 [%% define TripleBool]
 (*[%% undef  TripleBool]*)
 [%% define Peano]
-[%% undef  Peano]
+(*[%% undef  Peano]*)
 [%% define SimpleList]
-[%% undef  SimpleList]
+(*[%% undef  SimpleList]*)
 [%% define TwoNilLists1]
-[%% undef  TwoNilLists1]
+(*[%% undef  TwoNilLists1]*)
 [%% define TwoNilLists2]
-[%% undef  TwoNilLists2]
+(*[%% undef  TwoNilLists2]*)
 
 let () = Algo_fair.is_enabled := true
-let () = Algo_fair_manual.is_enabled := true
+let () = Algo_fair_manual.is_enabled := false
 
 let default_shortcut eta m cases history rez =
   (not_in_history m history !!true)
@@ -112,20 +112,9 @@ module TripleBoolHack1 = struct
     (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
 
   let shortcut_tag constr_names cases rez =
-    let open OCanren.Std in
     (rez === !!true) &&&
-    (conde
-      [ (constr_names === nil()) &&& failure
-      ; fresh (u)
-          (constr_names === u % (nil()))
-          (cases === nil())
-      ; fresh (u v w)
-          (constr_names === u % (v % w) )
-  (*
-      ; fresh (u v)
-          (constr_names === u % v )
-  *)
-      ])
+    (default_shortcut_tag constr_names cases rez)
+
 end
 
 
@@ -343,26 +332,29 @@ let __ () =
 
 (* ************************************************************************** *)
 [%% if (defined Peano) ]
-(*
-module Peano = Algo_fair.Make(struct
+
+module Peano = struct
   include ArgMake(ArgPeanoSimple)
-  let shortcut tag _ _ rez =
-    fresh ()
-      (rez === !!true)
-      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
-end)*)
+  let shortcut _tag m _branches history rez =
+    (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
+
+  let shortcut_tag constr_names cases rez =
+    (rez === !!true) &&&
+    (default_shortcut_tag constr_names cases rez)
+
+end
 
 
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgPeanoSimple)) in
+  let module L = Algo_fair.Make(Peano) in
   L.test
 (*    ~debug_filtered_by_size:false*)
     ~prunes_period:None
     (-1)
 
 let () =
-  let module M = Algo_fair_manual.Make(ArgMake(ArgPeanoSimple)) in
+  let module M = Algo_fair_manual.Make(Peano) in
   M.test (-1) ~prunes_period:None
 
 [%% endif]
@@ -422,11 +414,11 @@ end)*)
 
 let () =
   let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Cons)) in
-  L.test (1)
+  L.test (10)
 
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Cons)) in
-  M.test (1)
+  M.test (10)
 
 [%% endif]
 
@@ -436,11 +428,15 @@ let () =
 let () =
   let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test (10)
+    (* ~prunes_period:None*)
+    ~prunes_period:(Some 100)
 
 
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Simplified)) in
   M.test (10)
+    (*~prunes_period:None*)
+    ~prunes_period:(Some 100)
 
 (*module WWW2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)

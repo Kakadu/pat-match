@@ -1,6 +1,5 @@
 (* Executes exactly what is written in lozovML
  *
- *
  *)
 open Main_inputs
 open Unn_pre
@@ -11,6 +10,23 @@ let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
 
+let default_shortcut etag m cases history rez =
+  let open OCanren in
+  (Work.not_in_history m history !!true)
+
+let default_shortcut_tag constr_names cases rez =
+  let open OCanren in
+  let open OCanren.Std in
+  (conde
+    [ (constr_names === nil()) &&& failure
+    ; fresh (u)
+        (constr_names === u % (nil()))
+        (cases === nil())
+    ; fresh (u v w)
+        (constr_names === u % (v % w) )
+    ])
+
+
 exception FilteredOutBySize of int
 exception FilteredOutByForm
 exception FilteredOutByNestedness
@@ -18,8 +34,8 @@ exception FilteredOutByNestedness
 let is_enabled = ref true
 
 module Make(Arg: ARG_FINAL) = struct
-
-  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size ~prunes_period clauses typs =
+  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
+          ~prunes_period ~with_default_shortcuts clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
     Clauses.pretty_print Format.std_formatter clauses;
     let possible_answer = Arg.possible_answer in
@@ -186,17 +202,32 @@ module Make(Arg: ARG_FINAL) = struct
     let on_ground ir =
       let nextn = IR.count_ifs_ground ir in
       upgrade_bound nextn;
-      IR.show ir
+      Printf.sprintf "%s with ifs_low=%d" (IR.show ir) nextn
     in
     let on_logic ir =
       let nextn = IR.count_ifs_low ir in
       upgrade_bound nextn;
-      IR.show_logic ir
+      Printf.sprintf "%s with ifs_low=%d" (IR.show_logic ir) nextn
     in
 
+    let shortcut1 etag m cases history rez =
+      (Arg.shortcut etag m cases history rez) &&&
+      (if with_default_shortcuts
+       then default_shortcut etag m cases history rez
+       else success)
+    in
+    let shortcut_tag1 constr_names cases rez =
+      (Arg.shortcut_tag constr_names cases rez) &&&
+      (if with_default_shortcuts
+       then default_shortcut_tag constr_names cases rez
+       else success)
+    in
     let my_eval_ir ideal (s: Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success) &&&
-      (Work.eval_ir s max_height tinfo Arg.shortcut Arg.shortcut_tag ir rez)
+      (* There we use shortcuts optimized for search.
+       * These shortcuts canptentially broke execution in default direction
+       *)
+      (Work.eval_ir s max_height tinfo shortcut1 shortcut_tag1 ir rez)
     in
 
     let start = Mtime_clock.counter () in
@@ -236,11 +267,11 @@ module Make(Arg: ARG_FINAL) = struct
 
   let test ?(print_examples=true) ?(debug_filtered_by_size=false)
       ?(with_hack=true) ?(check_repeated_ifs=false)
-      ?(prunes_period=(Some 100))
+      ?(prunes_period=(Some 100)) ?(with_default_shortcuts=true)
       n =
     if !is_enabled
     then work ~n ~with_hack ~print_examples ~check_repeated_ifs
-      ~debug_filtered_by_size
+      ~debug_filtered_by_size ~with_default_shortcuts
       ~prunes_period
       Arg.clauses Arg.typs
     else ()
