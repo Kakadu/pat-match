@@ -1,5 +1,8 @@
 open Unn_pre
 
+let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
+let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
+
 
 module type ARG0 = sig
   open OCanren
@@ -18,27 +21,30 @@ module type ARG0 = sig
   val to_expr: g list -> Expr.ground list
 
   val shortcut:
-    Tag.injected -> Matchable.injected ->
+    Tag.injected ->
+    Matchable.injected ->
     (Tag.ground * IR.ground, (Tag.logic, IR.logic) Std.Pair.logic) Std.List.groundi ->
+    (Matchable.ground, Matchable.logic) Std.List.groundi ->
     (bool, bool logic) injected ->
     goal
 
   val shortcut_tag:
-    (Tag.ground, Tag.logic) Std.Option.groundi ->
-    Tag.injected ->
+    CNames.injected ->
+    Cases.injected ->
     (bool, bool logic) injected ->
     goal
 
   val info : string
 end
 
-module type ARG1 = sig
+module type ARG_FINAL = sig
   include ARG0
   val possible_answer: IR.ground
   (* maximum count of IFs in the example answer *)
   val max_ifs_count : int
 
   val ir_hint : IR.injected -> OCanren.goal
+  val max_nested_switches : int
 end
 
 (* ************************************************************************** *)
@@ -401,26 +407,51 @@ module ArgTripleBool : ARG0 = struct
 end
 
 (* ************************************************************************** *)
+let nat_inject =
+  let open OCanren.Std in
+  let rec helper = function
+  | Nat.O -> Nat.zero
+  | Nat.S xs -> Nat.succ (helper xs)
+  in
+  helper
+
 module ArgPeanoSimple : ARG0 = struct
   open OCanren
 
-  type g = (Nat.ground, Nat.ground) OCanren.Std.Pair.ground
-  type l = (Nat.logic, Nat.logic) OCanren.Std.Pair.logic
+  type g = (N.ground, N.ground) OCanren.Std.Pair.ground
+  type l = (N.logic, N.logic) OCanren.Std.Pair.logic
   type qtyp_injected = (g, l) OCanren.injected
+
+  let rec all_inhabitants (rez : N.injected) =
+    conde
+      [ (rez === N.z)
+      ; fresh (size_tl tl)
+          (N.s tl === rez)
+          (all_inhabitants tl)
+      ]
+
+  let make_wildcard_inhabitant : N.ground =
+    let open OCanren in
+    run q all_inhabitants
+      (fun rr -> rr#prjc @@ N.prjc (fun _ _ -> assert false)
+      )
+      |> OCanren.Stream.hd
+
+  let for_wildcard = make_wildcard_inhabitant
 
   let rec inhabit_nat :
       Std.Nat.groundi ->
-      Nat.injected ->
+      N.injected ->
       goal
-    = fun height r ->
+    = fun height rez ->
     conde
-      [ (Std.Nat.zero === height) &&& failure
+      [ (Std.Nat.zero === height) &&& (rez === N.inject for_wildcard)
       ; fresh (prev)
           (Std.Nat.succ prev === height)
           (conde
-            [ (r === Nat.z)
+            [ (rez === N.z)
             ; fresh (size_tl tl)
-                (Nat.s tl === r)
+                (N.s tl === rez)
                 (inhabit_nat prev tl)
             ])
       ]
@@ -453,7 +484,7 @@ module ArgPeanoSimple : ARG0 = struct
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
   (*    Format.printf "patterns max height = %d\n%!" n;*)
-    assert (3 = n);
+    assert (2 = n);
     n
 
 
@@ -477,19 +508,19 @@ module ArgPeanoSimple : ARG0 = struct
 
   let prjp e =
     let prjl e =
-      Nat.prjc
-        (fun _ _ -> failwith "should not happen2")
+      N.prjc
+        (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
         e
       in
     Std.Pair.prjc prjl prjl
-      (fun _ _ -> failwith "should not happen5")
+      (fun _ _ -> failwiths "should not happen5 %s %d" __FILE__ __LINE__)
       e
 
-  let to_expr (demo_exprs: (Nat.ground * Nat.ground) list) =
+  let to_expr (demo_exprs: (N.ground * N.ground) list) =
     let open Unn_pre.Expr in
     let rec helper = function
-    | Nat.Z -> econstr "zero" []
-    | Nat.S tl ->
+    | N.Z -> econstr "zero" []
+    | N.S tl ->
         econstr "succ" [ helper tl ]
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
@@ -500,12 +531,39 @@ module ArgPeanoSimple : ARG0 = struct
   let shortcut_tag = simple_shortcut_tag
 end
 
+let list_inject arg =
+  let open OCanren.Std in
+  let rec helper = function
+  | List.Nil -> nil ()
+  | List.Cons (x,xs) -> (arg x) % (helper xs)
+  in
+  helper
+
 module ArgSimpleList : ARG0 = struct
   open OCanren
 
   type g = (int Std.List.ground, int Std.List.ground) Std.Pair.ground
   type l = (int logic Std.List.logic, int logic Std.List.logic) Std.Pair.logic
   type qtyp_injected = (g, l) injected
+
+  let rec all_inhabitants inh_arg rez =
+    conde
+      [ (rez === Std.List.nil ())
+      ; fresh (x tl)
+          (Std.List.cons x tl === rez)
+          (inh_arg x)
+          (all_inhabitants inh_arg tl)
+      ]
+
+  let make_wildcard_inhabitant on_arg: _ Std.List.ground =
+    run q (all_inhabitants on_arg)
+      (fun rr -> rr#prjc @@ Std.List.prjc
+          (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+          (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+      )
+      |> OCanren.Stream.hd
+
+  let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))
 
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
@@ -517,8 +575,9 @@ module ArgSimpleList : ARG0 = struct
       ('a, 'b) Std.List.groundi ->
       goal
     = fun height inh_arg r ->
+    let default = (make_wildcard_inhabitant inh_arg) in
     conde
-      [ (Std.Nat.zero === height) &&& failure
+      [ (Std.Nat.zero === height) &&& (r === list_inject (!!) default)
       ; fresh (prev)
           (Std.Nat.succ prev === height)
           (conde
@@ -578,7 +637,7 @@ module ArgSimpleList : ARG0 = struct
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
   (*    Format.printf "patterns max height = %d\n%!" n;*)
-    assert (3 = n);
+    assert (2 = n);
     n
 
   let typs =
@@ -659,7 +718,7 @@ module TwoNilList = struct
       helper e
   end
 
-
+(*
   let wrap root: Expr.ground =
     let open Expr in
     let rec helper = function
@@ -669,7 +728,7 @@ module TwoNilList = struct
         econstr "cons" [ econstr "int" []; helper tl ]
     in
     helper root
-
+*)
   let rec all_inhabitants_2nillist inh_arg rez =
     conde
       [ (rez === L.nil ())
@@ -758,11 +817,8 @@ module ArgTwoNilLists1 : ARG0 = struct
     ]
 
   let max_height =
-    (* although maximum height is 2 we can construct right examples yet *)
-    (* TODO: understand how to fix this *)
-
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
-    Format.printf "patterns max height = %d\n%!" n;
+(*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
 
@@ -865,7 +921,7 @@ module PCF = struct
 end
 
 
-module ArgMake(Arg: ARG0) : ARG1 = struct
+module ArgMake(Arg: ARG0) : ARG_FINAL = struct
   include Arg
 
   let possible_answer : IR.ground =
@@ -888,9 +944,27 @@ module ArgMake(Arg: ARG0) : ARG1 = struct
   let max_ifs_count = IR.count_ifs_ground possible_answer
 
   let ir_hint _ = OCanren.success
+
+
+  let max_nested_switches : int =
+    List.map (fun (p,_) ->
+      GT.transform Pattern.ground
+        (fun fself -> object
+          method c_PConstr acc _ name args =
+            GT.foldl OCanren.Std.List.ground fself (1+acc) args
+          method c_WildCard acc _ =
+
+            (acc+1)
+        end)
+        0
+        p
+      |> (fun size ->
+(*        Format.printf "pattern %a has size %d\n%!" (GT.fmt Pattern.ground) p size;*)
+        size
+      )
+    ) clauses
+    |> Helper.List.max
+
 end
 
-module type ARG_FINAL = sig
-  include ARG1
-end
 

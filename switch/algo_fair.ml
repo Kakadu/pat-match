@@ -1,6 +1,6 @@
 (* Executes exactly what is written in lozovML
  *
- * Downside: doesn't know that match in Pair is not okay
+ *
  *)
 open Main_inputs
 open Unn_pre
@@ -13,7 +13,9 @@ let disable_periodic_prunes () =
 
 exception FilteredOutBySize of int
 exception FilteredOutByForm
+exception FilteredOutByNestedness
 
+let is_enabled = ref true
 
 module Make(Arg: ARG_FINAL) = struct
 
@@ -24,7 +26,13 @@ module Make(Arg: ARG_FINAL) = struct
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
     Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) possible_answer;
-    Format.printf "Initial upper bound of IF-ish constructions = %d,\tmax_matchable_height = %d\n%!" !max_ifs_count Arg.max_height;
+    Format.printf "Initial upper bound of IF-ish constructions = %d\n%!" !max_ifs_count;
+    Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
+    Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
+    Format.printf "\t\tprunes_period = %s\n%!"
+      (match prunes_period with
+      | Some n -> string_of_int n
+      | None -> "always");
 
     let upgrade_bound x =
       if !max_ifs_count > x
@@ -34,7 +42,7 @@ module Make(Arg: ARG_FINAL) = struct
     in
 
 
-    let max_height = Nat.inject @@ Nat.of_int Arg.max_height in
+    let max_height = N.(inject @@ of_int Arg.max_height) in
 
     (** Raises [FilteredOut] when answer is not worth it *)
     let count_if_constructors : IR.logic -> int = fun root ->
@@ -49,24 +57,29 @@ module Make(Arg: ARG_FINAL) = struct
                 else mground :: seen
             | _ -> seen
       in
-      let rec helper acc seen = function
+      let rec helper ~height ~count seen = function
       | Var (_,_)
       | Value (Lit _)
-      | Value Fail -> acc
+      | Value Fail -> count
       | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOutByForm
       | Value (Switch (scru, xs, on_default)) ->
+          let height = height + 1 in
+          let () =
+            if height > Arg.max_nested_switches
+            then raise FilteredOutByNestedness
+          in
           GT.foldl Std.List.logic (fun acc -> function
-            | Value (Var _, code) -> helper acc seen code
+            | Value (Var _, code) -> helper ~height ~count:acc seen code
             | Value (tagl, code) ->
                 let seen = next_seen seen scru tagl in
-                helper acc seen code
+                helper ~height ~count:acc seen code
             | Var _ -> acc)
             0
             xs
           +
-          (helper (acc + (logic_list_len_lo xs)) seen on_default)
+          (helper ~height ~count:(count + (logic_list_len_lo xs)) seen on_default)
       in
-      helper 0 [] root
+      helper ~height:0 ~count:0 [] root
     in
 
     let _ifs_size_hack (ans: IR.injected) =
@@ -93,14 +106,20 @@ module Make(Arg: ARG_FINAL) = struct
         with
           | FilteredOutBySize n ->
             if debug_filtered_by_size
-            then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!"
+            then Format.printf "  %s (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
               (IR.show_logic ir) n ;
             false
           | FilteredOutByForm ->
             if debug_filtered_by_size
-            then Format.printf "  %s FILTERED OUT because of form \n%!"
+            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
                 (IR.show_logic ir) ;
             false
+          | FilteredOutByNestedness ->
+            if debug_filtered_by_size
+            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
+                (IR.show_logic ir) ;
+            false
+
       )
     in
 
@@ -219,9 +238,11 @@ module Make(Arg: ARG_FINAL) = struct
       ?(with_hack=true) ?(check_repeated_ifs=false)
       ?(prunes_period=(Some 100))
       n =
-    work ~n ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
+    if !is_enabled
+    then work ~n ~with_hack ~print_examples ~check_repeated_ifs
+      ~debug_filtered_by_size
       ~prunes_period
       Arg.clauses Arg.typs
-
+    else ()
 end
 

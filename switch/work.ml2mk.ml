@@ -191,13 +191,13 @@ let rec eval_m s typinfo0 path0 =
   in
   match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
-
+(*
 let is_ordered prev next =
   match prev with
   | None -> true
-  | Some p -> nat_lt p next
+  | Some p -> nat_lt p next*)
 
-let bound_cases cases upper =
+(*let bound_cases cases upper =
   let rec helper arg =
     match arg with
     | (_,[]) -> false
@@ -207,40 +207,8 @@ let bound_cases cases upper =
   (* cases *)
   match cases = [] with
   | false -> helper (cases, upper)
+*)
 
-let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir =
-  let rec inner test_list irrr =
-    match irrr with
-    | Fail -> None
-    | Lit n -> Some n
-    | Switch (m, xs, on_default) ->
-        match matchable_leq_nat m max_height with
-        | true ->
-            match eval_m s tinfo m with
-            | (EConstr (etag, args), cnames) ->
-                match shortcut1 etag m xs with
-                | true ->
-                    test_list etag cnames on_default xs
-    (* TODO: try to make Fail branch last *)
-  in
-
-  let rec test_list etag cnames on_default cases =
-    let rec helper prev xs =
-      match xs with
-      | [] -> inner test_list on_default
-      | (qtag, ontag) :: tl ->
-          match list_mem qtag cnames with
-          | true ->
-              match shortcut_tag prev qtag with
-              | true ->
-                  if qtag = etag
-                  then inner test_list ontag
-                  else helper (Some qtag) tl
-    in
-    helper None cases
-  in
-
-  inner test_list ir
 (*
 let rec eval_ir_hacky s tinfo ir =
   match ir with
@@ -276,3 +244,57 @@ let compile_naively pats : ir =
         helper_pat Scru p rhs else_
   in
   helper pats
+
+
+(* ********************* Specializable-ish IR interpreter ******************* *)
+let rec not_in_history x xs =
+  match xs with
+  | [] -> true
+  | h::tl ->
+      match x=h with
+      | false -> not_in_history x tl
+      | true -> false
+
+let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir =
+  let rec inner history test_list irrr =
+    match irrr with
+    | Fail -> None
+    | Lit n -> Some n
+    | Switch (m, cases, on_default) ->
+        match matchable_leq_nat m max_height with
+        | true ->
+        match cases = [] with
+        | false ->
+            match eval_m s tinfo m with
+            | (EConstr (etag, args), cnames) ->
+                match shortcut1 etag m cases history with
+                | true ->
+                (*match not_in_history m history with
+                | true ->*)
+                    test_list (m::history) etag cnames on_default cases
+    (* TODO: try to make Fail branch last *)
+  in
+
+  let rec test_list next_histo etag cnames on_default cases0 =
+    let rec helper constr_names cases =
+      match cases=[] with
+      | true -> inner next_histo test_list on_default
+      | false ->
+          match shortcut_tag constr_names cases with
+          | true ->
+          match constr_names with
+          | constr_hd :: constr_tl ->
+            match cases with
+            | (qtag, ontag) :: clauses_tl ->
+                  match qtag = constr_hd with
+                  | true  -> begin
+                      match qtag = etag with
+                      | true ->  inner next_histo test_list ontag
+                      | false -> helper constr_tl clauses_tl
+                  end
+                  | false -> helper constr_tl cases
+    in
+    helper cnames cases0
+  in
+
+  inner [] test_list ir

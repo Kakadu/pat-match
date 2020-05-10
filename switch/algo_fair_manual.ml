@@ -7,8 +7,10 @@ open Unn_pre
 open OCanren
 open Unn_pre.IR
 
+let is_enabled = ref true
 
-module Work = struct
+
+module Work2 = struct
   include Work
 
 let rec not_in_history x xs =
@@ -21,7 +23,7 @@ let rec not_in_history x xs =
         (not_in_history x tl)
     ]
 
-let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir q32 =
+let rec eval_ir (s: Expr.injected) max_height tinfo shortcut1 shortcut_tag ir q32 =
   let open OCanren.Std in
   let rec inner history test_list  irrr q11 =
     conde
@@ -29,36 +31,58 @@ let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir q32 =
       ; fresh (n)
           (irrr === (lit n))
           (q11 === (some n))
-      ; fresh (m xs on_default q15 q17 etag args cnames q19)
-          (irrr === (switch m xs on_default))
+      ; fresh (m cases on_default q15 q17 etag args cnames q19)
+          (irrr === (switch m cases on_default))
+          (cases =/= nil())
           (q17 === (pair (eConstr etag args) cnames))
           (matchable_leq_nat m max_height !!true)                  (* commenting this line is not recommended *)
           (eval_m s tinfo m q17)
-          (shortcut1 etag m xs !!true)
-(*          (not_in_history q17 history)*)
-          (test_list (m%history) etag  cnames on_default xs q11)
+          (shortcut1 etag m cases history !!true)
+          (* (not_in_history m history) *)
+          (test_list (m%history) etag  cnames on_default cases q11)
       ]
   in
-  let rec test_list next_histo etag cnames on_default cases q30 =
-    let rec helper prev xs q20 =
+  let rec test_list next_histo (etag: Tag.injected) cnames on_default cases0 r =
+    let rec helper (constr_names: (Tag.ground, Tag.logic) Std.List.groundi) cases rez =
       conde
-        [ ((xs === (nil ())) &&& (inner next_histo test_list on_default q20))
-        ; fresh (qtag ontag tl)
-            (xs === ((pair qtag ontag) % tl))
-            (list_mem qtag cnames !!true)
-            (shortcut_tag prev qtag !!true)
+        [ fresh ()
+            (cases === (nil ()))
+            (inner next_histo test_list on_default rez)
+        ; fresh (constr_hd constr_tl)
+            (cases =/= (nil ()))
             (conde
-              [ (qtag === etag) &&& (inner next_histo test_list ontag q20)
-              ; (qtag =/= etag)  &&& (helper (some qtag) tl q20)
+              [ (constr_names === nil()) &&& failure
+              ; fresh (u)
+                  (constr_names === u % (nil()))
+                  (cases === nil())
+              ; fresh (u v w)
+                  (constr_names === u % (v % w) )
+(*
+              ; fresh (u v)
+                  (constr_names === u % v )
+*)
               ])
-        ]
+
+            (fresh (qtag ontag clauses_tl)
+              (constr_names === (constr_hd % constr_tl))
+              (cases === ((pair qtag ontag) % clauses_tl))
+              (conde
+                [ (qtag === constr_hd) &&&
+                  (conde
+                    [ (qtag === etag) &&& (inner next_histo test_list ontag rez)
+                    ; (qtag =/= etag) &&& (helper constr_tl clauses_tl rez)
+                    ])
+                ; (qtag =/= constr_hd) &&& (helper constr_tl cases rez)
+                ])
+            )
+         ]
     in
-    helper (none ()) cases q30
+    helper cnames cases0 r
   in
   inner (nil()) test_list ir q32
 end
 
-let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> _ -> IR.injected -> _ -> goal) = Work.eval_ir
+let (_: Expr.injected -> N.injected -> Typs.injected -> _ -> _ -> IR.injected -> _ -> goal) = Work.eval_ir
 
 let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
@@ -66,6 +90,7 @@ let disable_periodic_prunes () =
 
 exception FilteredOutBySize of int
 exception FilteredOutByForm
+exception FilteredOutByNestedness
 
 
 module Make(Arg: ARG_FINAL) = struct
@@ -77,7 +102,13 @@ module Make(Arg: ARG_FINAL) = struct
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
     Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) possible_answer;
-    Format.printf "Initial upper bound of IF-ish constructions = %d,\tmax_matchable_height = %d\n%!" !max_ifs_count Arg.max_height;
+    Format.printf "Initial upper bound of IF-ish constructions = %d\n%!" !max_ifs_count;
+    Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
+    Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
+    Format.printf "\t\tprunes_period = %s\n%!"
+      (match prunes_period with
+      | Some n -> string_of_int n
+      | None -> "always");
 
     let upgrade_bound x =
       if !max_ifs_count > x
@@ -87,7 +118,7 @@ module Make(Arg: ARG_FINAL) = struct
     in
 
 
-    let max_height = Nat.inject @@ Nat.of_int Arg.max_height in
+    let max_height = N.(inject @@ of_int Arg.max_height) in
 
     (** Raises [FilteredOut] when answer is not worth it *)
     let count_if_constructors : IR.logic -> int = fun root ->
@@ -102,24 +133,29 @@ module Make(Arg: ARG_FINAL) = struct
                 else mground :: seen
             | _ -> seen
       in
-      let rec helper acc seen = function
+      let rec helper ~height ~count seen = function
       | Var (_,_)
       | Value (Lit _)
-      | Value Fail -> acc
+      | Value Fail -> count
       | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOutByForm
       | Value (Switch (scru, xs, on_default)) ->
+          let height = height + 1 in
+          let () =
+            if height > Arg.max_nested_switches
+            then raise FilteredOutByNestedness
+          in
           GT.foldl Std.List.logic (fun acc -> function
-            | Value (Var _, code) -> helper acc seen code
+            | Value (Var _, code) -> helper ~height ~count:acc seen code
             | Value (tagl, code) ->
                 let seen = next_seen seen scru tagl in
-                helper acc seen code
+                helper ~height ~count:acc seen code
             | Var _ -> acc)
             0
             xs
           +
-          (helper (acc + (logic_list_len_lo xs)) seen on_default)
+          (helper ~height ~count:(count + (logic_list_len_lo xs)) seen on_default)
       in
-      helper 0 [] root
+      helper ~height:0 ~count:0 [] root
     in
 
     let _ifs_size_hack (ans: IR.injected) =
@@ -146,12 +182,17 @@ module Make(Arg: ARG_FINAL) = struct
         with
           | FilteredOutBySize n ->
             if debug_filtered_by_size
-            then Format.printf "  %s (size = %d) FILTERED OUT because of Ifs count \n%!"
+            then Format.printf "  %s (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
               (IR.show_logic ir) n ;
             false
           | FilteredOutByForm ->
             if debug_filtered_by_size
-            then Format.printf "  %s FILTERED OUT because of form \n%!"
+            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
+                (IR.show_logic ir) ;
+            false
+          | FilteredOutByNestedness ->
+            if debug_filtered_by_size
+            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
                 (IR.show_logic ir) ;
             false
       )
@@ -230,7 +271,7 @@ module Make(Arg: ARG_FINAL) = struct
 
     let my_eval_ir ideal (s: Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success) &&&
-      (Work.eval_ir s max_height tinfo Arg.shortcut Arg.shortcut_tag ir rez)
+      (Work2.eval_ir s max_height tinfo Arg.shortcut Arg.shortcut_tag ir rez)
     in
 
     let start = Mtime_clock.counter () in
@@ -272,9 +313,10 @@ module Make(Arg: ARG_FINAL) = struct
       ?(with_hack=true) ?(check_repeated_ifs=false)
       ?(prunes_period=(Some 100))
       n =
-    work ~n ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
-      ~prunes_period
-      Arg.clauses Arg.typs
-
+      if !is_enabled
+      then work ~n ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
+        ~prunes_period
+        Arg.clauses Arg.typs
+      else ()
 end
 

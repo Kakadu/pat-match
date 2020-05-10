@@ -3,12 +3,12 @@
   (modules main_switch main_inputs work unn_pre
           algo_fair algo_fair_manual
           )
-  (flags (-rectypes))
+  (flags (-rectypes -warn-error +20))
   (libraries OCanren helper mytester)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
 )
 
 (rule
- (targets work.ml)
- (deps    work.ml2mk.ml)
- (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+  (targets work2.ml)
+  (deps    work.ml2mk.ml)
+  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
