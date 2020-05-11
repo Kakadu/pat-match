@@ -259,33 +259,60 @@ let rec not_in_history x xs =
  *        matchable values (looking too deep is not required because we will always
  *        met a wildcard or constructor without arguments
  *   [tinfo] -- type information for scrutinee [s]
- *   [shortcut
+ *   [shortcut0], [shortcut1], [shortcut_tag] -- various shortcuts
+ *     that in default direction do nothing
  *)
-let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir =
+let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
+  (* Two mutually recursive functions that perform evaluation
+   * *)
   let rec inner history test_list irrr =
     match irrr with
     | Fail -> None
     | Lit n -> Some n
     | Switch (m, cases, on_default) ->
-        match matchable_leq_nat m max_height with
+        match shortcut0 m max_height cases with
         | true ->
-        match cases = [] with
-        | false ->
             match eval_m s tinfo m with
             | (EConstr (etag, args), cnames) ->
                 match shortcut1 etag m cases history with
                 | true ->
-                (*match not_in_history m history with
-                | true ->*)
                     test_list (m::history) etag cnames on_default cases
     (* TODO: try to make Fail branch last *)
   in
 
+  (* [test_list] performs evaluation of switch's branchs
+   * Arguments:
+   *    [next_histo] -- only to perform recursive call
+   *    [etag] -- tag of subscrutinee
+   *    [cnames] -- tags that makes sence to test against
+   *    [on_default] -- otherwise branch of switch
+   *    [cases0] -- branches of switch
+   *)
+
   let rec test_list next_histo etag cnames on_default cases0 =
+    (* We iterate over switch branches and test one after another.
+     *
+     *)
     let rec helper constr_names cases =
       match cases=[] with
       | true -> inner next_histo test_list on_default
       | false ->
+          (* Shortcut. When used in default direction does nothing
+           *
+           * During synthesis we make sure that branches count is
+           * <= (#constr_names-1) -- switch's otherwise branch should be useful
+           * We are doing so synchronously traversing cases and constr_names.
+           *
+           * Also we establish the order in which switch's branches are going
+           * (to prune equivalent) programs.
+           *
+           * This may break default execution direction but for used examples it
+           * works. More simple ways to implement this kind of pruning
+           *   * maximum count of cases := (length constr_names - 1)
+           *
+           * are much slower
+           *
+           *)
           match shortcut_tag constr_names cases with
           | true ->
           match constr_names with

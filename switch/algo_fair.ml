@@ -10,6 +10,12 @@ let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
 
+let default_shortcut0 m max_height cases rez =
+  let open OCanren in
+  (Work.matchable_leq_nat m max_height !!true) &&&
+  (cases =/= Std.nil()) &&&
+  (rez === !!true)
+
 let default_shortcut etag m cases history rez =
   let open OCanren in
   (Work.not_in_history m history !!true)
@@ -164,7 +170,7 @@ module Make(Arg: ARG_FINAL) = struct
                 (Work.eval_pat scru_demo injected_clauses rez)
                 (rez === Std.Option.some ir)
                 (ir === IR.int n)
-                (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
             )
             (fun r -> r)
             |> (fun s ->
@@ -177,7 +183,7 @@ module Make(Arg: ARG_FINAL) = struct
                           (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
                           (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
                           1 q qh
-                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo))
+                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo))
                       in
                       failwith "Bad (?) example"
                   in
@@ -226,6 +232,12 @@ module Make(Arg: ARG_FINAL) = struct
           repr)
     in
 
+    let shortcut0 m maxheight cases rez =
+      (Arg.shortcut0 m maxheight cases rez) &&&
+      (if with_default_shortcuts
+       then default_shortcut0 m maxheight cases rez
+       else success)
+    in
     let shortcut1 etag m cases history rez =
       (Arg.shortcut etag m cases history rez) &&&
       (if with_default_shortcuts
@@ -243,7 +255,7 @@ module Make(Arg: ARG_FINAL) = struct
       (* There we use shortcuts optimized for search.
        * These shortcuts canptentially broke execution in default direction
        *)
-      (Work.eval_ir s max_height tinfo shortcut1 shortcut_tag1 ir rez)
+      (Work.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
     in
 
     let start = Mtime_clock.counter () in

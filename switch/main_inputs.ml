@@ -1,5 +1,6 @@
 open Unn_pre
 
+let simple_shortcut0  _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
 
@@ -19,6 +20,14 @@ module type ARG0 = sig
   val optimize: IR.ground -> IR.ground
   val prjp: OCanren.Env.t -> qtyp_injected -> g
   val to_expr: g list -> Expr.ground list
+
+
+  val shortcut0:
+    Matchable.injected ->
+    N.injected ->
+    Cases.injected ->
+    (bool, bool logic) injected ->
+    goal
 
   val shortcut:
     Tag.injected ->
@@ -106,6 +115,7 @@ module ArgTrueFalse : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:helper
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -169,6 +179,7 @@ module ArgAB : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -236,6 +247,7 @@ module ArgABC : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -376,6 +388,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
         e
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 
@@ -465,6 +478,7 @@ module ArgTripleBool : ARG0 = struct
         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
         e
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -590,6 +604,7 @@ module ArgPeanoSimple : ARG0 = struct
       econstr "pair" [ helper a; helper b ]
     )
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -741,6 +756,7 @@ module ArgSimpleList : ARG0 = struct
       econstr "pair" [ hack_list a; hack_list b ]
     )
 
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end
@@ -925,7 +941,7 @@ module ArgTwoNilLists1 : ARG0 = struct
       econstr "pair" [ hack_list a; hack_list b ]
     )
 
-
+  let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
 end

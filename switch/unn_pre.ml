@@ -684,6 +684,7 @@ let eval_ir :
   Expr.injected -> N.injected -> Typs.injected ->
   _ ->
   _ ->
+  _ ->
   IR.injected  ->
   (int, int OCanren.logic) Std.Option.groundi -> goal =
     Work.eval_ir
