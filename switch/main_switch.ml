@@ -20,6 +20,8 @@ let () =
 
 [%% define TrueFalse]
 (*[%% undef  TrueFalse]*)
+[%% define AB]
+[%% undef  AB]
 [%% define ABC]
 (*[%% undef  ABC]*)
 [%% define PairTrueFalse]
@@ -93,6 +95,20 @@ let  () =
   M.test (-1)
 
 [%% endif]
+[%% endif]
+
+(* ************************************************************************** *)
+[%% if (defined AB) ]
+module FAAAAAAAAAAAA = Algo_fair.Make(struct
+  include ArgMake(ArgAB)
+
+  (* in this demo merging cases can be helpful *)
+end)
+
+let  () =
+  let module L = Algo_fair.Make(ArgMake(ArgAB)) in
+  L.test (-1)
+
 [%% endif]
 
 (* ************************************************************************** *)

@@ -110,6 +110,69 @@ module ArgTrueFalse : ARG0 = struct
   let shortcut_tag = simple_shortcut_tag
 end
 
+(* ************************************************************************** *)
+module ArgAB : ARG0 = struct
+  open OCanren
+
+  type ab = A | B
+  type g = ab
+  type l = ab logic
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let to_expr (demo_exprs: g list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | A  -> econstr "A" []
+    | B  -> econstr "B" []
+    in
+    ListLabels.map demo_exprs ~f:helper
+
+  let inhabit_pair :
+      Std.Nat.groundi ->
+      qtyp_injected ->
+      goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev l r)
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === !!A)
+            ; (rez === !!B)
+            ])
+      ]
+
+  let inhabit n rez = inhabit_pair (Std.nat n) rez
+
+  let info = "A|B"
+
+  let clauses =
+    [ pwc      , IR.eint 0
+    ; pleaf "A", IR.eint 1
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+    assert (1 = n);
+    n
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
+    Typs.inject grounded
+
+  let rec optimize (root: IR.ground)  = root
+
+  let prjp e =
+    OCanren.prjc
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+end
+
 
 (* ************************************************************************** *)
 module ArgABC : ARG0 = struct

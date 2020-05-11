@@ -131,9 +131,10 @@ type matchable = Scru | Field of nat * matchable
 type ir =
   | Fail
   | Switch of matchable * (nat * ir) list * ir
-(*  | IFTag of tag * matchable * ir * ir*)
   | Lit of int
-type typ_info = T of (nat * typ_info list) list
+type typ_info =
+  (* list of pairs: tag of constructor and type information for every argument *)
+  | T of (nat * typ_info list) list
 
 let rec height_of_matchable root =
   match root with
@@ -150,7 +151,17 @@ let matchable_leq_nat m n =
   in
   helper (m,n)
 
-(* *************************** Naive compilation *************************** *)
+(* *************************** Naive compilation ***************************
+ * For every match clause generate as sequence of switches (that have only 2
+ * branches (ifs essentially) to test where matchable starts from required
+ * tag or not). It will lead to dangling `else` branches where we should
+ * put code for all other clauses of pattern matching. Very ineffective
+ * algorithm which generates code of exponential code size.
+ *
+ * Useful only for generating upper bound for compiled code size. Very stupid
+ * upper bound
+ *)
+(*
 let compile_naively pats: ir =
   let rec helper_pat scru pat rhs else_top =
     match pat with
@@ -171,14 +182,24 @@ let compile_naively pats: ir =
         helper_pat Scru p rhs else_
   in
   helper pats
-
+*)
 let tinfo_names tt = match tt with T xs -> list_map fst xs
 let tinfo_args tt name = match tt with
   | T xs -> list_assoc name xs
 let tinfo_nth_arg tt n = match tt with T xs -> list_nth_nat n xs
 let info_assoc tt name = match tt with T xs -> list_assoc name xs
 
-(* ****************************** evaluating IR ************************** *)
+(* ********** evaluating matchable+scrutinee to subexpression  ************** *)
+(* Receives three arguments:
+ *   * expression of type epxr -- which is toplevel scrutinee,
+ *   * type information for toplevel scrutinee (of type `typ_info`)
+ *   * a matchable (of type `matchable`).
+ * Returns subexpression of scrutinee and list of tags (a.k.a. constructor names)
+ * that this subexpression can start on. This tags will be used later to
+ * establish that subexpression is tested  for the tag that can be possible in
+ * this possition (otherwise, this test can be optimized out).
+ *
+ *)
 let rec eval_m s typinfo0 path0 =
   let rec helper path =
     match path with
@@ -191,50 +212,20 @@ let rec eval_m s typinfo0 path0 =
   in
   match helper path0 with
   | (ans, info) ->  (ans, tinfo_names info)
-(*
-let is_ordered prev next =
-  match prev with
-  | None -> true
-  | Some p -> nat_lt p next*)
 
-(*let bound_cases cases upper =
-  let rec helper arg =
-    match arg with
-    | (_,[]) -> false
-    | ([], _::_) -> true
-    | (_::ys, _::zs) -> helper (ys, zs)
-    in
-  (* cases *)
-  match cases = [] with
-  | false -> helper (cases, upper)
-*)
 
-(*
-let rec eval_ir_hacky s tinfo ir =
-  match ir with
-  | Fail -> Fail
-  | Int n -> Int n
-  | IFTag (tag, scru, th, el) ->
-      match fst (eval_m s tinfo scru ) with
-      | EConstr (tag2, args) ->
-        if tag2 = tag
-        then eval_ir_hacky s tinfo th
-        else eval_ir_hacky s tinfo el
-*)
-
-(* *************************** Naive compilation *************************** *)
 let compile_naively pats : ir =
   let rec helper_pat scru pat rhs else_top =
     match pat with
     | WildCard -> rhs
     | PConstr (tag, args) ->
-        let dec_args = list_decorate_nat args in
+       let dec_args = list_decorate_nat args in
         let then_ =
           list_foldl (fun acc z -> match z with (idx, pat1) ->
               helper_pat (Field (idx, scru)) pat1 acc else_top
           ) rhs dec_args
         in
-        Switch (scru, [(tag,then_)], else_top)
+       Switch (scru, [(tag,then_)], else_top)
   in
   let rec helper pats =
     match pats with
@@ -247,6 +238,12 @@ let compile_naively pats : ir =
 
 
 (* ********************* Specializable-ish IR interpreter ******************* *)
+(* Essentially a negation of list_mem^o. Created from a value [x] and
+ * n other values (packed to list) n disequality constraints beteen [x] and
+ * list's elements.
+ *
+ * For eval^o purposes the code is about matchables.
+ *)
 let rec not_in_history x xs =
   match xs with
   | [] -> true
@@ -255,6 +252,15 @@ let rec not_in_history x xs =
       | false -> not_in_history x tl
       | true -> false
 
+(* The main function about interpretation of expressing in SWITCH langugage.
+ * Arguments are the following
+ *   [s] -- toplevel scrutinee
+ *   [max_height] -- maximum height of patterns; is used to bound size of
+ *        matchable values (looking too deep is not required because we will always
+ *        met a wildcard or constructor without arguments
+ *   [tinfo] -- type information for scrutinee [s]
+ *   [shortcut
+ *)
 let rec eval_ir s max_height tinfo shortcut1 shortcut_tag ir =
   let rec inner history test_list irrr =
     match irrr with
