@@ -1,4 +1,4 @@
-.PHONY: unn switch nonlin guards gadt lorry gcw 
+.PHONY: unn switch nonlin guards gadt lorry gcw bench
 
 DUNEOPTS=
 ifeq ($(VERBOSE),1)
@@ -11,6 +11,10 @@ endif
 .PHONY: run run-mini celan
 
 all: switch #nonlin unn #guards
+
+bench:
+	dune build switch/main_switch.exe
+	_build/default/switch/main_switch.exe -bench
 
 
 run:

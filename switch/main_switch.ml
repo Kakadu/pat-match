@@ -6,6 +6,18 @@ open Helper
 open Unn_pre
 open Main_inputs
 
+let () = Mybench.enable ~on:false
+
+let () =
+  Arg.parse
+    [ ("-bench", Unit (fun () -> Mybench.enable ~on:true), "") ]
+    (fun _ -> print_endline "WTF")
+    "msg"
+
+
+[%% define ManualAlgo]
+[%% undef  ManualAlgo]
+
 [%% define TrueFalse]
 (*[%% undef  TrueFalse]*)
 [%% define ABC]
@@ -24,7 +36,12 @@ open Main_inputs
 (*[%% undef  TwoNilLists2]*)
 
 let () = Algo_fair.is_enabled := true
+
+[%% if (defined ManualAlgo) ]
+let () = Algo_fair_manual.is_enabled := true
+[%% else ]
 let () = Algo_fair_manual.is_enabled := false
+[%% endif ]
 
 let default_shortcut eta m cases history rez =
   (not_in_history m history !!true)
@@ -51,9 +68,12 @@ let () =
   let module M = Algo_fair.Make(ArgMake(ArgTrueFalse)) in
   M.test (-1)
 
+[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTrueFalse)) in
   M.test (-1)
+
+[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -67,10 +87,12 @@ let  () =
   let module L = Algo_fair.Make(ArgMake(ArgPairTrueFalse)) in
   L.test (-1)
 
+[%% if (defined ManualAlgo) ]
 let  () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgPairTrueFalse)) in
   M.test (-1)
 
+[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -85,10 +107,12 @@ let  () =
   let module L = Algo_fair.Make(ArgMake(ArgABC)) in
   L.test (-1)
 
+[%% if (defined ManualAlgo) ]
 let  () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgABC)) in
   M.test (-1)
 
+[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -119,17 +143,19 @@ end
 
 
 let () =
-  let module M = Algo_fair_manual.Make(TripleBoolHack1) in
-  M.test (-1)
+  let module L = Algo_fair.Make(TripleBoolHack1) in
+(*  let _ = assert false in*)
+  L.test (-1)
 (*    ~prunes_period:(Some 100)*)
 (*    ~prunes_period:None*)
 (*    ~check_repeated_ifs:true*)
 (*    ~debug_filtered_by_size:true*)
 
+[%% if (defined ManualAlgo) ]
 let () =
-  let module L = Algo_fair.Make(TripleBoolHack1) in
-  L.test (-1)
-
+  let module M = Algo_fair_manual.Make(TripleBoolHack1) in
+  M.test (-1)
+[%% endif]
 
 [%% endif]
 
@@ -353,10 +379,12 @@ let () =
     ~prunes_period:None
     (-1)
 
+[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(Peano) in
   M.test (-1) ~prunes_period:None
 
+[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -372,12 +400,15 @@ let () =
 (*    ~debug_filtered_by_size:false*)
     (10)
 
+[%% if (defined ManualAlgo) ]
 let () =
   (* TODO: this call may produce more answers than needed *)
   let module M = Algo_fair_manual.Make(ArgMake(ArgSimpleList)) in
   M.test (10)
 
 [%% endif]
+[%% endif]
+
 (*
 module FairLists2 = Algo_fair.Make(struct
   include ArgMake(ArgSimpleList)
@@ -416,10 +447,12 @@ let () =
   let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Cons)) in
   L.test (10)
 
+[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Cons)) in
   M.test (10)
 
+[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -427,16 +460,30 @@ let () =
 
 let () =
   let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
-  L.test (10)
+  L.test 10
+
+
+let () =
+  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
+  L.test 10
     (* ~prunes_period:None*)
-    ~prunes_period:(Some 100)
+    ~prunes_period:(Some 10)
 
 
+let () =
+  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
+  L.test 10
+    ~prunes_period:None
+
+
+[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Simplified)) in
   M.test (10)
     (*~prunes_period:None*)
     ~prunes_period:(Some 100)
+[%% endif]
+
 
 (*module WWW2 = Algo_fair.Make(struct
   include ArgMake(ArgTwoNilLists2Simplified)
@@ -488,3 +535,6 @@ end)
 
 (* ************************************************************************** *)
 
+
+let () =
+  Mybench.finish ()

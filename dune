@@ -14,12 +14,20 @@
 
 (library
   (name        mytester)
-  ;(public_name helper)
   (modules     mytester)
 
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
   (flags      (-rectypes))
   (libraries  mtime.clock.os OCanren)
+)
+
+(library
+  (name        mybench)
+  (modules     mybench)
+
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  ;(flags      ())
+  (libraries  GT mtime.clock.os)
 )
 
 (executable

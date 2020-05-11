@@ -322,6 +322,8 @@ end
 module ArgTripleBool : ARG0 = struct
   open OCanren
 
+  let info = "bool*bool*bool (Maranget;page1)"
+
   type g = bool * bool * bool
   type l = (bool logic, bool logic, bool logic) Triple.logic
   type qtyp_injected = (g, l) OCanren.injected
@@ -367,8 +369,6 @@ module ArgTripleBool : ARG0 = struct
       ]
 
   let inhabit n rez = inhabit_triple (Std.nat n) rez
-
-  let info = "triple bool (Maranget,page1)"
 
   let clauses =
     [ ptriple pwc    pfalse ptrue , IR.eint 1
@@ -885,7 +885,7 @@ end
 module ArgTwoNilLists2Simplified : ARG0 = struct
   include ArgTwoNilLists1
 
-  let info = "two-nil lists (with cons, simplified RHS)"
+  let info = "two-nil lists (with cons; simplified RHS)"
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10

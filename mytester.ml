@@ -76,18 +76,19 @@ let run_exn printer = run_gen
   reification using [reifier] and prints the result wit [print_ibjected]
 *)
 let runR reifier printerNoFree printerR = run_gen
-  (fun i name ~span x  ->
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerNoFree x#prj)
+  (fun i name ~span x ->
+    (* i is a answer part (depends on qh, qrh sizes). It is not index of an answer *)
+    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerNoFree ~span x#prj)
   )
   (fun i name ~span func  ->
     let ans = func#reify reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerR ans)
+    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerR ~span ans)
     )
 
 let run_prjc reifier printer = run_gen
   (fun i name ~span x  ->
-     printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer x#prj) )
+     printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span x#prj) )
   (fun i name ~span func ->
     let ans = func#prjc reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ans)
+    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span ans)
   )

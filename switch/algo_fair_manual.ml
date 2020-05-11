@@ -224,8 +224,9 @@ module Make(Arg: ARG_FINAL) = struct
                     then
                       let () =
                         let open Mytester in
-                        runR (Std.Option.reify OCanren.reify) (GT.show Std.Option.ground @@ GT.show GT.int)
-                            (GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int)) 1 q qh
+                        runR (Std.Option.reify OCanren.reify)
+                          (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
+                          (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int)) 1 q qh
                           ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo))
                       in
                       failwith "Bad (?) example"
@@ -250,12 +251,12 @@ module Make(Arg: ARG_FINAL) = struct
       | None -> disable_periodic_prunes ()
     in
     let info = Format.sprintf "MANUAL lozovML (%s)" Arg.info in
-    let on_ground ir =
+    let on_ground ~span ir =
       let nextn = IR.count_ifs_ground ir in
       upgrade_bound nextn;
       IR.show ir
     in
-    let on_logic ir =
+    let on_logic ~span ir =
       let nextn = IR.count_ifs_low ir in
       upgrade_bound nextn;
       IR.show_logic ir

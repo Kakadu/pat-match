@@ -3,8 +3,8 @@
   (modules main_switch main_inputs work unn_pre
           algo_fair algo_fair_manual
           )
-  (flags (-rectypes -warn-error +20))
-  (libraries OCanren helper mytester)
+  (flags (-rectypes -warn-error +20+5))
+  (libraries OCanren helper mytester mybench)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
 )
 

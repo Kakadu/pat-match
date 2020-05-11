@@ -173,8 +173,10 @@ module Make(Arg: ARG_FINAL) = struct
                     then
                       let () =
                         let open Mytester in
-                        runR (Std.Option.reify OCanren.reify) (GT.show Std.Option.ground @@ GT.show GT.int)
-                            (GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int)) 1 q qh
+                        runR (Std.Option.reify OCanren.reify)
+                          (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
+                          (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
+                          1 q qh
                           ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut simple_shortcut_tag answer_demo))
                       in
                       failwith "Bad (?) example"
@@ -199,15 +201,29 @@ module Make(Arg: ARG_FINAL) = struct
       | None -> disable_periodic_prunes ()
     in
     let info = Format.sprintf "fair lozovML (%s)" Arg.info in
-    let on_ground ir =
+
+    Mybench.set_start_info Arg.info ~n prunes_period;
+
+    let answer_index = ref (-1) in
+    let on_ground ~span ir =
+      incr answer_index;
       let nextn = IR.count_ifs_ground ir in
       upgrade_bound nextn;
-      Printf.sprintf "%s with ifs_low=%d" (IR.show ir) nextn
+      let repr = Printf.sprintf "%s with ifs_low=%d" (IR.show ir) nextn in
+      Mybench.when_enabled ~fail:(fun () -> repr)
+        (fun () ->
+          Mybench.got_answer span ~idx:(!answer_index);
+          repr)
     in
-    let on_logic ir =
+    let on_logic ~span ir =
+      incr answer_index;
       let nextn = IR.count_ifs_low ir in
       upgrade_bound nextn;
-      Printf.sprintf "%s with ifs_low=%d" (IR.show_logic ir) nextn
+      let repr = Printf.sprintf "%s with ifs_low=%d" (IR.show_logic ir) nextn in
+      Mybench.when_enabled ~fail:(fun () -> repr)
+        (fun () ->
+          Mybench.got_answer span ~idx:(!answer_index);
+          repr)
     in
 
     let shortcut1 etag m cases history rez =
