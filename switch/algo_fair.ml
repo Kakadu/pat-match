@@ -10,6 +10,8 @@ let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
 
+
+(* ******************** Default synthesis shortucts ************************* *)
 let default_shortcut0 m max_height cases rez =
   let open OCanren in
   (Work.matchable_leq_nat m max_height !!true) &&&

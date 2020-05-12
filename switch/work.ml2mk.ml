@@ -86,6 +86,9 @@ let rec list_nth_nat idx xs = match (idx, xs) with
 (* ************************************************************************** *)
 (* we can't make proper alias because noCanren doesn't support it *)
 (* type tag = int *)
+
+(* Notation: everywhere below tag means a constructor name *)
+
 type pattern =
   | WildCard
   | PConstr of nat * pattern list
@@ -151,6 +154,9 @@ let matchable_leq_nat m n =
   in
   helper (m,n)
 
+
+
+
 (* *************************** Naive compilation ***************************
  * For every match clause generate as sequence of switches (that have only 2
  * branches (ifs essentially) to test where matchable starts from required
@@ -161,28 +167,7 @@ let matchable_leq_nat m n =
  * Useful only for generating upper bound for compiled code size. Very stupid
  * upper bound
  *)
-(*
-let compile_naively pats: ir =
-  let rec helper_pat scru pat rhs else_top =
-    match pat with
-    | EConstr (tag, args) ->
-        let dec_args = list_decorate_nat args in
-        let else_ =
-          list_foldl (fun acc z -> match z with (idx, pat1) ->
-              helper_pat (Field (idx, scru)) pat1 acc else_top
-          ) rhs dec_args
-        in
-        Switch (scru, [ (tag, rhs) ], else_)
-  in
-  let rec helper pats =
-    match pats with
-    | [] -> Fail
-    | (p,rhs)::ps ->
-        let else_ = helper ps in
-        helper_pat Scru p rhs else_
-  in
-  helper pats
-*)
+
 let tinfo_names tt = match tt with T xs -> list_map fst xs
 let tinfo_args tt name = match tt with
   | T xs -> list_assoc name xs
@@ -260,11 +245,11 @@ let rec not_in_history x xs =
  *        met a wildcard or constructor without arguments
  *   [tinfo] -- type information for scrutinee [s]
  *   [shortcut0], [shortcut1], [shortcut_tag] -- various shortcuts
- *     that in default direction do nothing
+ *     that in default direction do nothing. Implementation of these shortcuts
+ *     is in the beginning of module Algo_fair
  *)
 let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
-  (* Two mutually recursive functions that perform evaluation
-   * *)
+  (* Two mutually recursive functions that perform evaluation *)
   let rec inner history test_list irrr =
     match irrr with
     | Fail -> None
@@ -274,13 +259,18 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
         | true ->
             match eval_m s tinfo m with
             | (EConstr (etag, args), cnames) ->
+                (* Если сдвиуть shortcut0 вот сюда, то будет синтезу будет плохо.
+                 * В некотором смысле, то что есть -- самое оптимальное, что я нашел.
+                 * Может быть, конечно, можно подобрать дургую реализацию shortcut0 для
+                 * синтеза, но я не думаю, что это стоит делать до 15 мая.
+                 *)
                 match shortcut1 etag m cases history with
                 | true ->
                     test_list (m::history) etag cnames on_default cases
     (* TODO: try to make Fail branch last *)
   in
 
-  (* [test_list] performs evaluation of switch's branchs
+  (* [test_list] performs evaluation of switch's branches
    * Arguments:
    *    [next_histo] -- only to perform recursive call
    *    [etag] -- tag of subscrutinee
@@ -290,8 +280,10 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
    *)
 
   let rec test_list next_histo etag cnames on_default cases0 =
-    (* We iterate over switch branches and test one after another.
-     *
+    (* We iterate both over switch branches and possible tag and
+     * test one after another. We expect that tags in branches is a subsequence
+     * of tags in type information. So, type information cuts search branches
+     * where switches are equivalent
      *)
     let rec helper constr_names cases =
       match cases=[] with
