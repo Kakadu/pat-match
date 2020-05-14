@@ -253,6 +253,104 @@ module ArgABC : ARG0 = struct
 end
 
 
+(* ************************************************************************** *)
+module ArgABCD : ARG0 = struct
+  open OCanren
+
+  type 'a txxx =  C of 'a | A of 'a | B | D
+    [@@deriving gt ~options: {gmap}]
+  type g = g txxx
+  type l = l txxx OCanren.logic
+  module F = Fmap(struct type 'a t = 'a txxx let fmap eta = GT.gmap txxx eta end)
+  type injected = (g, l) OCanren.injected
+  type qtyp_injected = injected
+
+  let c x : injected = inj @@ F.distrib (C x)
+  let a x : injected = inj @@ F.distrib (A x)
+  let b   : injected = inj @@ F.distrib B
+  let d   : injected = inj @@ F.distrib D
+
+  let to_expr (demo_exprs: g list) =
+    let open Unn_pre.Expr in
+    let rec helper = function
+    | A x  -> econstr "A" [helper x]
+    | B    -> econstr "B" []
+    | C x  -> econstr "C" [helper x]
+    | D    -> econstr "D" []
+    in
+    ListLabels.map demo_exprs ~f:helper
+
+  let rec inhabit_t (rez: injected) : goal =
+    conde
+      [ (rez === d)
+      ; (rez === b)
+      ; fresh (prev)
+          (rez === (a prev))
+          (inhabit_t prev)
+      ; fresh (prev)
+          (rez === (c prev))
+          (inhabit_t prev)
+      ]
+
+  let rec inhabit_height: Std.Nat.groundi -> injected  -> goal
+    = fun height rez ->
+    conde
+      [ (Std.Nat.zero === height) &&& failure
+      ; fresh (prev )
+          (Std.Nat.succ prev === height)
+          (conde
+            [ (rez === b)
+            ; (rez === d)
+            ; fresh (inner)
+                (rez === a inner)
+                (inhabit_height prev inner)
+            ; fresh (inner)
+                (rez === c inner)
+                (inhabit_height prev inner)
+            ])
+      ]
+
+  let inhabit n rez = inhabit_height (Std.nat n) rez
+
+  let info = "A of t|B|C of t | D"
+
+  let pa x = pconstr "A" [x]
+  let pc x = pconstr "C" [x]
+  let pb   = pconstr "B" []
+  let pd   = pconstr "D" []
+
+  let clauses =
+    [ pc (pa pb), IR.eint 1
+    ; pc pwc    , IR.eint 2
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+    assert (3 = n);
+    n
+
+  let typs =
+    let open Unn_pre.Typs in
+
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
+    Typs.inject grounded
+
+  let rec optimize (root: IR.ground)  = root
+
+
+
+  let rec prjp e =
+    F.prjc
+      prjp
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+end
+
+
 let optimize_pair: IR.ground -> IR.ground = fun ir ->
   let open OCanren  in
   let open Unn_pre.IR in
