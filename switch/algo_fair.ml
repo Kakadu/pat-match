@@ -45,7 +45,12 @@ module Make(Arg: ARG_FINAL) = struct
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-    Clauses.pretty_print Format.std_formatter clauses;
+
+    let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
+    Format.printf "%s" printed_clauses;
+    Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses;
+
+
     let possible_answer = Arg.possible_answer in
     assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
@@ -210,7 +215,7 @@ module Make(Arg: ARG_FINAL) = struct
     in
     let info = Format.sprintf "fair lozovML (%s)" Arg.info in
 
-    Mybench.set_start_info Arg.info ~n prunes_period;
+
 
     let answer_index = ref (-1) in
     let on_ground ~span ir =

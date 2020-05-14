@@ -117,6 +117,7 @@ module Tag = struct
     | 12 -> "C"
     | 13 -> "int"
     | 14 -> "triple"
+    | 15 -> "D"
     | n -> failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
 
   let inttag_of_string_exn = function
@@ -133,6 +134,7 @@ module Tag = struct
     | "C"    -> 12
     | "int"  -> 13
     | "triple" -> 14
+    | "D" -> 15
     | s -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
 
   let tag_of_string_exn s : ground = N.of_int (inttag_of_string_exn s)
@@ -185,6 +187,9 @@ let rec inject_ground_list (xs : ('a, 'b) OCanren.injected Std.List.ground) : ('
 let ground_list_length xs =
   GT.foldl Std.List.ground (fun acc _ -> acc+1) 0 xs
 
+let ground_list_iteri f xs =
+  GT.foldl Std.List.ground (fun acc x -> f acc x; acc+1) 0 xs |> ignore
+
 
 let logic_list_len_lo =
   let rec helper acc = function
@@ -213,15 +218,54 @@ module Pattern = struct
   | PConstr (_,ps) ->
     GT.foldl Std.List.ground (fun acc x -> max acc (height x)) 0 ps + 1
 
-  let show : ground -> string =
-    let rec helper = function
-    | WildCard -> "_"
-    | PConstr (s, Std.List.Nil) -> Printf.sprintf "(%s)" (GT.show Tag.ground s)
-    | PConstr (s, ps) ->
-      Printf.sprintf "(%s %s)" (GT.show Tag.ground s) (GT.show Std.List.ground helper ps)
-    in
-    helper
+  let parented flg pp fmt x =
+    if flg
+    then Format.fprintf fmt "(%a)" pp x
+    else pp fmt x
 
+  let show : ground -> string =
+    let pp ppf =
+      GT.transform ground
+        (fun fself -> object
+           method c_WildCard _ _ = Format.fprintf ppf "_"
+           method c_PConstr flg _ name ps =
+             match ps with
+             | Std.List.Nil -> Format.fprintf ppf "%a" (GT.fmt Tag.ground) name
+             | ps ->
+                Format.fprintf ppf "%a (" (GT.fmt Tag.ground) name;
+                ground_list_iteri (fun n x ->
+                  if n>0 then Format.fprintf ppf ", ";
+                  fself false x
+                ) ps;
+                Format.fprintf ppf ")";
+        end)
+        false
+    in
+    Format.asprintf "%a" pp
+(*
+    let rec helper ~par ppf = function
+    | WildCard -> Format.fprintf ppf "_"
+    | PConstr (t, Std.List.Nil) ->
+        Format.fprintf ppf "%a" (parented par (GT.fmt Tag.ground)) t
+    | PConstr (s, ps) ->    
+        (* TODO: write decent code here  *)
+        Format.fprintf ppf "(%s "
+(*          (if par then "(" else "")*)
+          (GT.show Tag.ground s);
+        let (_:int) = GT.foldl Std.List.ground (fun n x ->
+            Format.fprintf ppf "%s, %a"
+              (if n=0 then "" else ",")
+              (helper ~par:false) x;
+            (1+n)
+          ) 0 ps
+        in
+        (*Format.fprintf ppf "%a"
+          (GT.fmt Std.List.ground (helper ~par:true)) ps;*)
+        Format.fprintf ppf ")"
+(*          (if par then ")" else "")*)
+    in
+    Format.asprintf "%a" (helper ~par:false)
+*)
   let show_logic : logic -> string =
     let rec helper : (Tag.logic, logic Std.List.logic) t -> string = function
     | WildCard -> "_"

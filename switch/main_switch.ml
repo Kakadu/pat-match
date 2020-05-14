@@ -19,23 +19,23 @@ let () =
 [%% undef  ManualAlgo]
 
 [%% define TrueFalse]
-(*[%% undef  TrueFalse]*)
+[%% undef  TrueFalse]
 [%% define AB]
 [%% undef  AB]
 [%% define ABC]
-(*[%% undef  ABC]*)
+[%% undef  ABC]
 [%% define PairTrueFalse]
-(*[%% undef  PairTrueFalse]*)
+[%% undef  PairTrueFalse]
 [%% define TripleBool]
-(*[%% undef  TripleBool]*)
+[%% undef  TripleBool]
 [%% define Peano]
-(*[%% undef  Peano]*)
+[%% undef  Peano]
 [%% define SimpleList]
-(*[%% undef  SimpleList]*)
+[%% undef  SimpleList]
 [%% define TwoNilLists1]
-(*[%% undef  TwoNilLists1]*)
+[%% undef  TwoNilLists1]
 [%% define TwoNilLists2]
-(*[%% undef  TwoNilLists2]*)
+[%% undef  TwoNilLists2]
 
 let () = Algo_fair.is_enabled := true
 
