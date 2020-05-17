@@ -41,6 +41,7 @@ exception FilteredOutByNestedness
 
 let is_enabled = ref true
 
+
 module Make(Arg: ARG_FINAL) = struct
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
@@ -158,9 +159,8 @@ module Make(Arg: ARG_FINAL) = struct
     let injected_clauses = Clauses.inject clauses in
     let injected_exprs =
       let demo_exprs =
-        run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Arg.prjp)
+        run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Expr.prjc)
         |> OCanren.Stream.take ~n:(-1)
-        |> Arg.to_expr
       in
 
       let () =
@@ -311,4 +311,5 @@ module Make(Arg: ARG_FINAL) = struct
       Arg.clauses Arg.typs
     else ()
 end
+
 

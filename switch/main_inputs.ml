@@ -13,14 +13,12 @@ module type ARG0 = sig
   type qtyp_injected = (g,l) injected
 
 
-  val inhabit: int -> qtyp_injected -> goal
+  val inhabit: int -> Expr.injected -> goal
   val clauses : Clauses.pre_ground
   val typs : Typs.injected
   val max_height : int
   val optimize: IR.ground -> IR.ground
   val prjp: OCanren.Env.t -> qtyp_injected -> g
-  val to_expr: g list -> Expr.ground list
-
 
   val shortcut0:
     Matchable.injected ->
@@ -64,29 +62,21 @@ module ArgTrueFalse : ARG0 = struct
   type l = bool logic
   type qtyp_injected = (g, l) OCanren.injected
 
-  let inhabit_pair :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === !!true)
-            ; (rez === !!false)
-            ])
-      ]
-
-  let inhabit n rez = inhabit_pair (Std.nat n) rez
-
   let info = "bool"
+
+  let typs =
+    let open Unn_pre.Typs in
+    let grounded = Typs.construct @@ T [ ("true", []); ("false", []) ]  in
+    Typs.inject grounded
 
   let clauses =
     [ ptrue, IR.eint 1
     ; pfalse, IR.eint 0
     ]
+
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -94,11 +84,6 @@ module ArgTrueFalse : ARG0 = struct
     assert (1 = n);
     n
 
-  let typs =
-    let open Unn_pre.Typs in
-
-    let grounded = Typs.construct @@ T [ ("true", []); ("false", []) ]  in
-    Typs.inject grounded
 
   let rec optimize (root: IR.ground)  = root
 
@@ -137,22 +122,13 @@ module ArgAB : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:helper
 
-  let inhabit_pair :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === !!A)
-            ; (rez === !!B)
-            ])
-      ]
+  let typs =
+    let open Unn_pre.Typs in
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
+    Typs.inject grounded
 
-  let inhabit n rez = inhabit_pair (Std.nat n) rez
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "A|B"
 
@@ -165,12 +141,6 @@ module ArgAB : ARG0 = struct
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
     assert (1 = n);
     n
-
-  let typs =
-    let open Unn_pre.Typs in
-
-    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
-    Typs.inject grounded
 
   let rec optimize (root: IR.ground)  = root
 
@@ -194,32 +164,25 @@ module ArgABC : ARG0 = struct
   type l = abc  logic
   type qtyp_injected = (g, l) OCanren.injected
 
-  let to_expr (demo_exprs: g list) =
+(*  let to_expr (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | A  -> econstr "A" []
     | B  -> econstr "B" []
     | C  -> econstr "C" []
     in
-    ListLabels.map demo_exprs ~f:helper
+    ListLabels.map demo_exprs ~f:helper*)
 
-  let inhabit_pair :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === !!A)
-            ; (rez === !!B)
-            ; (rez === !!C)
-            ])
-      ]
+  let typs =
+    let open Unn_pre.Typs in
 
-  let inhabit n rez = inhabit_pair (Std.nat n) rez
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
+    Typs.inject grounded
+
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
+
+
 
   let info = "A|B|C"
 
@@ -234,11 +197,7 @@ module ArgABC : ARG0 = struct
     assert (1 = n);
     n
 
-  let typs =
-    let open Unn_pre.Typs in
 
-    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
-    Typs.inject grounded
 
   let rec optimize (root: IR.ground)  = root
 
@@ -280,32 +239,32 @@ module ArgABCD : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:helper
 
-  let rec inhabit_t (rez: injected) : goal =
+  let rec inhabit_t (rez: Expr.injected) : goal =
     conde
-      [ (rez === d)
-      ; (rez === b)
+      [ (rez === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil())))
+      ; (rez === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil())))
       ; fresh (prev)
-          (rez === (a prev))
+          (rez === Expr.(constr Tag.(inject @@ of_string_exn "A") Std.(!< prev)))
           (inhabit_t prev)
       ; fresh (prev)
-          (rez === (c prev))
+          (rez === Expr.(constr Tag.(inject @@ of_string_exn "C") Std.(!< prev)))
           (inhabit_t prev)
       ]
 
-  let rec inhabit_height: Std.Nat.groundi -> injected  -> goal
+  let rec inhabit_height: Std.Nat.groundi -> Expr.injected  -> goal
     = fun height rez ->
     conde
       [ (Std.Nat.zero === height) &&& failure
       ; fresh (prev )
           (Std.Nat.succ prev === height)
           (conde
-            [ (rez === b)
-            ; (rez === d)
+            [ (rez === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil())))
+            ; (rez === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil())))
             ; fresh (inner)
-                (rez === a inner)
+                (rez === Expr.(constr Tag.(inject @@ of_string_exn "A") Std.(!< inner)))
                 (inhabit_height prev inner)
             ; fresh (inner)
-                (rez === c inner)
+                (rez === Expr.(constr Tag.(inject @@ of_string_exn "C") Std.(!< inner)))
                 (inhabit_height prev inner)
             ])
       ]
@@ -322,6 +281,7 @@ module ArgABCD : ARG0 = struct
   let clauses =
     [ pc (pa pb), IR.eint 1
     ; pc pwc    , IR.eint 2
+    ; pwc       , IR.eint 3
     ]
 
   let max_height =
@@ -332,7 +292,14 @@ module ArgABCD : ARG0 = struct
   let typs =
     let open Unn_pre.Typs in
 
-    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
+    let l = T [ ("A", []); ("B", []); ("C", []); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+
+    let grounded = Typs.construct @@ l in
     Typs.inject grounded
 
   let rec optimize (root: IR.ground)  = root
@@ -400,6 +367,7 @@ let optimize_triple: IR.ground -> IR.ground = fun ir ->
   in
   helper ir
 
+
 (* ************************************************************************** *)
 module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
                                and  type l = (bool OCanren.logic, bool OCanren.logic) OCanren.Std.Pair.logic
@@ -412,46 +380,14 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
   type l = (bool logic, bool logic) Std.Pair.logic
   type qtyp_injected = (g, l) OCanren.injected
 
-  let to_expr (demo_exprs: g list) =
-    let open Unn_pre.Expr in
-    let rec helper = function
-    | true  -> econstr "true" []
-    | false -> econstr "false" []
-    in
-    ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      econstr "pair" [ helper a; helper b]
-    )
+  let typs =
+    let open Unn_pre.Typs in
+    let bool = T [ ("true", []); ("false", []) ]  in
+    let p    = T [ ("pair", [bool; bool]) ] in
+    Typs.inject @@ Typs.construct p
 
-  let inhabit_bool :
-      Std.Nat.groundi ->
-      (bool, bool logic) injected  ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === !!true)
-            ; (rez === !!false)
-            ])
-      ]
-
-  let inhabit_pair :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (rez === Std.pair l r)
-          (inhabit_bool prev l)
-          (inhabit_bool prev r)
-      ]
-
-  let inhabit n rez = inhabit_pair (Std.nat n) rez
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "bool*bool"
 
@@ -469,12 +405,6 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
 
   let optimize = optimize_pair
 
-  let typs =
-    let open Unn_pre.Typs in
-
-    let bool = T [ ("true", []); ("false", []) ]  in
-    let p    = T [ ("pair", [bool; bool]) ] in
-    Typs.inject @@ Typs.construct p
 
   let prjp e =
     let prjl e =
@@ -491,6 +421,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
   let shortcut_tag = simple_shortcut_tag
 
 end
+
 
 (* ************************************************************************** *)
 module ArgTripleBool : ARG0 = struct
@@ -512,37 +443,25 @@ module ArgTripleBool : ARG0 = struct
       econstr "triple" [ helper a; helper b; helper c; ]
     )
 
-  let inhabit_bool :
-      Std.Nat.groundi ->
-      (bool, bool logic) injected  ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === !!true)
-            ; (rez === !!false)
-            ])
-      ]
+  let typs =
+    let open Unn_pre.Typs in
+    let bool = T [ ("true", []); ("false", []) ]  in
+    let p    = T [ ("triple", [bool; bool; bool]) ] in
+    Typs.inject @@ Typs.construct p
 
-  let inhabit_triple :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev a b c)
-          (Std.Nat.succ prev === height)
-          (rez === Triple.make a b c)
-          (inhabit_bool prev a)
-          (inhabit_bool prev b)
-          (inhabit_bool prev c)
-      ]
+  let () =
+    let wrap expr =
+      run q (fun q -> Work.well_typed_expr (Expr.inject expr) typs !!true)
+        (fun r -> r)
+      |> (fun s ->
+        assert (not(OCanren.Stream.is_empty s));
+        Format.printf "good!\n%!"
+      )
+    in
+    wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])
 
-  let inhabit n rez = inhabit_triple (Std.nat n) rez
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let clauses =
     [ ptriple pwc    pfalse ptrue , IR.eint 1
@@ -559,12 +478,6 @@ module ArgTripleBool : ARG0 = struct
 
   let optimize = optimize_triple
 
-  let typs =
-    let open Unn_pre.Typs in
-
-    let bool = T [ ("true", []); ("false", []) ]  in
-    let p    = T [ ("triple", [bool; bool; bool]) ] in
-    Typs.inject @@ Typs.construct p
 
   let prjp e =
     let prjl e =
@@ -590,6 +503,7 @@ let nat_inject =
   in
   helper
 
+
 module ArgPeanoSimple : ARG0 = struct
   open OCanren
 
@@ -614,38 +528,25 @@ module ArgPeanoSimple : ARG0 = struct
 
   let for_wildcard = make_wildcard_inhabitant
 
-  let rec inhabit_nat :
-      Std.Nat.groundi ->
-      N.injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& (rez === N.inject for_wildcard)
-      ; fresh (prev)
-          (Std.Nat.succ prev === height)
-          (conde
-            [ (rez === N.z)
-            ; fresh (size_tl tl)
-                (N.s tl === rez)
-                (inhabit_nat prev tl)
-            ])
-      ]
+  let typs =
+    let open Unn_pre.Typs in
 
-  let inhabit_pair :
-      Std.Nat.groundi ->
-      qtyp_injected ->
-      goal
-    = fun height rez ->
-    conde
-      [ (Std.Nat.zero === height) &&& failure
-      ; fresh (prev l r)
-          (Std.Nat.succ prev === height)
-          (rez === Std.pair l r)
-          (inhabit_nat prev l)
-          (inhabit_nat prev r)
-      ]
+    let make prev =
+      T [ ("zero", [])
+        ; ("succ", [ prev ])
+        ]
+    in
+    let empty = T [ ("zero", []);  ] in
+    let height = make empty in
+    let height = make height in
+    let height = make height in
+    let pairs = T [ ("pair", [ height; height ]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
 
-  let inhabit n rez = inhabit_pair (Std.nat n) rez
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
+
 
   let info = "simple nats (a la Maranget2008)"
 
@@ -662,22 +563,6 @@ module ArgPeanoSimple : ARG0 = struct
     assert (2 = n);
     n
 
-
-  let typs =
-    let open Unn_pre.Typs in
-
-    let make prev =
-      T [ ("zero", [])
-        ; ("succ", [ prev ])
-        ]
-    in
-    let empty = T [ ("zero", []);  ] in
-    let height1 = make empty in
-    let height2 = make height1 in
-    let height3 = make height2 in
-    let pairs = T [ ("pair", [ height3; height3 ]) ] in
-    let grounded = Typs.construct pairs in
-    Typs.inject grounded
 
   let optimize = optimize_pair
 
@@ -722,6 +607,25 @@ module ArgSimpleList : ARG0 = struct
   type l = (int logic Std.List.logic, int logic Std.List.logic) Std.Pair.logic
   type qtyp_injected = (g, l) injected
 
+  let typs =
+    let open Unn_pre.Typs in
+    let ints = T [ ("int",[]) ] in
+    let list_empty = T [  ("nil", []);  ] in
+    let listints1 = T [ ("nil", []);  ("cons", [ ints; list_empty]) ] in
+    let listints2 = T [ ("nil", []);  ("cons", [ ints; listints1]) ] in
+    let pairs = T [ ("pair", [ listints2; listints2]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
+
+  let info = "simple lists (from Maranget2008)"
+
+  let clauses =
+    [ ppair pnil  pwc, IR.eint 10
+    ; ppair pwc  pnil, IR.eint 20
+    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
+    ]
+
+(*
   let rec all_inhabitants inh_arg rez =
     conde
       [ (rez === Std.List.nil ())
@@ -731,16 +635,16 @@ module ArgSimpleList : ARG0 = struct
           (all_inhabitants inh_arg tl)
       ]
 
-  let make_wildcard_inhabitant on_arg: _ Std.List.ground =
-    run q (all_inhabitants on_arg)
-      (fun rr -> rr#prjc @@ Std.List.prjc
-          (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-          (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-      )
+  let make_wildcard_inhabitant on_arg: Expr.ground =
+    run q (fun q -> Work.well_typed_expr q on_arg !!true)
+      (fun rr -> rr#prjc Expr.prjc)
       |> OCanren.Stream.hd
 
-  let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))
+  let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))*)
 
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+(*
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
     are equal or less then [height]
@@ -801,31 +705,13 @@ module ArgSimpleList : ARG0 = struct
       ]
 
   let inhabit n rez = inhabit_pair_lists (Std.nat n) Helper.inhabit_int rez
-
-  let info = "simple lists (from Maranget2008)"
-
-  let clauses =
-    [ ppair pnil  pwc, IR.eint 10
-    ; ppair pwc  pnil, IR.eint 20
-    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
-    ]
+*)
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
   (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-
-  let typs =
-    let open Unn_pre.Typs in
-    let ints = T [ ("int",[]) ] in
-    let list_empty = T [  ("nil", []);  ] in
-    let listints1 = T [ ("nil", []);  ("cons", [ ints; list_empty]) ] in
-    let listints2 = T [ ("nil", []);  ("cons", [ ints; listints1]) ] in
-    let pairs = T [ ("pair", [ listints2; listints2]) ] in
-    let grounded = Typs.construct pairs in
-    Typs.inject grounded
-
 
   let optimize = optimize_pair
 
@@ -842,7 +728,7 @@ module ArgSimpleList : ARG0 = struct
     Std.Pair.prjc prjl prjl
       (fun _ _ -> failwith "should not happen5")
       e
-
+(*
   let to_expr demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
@@ -852,7 +738,7 @@ module ArgSimpleList : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       econstr "pair" [ hack_list a; hack_list b ]
-    )
+    )*)
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -923,6 +809,8 @@ module TwoNilList = struct
     runR (L.reify OCanren.reify) show showl  1 q qh
       ("wtf", all_inhabitants_2nillist (fun _ -> success))
 *)
+
+(*
   let make_wildcard_inhabitant on_arg: _ L.ground =
     run q (all_inhabitants_2nillist on_arg)
       (fun rr -> rr#prjc @@ L.prjc
@@ -969,7 +857,7 @@ module TwoNilList = struct
           (inhabit_twonil_list prev inh_list_arg l)
           (inhabit_twonil_list prev inh_list_arg r)
       ]
-
+*)
 
 end
 
@@ -981,9 +869,21 @@ module ArgTwoNilLists1 : ARG0 = struct
   type l = (int OCanren.logic TwoNilList.L.logic, int OCanren.logic TwoNilList.L.logic) OCanren.Std.Pair.logic
   type qtyp_injected = (g, l) OCanren.injected
 
-  let inhabit n rez = TwoNilList.inhabit_pair_lists (Std.nat n) Helper.inhabit_int rez
-
   let info = "two-nil lists (no cons -- use WCs)"
+
+  let typs =
+    let open Unn_pre in
+    let open Unn_pre.Typs in
+    let ints = T [ ("int",[]) ] in
+    let lists = T [ ("nil", []); ("nil2", []) ] in
+    let lists  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; lists]) ] in
+    let lists  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; lists]) ] in
+    let pairs = T [ ("pair", [ lists; lists ]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
+
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
@@ -998,20 +898,6 @@ module ArgTwoNilLists1 : ARG0 = struct
 (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-
-
-
-
-  let typs =
-    let open Unn_pre in
-    let open Unn_pre.Typs in
-    let ints = T [ ("int",[]) ] in
-    let list_empty = T [ ("nil", []); ("nil2", []) ] in
-    let listints1  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; list_empty]) ] in
-    let listints2  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; listints1]) ] in
-    let pairs = T [ ("pair", [ listints2; listints2]) ] in
-    let grounded = Typs.construct pairs in
-    Typs.inject grounded
 
   let optimize = optimize_pair
 

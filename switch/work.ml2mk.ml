@@ -61,6 +61,15 @@ let rec list_all f xs = match xs with
             then list_all f xs
             else false
 
+let rec list_all2 f xs0 ys0 = match xs0,ys0 with
+| (x::xs, y::ys) ->
+    if f x y
+    then list_all2 f xs ys
+    else false
+| [],[] -> true
+| (_::_,[]) -> false
+| ([], _::_) -> false
+
 let rec same_length xs ys = match (xs, ys) with
 | _::xs,_::ys -> same_length xs ys
 | [],_::_ -> false
@@ -127,17 +136,41 @@ let rec eval_pat_hacky s on_fail pats =
   in 
   helper [] pats
 
+(* *************************** Types thing ********************************* *)
+type typ_info =
+  (* list of pairs: tag of constructor and type information for every argument *)
+  | T of (nat * typ_info list) list
+
+let tinfo_names tt = match tt with T xs -> list_map fst xs
+let tinfo_args tt name = match tt with
+  | T xs -> list_assoc name xs
+let tinfo_nth_arg tt n = match tt with T xs -> list_nth_nat n xs
+let info_assoc tt name = match tt with T xs -> list_assoc name xs
+
+let rec well_typed_expr_height height default e typs =
+  match height with
+  | Z -> (e=default)
+  | S n ->
+      match e,typs with
+      | (EConstr (tag, es), ts) ->
+          let arg_infos = info_assoc typs tag in
+          list_all2 (well_typed_expr_height n default) es arg_infos
+
+
+
+let rec well_typed_expr e0 typs0 =
+  match e0,typs0 with
+  | (EConstr (tag, es), ts) ->
+      let arg_infos = info_assoc typs0 tag in
+      list_all2 well_typed_expr es arg_infos
+
 
 (* *************************** IR thing ********************************* *)
-
 type matchable = Scru | Field of nat * matchable
 type ir =
   | Fail
   | Switch of matchable * (nat * ir) list * ir
   | Lit of int
-type typ_info =
-  (* list of pairs: tag of constructor and type information for every argument *)
-  | T of (nat * typ_info list) list
 
 let rec height_of_matchable root =
   match root with
@@ -168,11 +201,6 @@ let matchable_leq_nat m n =
  * upper bound
  *)
 
-let tinfo_names tt = match tt with T xs -> list_map fst xs
-let tinfo_args tt name = match tt with
-  | T xs -> list_assoc name xs
-let tinfo_nth_arg tt n = match tt with T xs -> list_nth_nat n xs
-let info_assoc tt name = match tt with T xs -> list_assoc name xs
 
 (* ********** evaluating matchable+scrutinee to subexpression  ************** *)
 (* Receives three arguments:
