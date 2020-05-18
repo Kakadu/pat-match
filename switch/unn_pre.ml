@@ -107,40 +107,27 @@ module Tag = struct
     [@@deriving gt ~options:{ foldl }]
   type injected = (ground, logic) OCanren.injected
 
-  let string_of_tag_exn tag =
-    match N.to_int tag with
-    | 0 -> "zero"
-    | 1 -> "succ"
-    | 2 -> "true"
-    | 3 -> "false"
-    | 5 -> "nil"
-    | 6 -> "cons"
-    | 7 -> "nil2"
-    | 9 -> "pair"
-    | 10 -> "A"
-    | 11 -> "B"
-    | 12 -> "C"
-    | 13 -> "int"
-    | 14 -> "triple"
-    | 15 -> "D"
-    | n -> failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
+  let all_tags =
+    [ "zero"; "succ"; "true"; "false"
+    ; "nil"; "cons"; "nil2"; "pair"; "A"; "B"; "C"
+    ; "int"; "triple"; "D"
+    ; "Ldi"; "Search"; "Push"; "Pushenv"; "Popenv"
+    ; "Extend"; "Apply"; "Mkclos"; "Mkclosrec"
+    ; "Int"; "Val"; "IOp"; "Test"; "Clo"
+    ; "Val"; "Env"; "Code"
+    ]
 
-  let inttag_of_string_exn = function
-    | "zero" -> 0
-    | "succ" -> 1
-    | "true" -> 2
-    | "false" -> 3
-    | "nil" -> 5
-    | "cons" -> 6
-    | "nil2" -> 7
-    | "pair" -> 9
-    | "A"    -> 10
-    | "B"    -> 11
-    | "C"    -> 12
-    | "int"  -> 13
-    | "triple" -> 14
-    | "D" -> 15
-    | s -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
+  let string_of_tag_exn tag =
+    let n = N.to_int tag in
+    match List.nth  all_tags n with
+    | s -> s
+    | exception Not_found ->
+         failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
+
+  let inttag_of_string_exn s =
+    match Base.List.findi all_tags ~f:(fun _ -> String.equal s) with
+    | Some (n, _) -> n
+    | None -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
 
   let tag_of_string_exn s : ground = N.of_int (inttag_of_string_exn s)
   let of_string_exn = tag_of_string_exn
@@ -288,14 +275,14 @@ module Pattern = struct
     in
     GT.show OCanren.logic helper
 
-  (*let count_constructors =
+  let count_constructors : ground -> int =
     GT.transform ground
       (fun fself -> object
         method c_PConstr acc _ name args =
           GT.foldl OCanren.Std.List.ground fself (1+acc) args
-        method c_WildCard acc _ = (acc+1)
+        method c_WildCard acc _ = acc
       end)
-      0*)
+      0
 
 
 end

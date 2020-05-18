@@ -19,13 +19,13 @@ let () =
 [%% undef  ManualAlgo]
 
 [%% define TrueFalse]
-(*[%% undef  TrueFalse]*)
+[%% undef  TrueFalse]
 [%% define AB]
-(*[%% undef  AB]*)
+[%% undef  AB]
 [%% define ABC]
-(*[%% undef  ABC]*)
+[%% undef  ABC]
 [%% define PairTrueFalse]
-(*[%% undef  PairTrueFalse]*)
+[%% undef  PairTrueFalse]
 [%% define TripleBool]
 (*[%% undef  TripleBool]*)
 [%% define Peano]
@@ -35,10 +35,13 @@ let () =
 [%% define TwoNilLists1]
 (*[%% undef  TwoNilLists1]*)
 [%% define TwoNilLists2]
-(*[%% undef  TwoNilLists2]*)
+[%% undef  TwoNilLists2]
 
 [%% define ABCD]
-(*[%% undef  ABCD]*)
+[%% undef  ABCD]
+
+[%% define PCF]
+[%% undef  PCF]
 
 let () = Algo_fair.is_enabled := true
 
@@ -563,9 +566,19 @@ let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgABCD)) in
   M.test (-1)
 
+[%% endif]
+
+(* ************************************************************************** *)
+[%% if (defined PCF) ]
+
+let () =
+  print_endline "here";
+  let module M = Algo_fair.Make(ArgMake(ArgPCF)) in
+  M.test 1
 
 [%% endif]
 
+(* ************************************************************************** *)
 let () =
   Mybench.finish ()
 

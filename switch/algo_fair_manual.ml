@@ -5,7 +5,6 @@ open Main_inputs
 open Unn_pre
 open OCanren
 open Unn_pre.IR
-
 let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
@@ -41,6 +40,7 @@ exception FilteredOutByNestedness
 
 let is_enabled = ref true
 
+(*
 module Make(Arg: ARG_FINAL) = struct
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
@@ -379,3 +379,4 @@ module Make(Arg: ARG_FINAL) = struct
     else ()
 end
 
+*)

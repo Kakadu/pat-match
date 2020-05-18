@@ -12,13 +12,13 @@ module type ARG0 = sig
   type l
   type qtyp_injected = (g,l) injected
 
-
+  val try_compile_naively: bool
   val inhabit: int -> Expr.injected -> goal
   val clauses : Clauses.pre_ground
   val typs : Typs.injected
   val max_height : int
   val optimize: IR.ground -> IR.ground
-  val prjp: OCanren.Env.t -> qtyp_injected -> g
+(*  val prjp: OCanren.Env.t -> qtyp_injected -> g*)
 
   val shortcut0:
     Matchable.injected ->
@@ -46,7 +46,7 @@ end
 
 module type ARG_FINAL = sig
   include ARG0
-  val possible_answer: IR.ground
+  val possible_answer: IR.ground option
   (* maximum count of IFs in the example answer *)
   val max_ifs_count : int
 
@@ -103,6 +103,7 @@ module ArgTrueFalse : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 (* ************************************************************************** *)
@@ -152,6 +153,7 @@ module ArgAB : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 
@@ -209,6 +211,7 @@ module ArgABC : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 
@@ -315,6 +318,7 @@ module ArgABCD : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 
@@ -419,7 +423,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
-
+  let try_compile_naively = true
 end
 
 
@@ -492,6 +496,7 @@ module ArgTripleBool : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 (* ************************************************************************** *)
@@ -590,6 +595,7 @@ module ArgPeanoSimple : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 let list_inject arg =
@@ -743,6 +749,7 @@ module ArgSimpleList : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 
@@ -928,6 +935,7 @@ module ArgTwoNilLists1 : ARG0 = struct
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
 end
 
 module ArgTwoNilLists2Cons : ARG0 = struct
@@ -963,47 +971,208 @@ module ArgTwoNilLists2Simplified : ARG0 = struct
 end
 
 module PCF = struct
-(*
- let rec run a s e c =
-  match a,s,c with
-  | _,_,Ldi i::c -> 1
-  | _,_,Push::c  -> 2
-  | Int n2,Val (Int n1)::s,IOp op::c -> 3
-  | Int 0,_,Test (c2,_)::c -> 4
-  | Int _,_,Test (_,c3)::c -> 5
-  | _,_,Extend::c -> 6
-  | _,_,Search k::c -> 7
-  | _,_,Pushenv::c -> 8
-  | _,Env e::s,Popenv::c -> 9
-  | _,_,Mkclos cc::c -> 10
-  | _,_,Mkclosrec cc::c -> 11
-  | Clo (cc,ce), Val v::s, Apply::c -> 12
-  | a,(Code c::Env e::s),[] -> 13
-  | a,[],[] -> 14
-*)
+type code =
+  | Ldi of int
+  | Search of int
+  | Mkclos of int
+  | Mkclosrec of int
+  | IOp of int
+  | Int of int
+  | Test of int * int
+  | Clo of  int * int
+  | Push
+  | Extend
+  | Pushenv
+  | Popenv
+  | Apply
+
+
+type acc = code
+type stack_item = Val of code | Env of int | Code of int
+
+
+module S : sig
+  val run : acc -> stack_item list -> code list -> int
+end = struct
+  let rec run a s c =
+    match a,s,c with
+    | _,_,Ldi i::c -> 1
+    | _,_,Push::c  -> 2
+    | Int n2,Val (Int n1)::s,IOp op::c -> 3
+    | Int 0,_,Test (c2,_)::c -> 4
+    | Int _,_,Test (_,c3)::c -> 5
+    | _,_,Extend::c -> 6
+    | _,_,Search k::c -> 7
+    | _,_,Pushenv::c -> 8
+    | _,Env e::s,Popenv::c -> 9
+    | _,_,Mkclos cc::c -> 10
+    | _,_,Mkclosrec cc::c -> 11
+    | Clo (cc,ce), Val v::s, Apply::c -> 12
+    | a,(Code c::Env e::s),[] -> 13
+    | a,[],[] -> 14
+end[@warning "-8"]
+
+end
+
+
+module ArgPCF : ARG0 = struct
+  open OCanren
+
+  type g
+  type l
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let info = "BIG (no cons -- use WCs)"
+
+  let typs =
+    let open Unn_pre in
+    let open Unn_pre.Typs in
+    let int = T [ ("int",[]) ] in
+    let pairint = T [ ("pair", [ int; int ]) ] in
+    let code = T
+      [ ("Push", [])
+      ; ("Extend", [])
+      ; ("Pushenv", [])
+      ; ("Popenv", [])
+      ; ("Apply", [])
+      ; ("Ldi", [ int ])
+      ; ("Search", [ int ])
+      ; ("Mkclos", [ int ])
+      ; ("Mkclosrec", [ int ])
+      ; ("IOp", [ int ])
+      ; ("Int", [ int ])
+      ; ("Test", [ pairint ])
+      ; ("Clo", [ pairint ])
+      ]
+    in
+    let prog =
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
+      t
+    in
+    let stack_item = T
+      [ ("Push", [ code ])
+      ; ("Env",  [ int ])
+      ; ("Code", [ int ])
+      ]
+    in
+    let stack  =
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
+      t
+    in
+    let pairs = T [ ("triple", [ code; stack; prog ]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
+
+  let inhabit n e =
+    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+
+  let pldi x = pconstr "Ldi" [ x ]
+  let psearch x = pconstr "Search" [ x ]
+  let ppush  = pconstr "Push" [ ]
+  let ppushenv  = pconstr "Pushenv" [ ]
+  let ppopenv  = pconstr "Popenv" [ ]
+  let pextend = pconstr "Extend" [ ]
+  let papply = pconstr "Apply" [ ]
+  let pmkclos x = pconstr "Mkclos" [ x ]
+  let pmkclosrec x = pconstr "Mkclosrec" [ x ]
+
+  let pint x = pconstr "Int" [ x ]
+  let pval x = pconstr "Val" [ x ]
+  let piop x = pconstr "IOp" [ x ]
+  let ptest x y = pconstr "Test" [ x; y ]
+  let pclo  x y = pconstr "Clo" [ x; y ]
+
+  let pval x = pconstr "Val" [ x ]
+  let penv x = pconstr "Env" [ x ]
+  let pcode x = pconstr "Code" [ x ]
+
+  let clauses =
+    [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
+    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
+    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3
+    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4
+
+(*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
+    ; ptriple pwc   pwc (pcons (psearch pwc) pwc), IR.eint 7
+    ; ptriple pwc   pwc (pcons ppushenv pwc), IR.eint 8
+    ; ptriple pwc   (pcons (penv pwc) pwc) (pcons ppopenv pwc), IR.eint 9
+    ; ptriple pwc   pwc (pcons (pmkclos pwc) pwc), IR.eint 10
+    ; ptriple pwc   pwc (pcons (pmkclosrec pwc) pwc), IR.eint 10
+    ; ptriple (pclo pwc pwc) (pcons (pval pwc) pwc) (pcons papply pwc), IR.eint 12
+    ; ptriple pwc   (pcons (pcode pwc) (pcons (penv pwc) pwc)) pnil, IR.eint 13
+    ; ptriple pwc   pnil pnil, IR.eint 14*)
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+(*    Format.printf "patterns max height = %d\n%!" n;*)
+(*    assert (2 = n);*)
+    n
+
+  let optimize = optimize_pair
+
+  let prjp e =
+    let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
+    let prjl e =
+      TwoNilList.L.prjc
+        prj1
+        (fun _ _ -> failwith "should not happen2")
+        e
+      in
+    Std.Pair.prjc prjl prjl
+      (fun _ _ -> failwith "should not happen5")
+      e
+
+  let to_expr demo_exprs =
+    let open Unn_pre.Expr in
+    let rec hack_list = function
+    | TwoNilList.L.Nil -> econstr "nil" []
+    | TwoNilList.L.Nil2 -> econstr "nil2" []
+    | TwoNilList.L.Cons (_,tl) ->
+        econstr "cons"  [ econstr "int" []; hack_list tl ]
+    in
+    ListLabels.map demo_exprs ~f:(fun (a,b) ->
+      econstr "pair" [ hack_list a; hack_list b ]
+    )
+
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = false
 end
 
 module ArgMake(Arg: ARG0) : ARG_FINAL = struct
   include Arg
 
-  let possible_answer : IR.ground =
-    let run_ground clauses : IR.ground =
-      let injected : Clauses.injected = Clauses.inject clauses in
+  let (possible_answer, max_ifs_count) =
+    if Arg.try_compile_naively
+    then (
+        let run_ground clauses : IR.ground =
+          let injected : Clauses.injected = Clauses.inject clauses in
 
-      let first =
-        OCanren.(run q (Work.compile_naively injected)) (fun rr -> rr#prj)
-        |> OCanren.Stream.hd
+          let first =
+            OCanren.(run q (Work.compile_naively injected)) (fun rr -> rr#prj)
+            |> OCanren.Stream.hd
+          in
+          let second = Arg.optimize first in
+          second
+        in
+        let ans = run_ground clauses in
+        (Some ans, IR.count_ifs_ground ans)
+      )
+    else (
+      let sum  =
+        List.fold_left (fun acc (p,_) -> acc + Pattern.count_constructors p) 0 clauses
       in
-(*      print_endline "naive answer:";
-      print_endline @@ IR.show first;*)
-      let second = Arg.optimize first in
-      (*print_endline "\noptimized answer:";
-      print_endline @@ IR.show second;*)
-      second
-    in
-    run_ground clauses
+      (None, sum)
+    )
 
-  let max_ifs_count = IR.count_ifs_ground possible_answer
 
   let ir_hint _ = OCanren.success
 

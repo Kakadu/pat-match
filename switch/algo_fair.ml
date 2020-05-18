@@ -51,11 +51,14 @@ module Make(Arg: ARG_FINAL) = struct
     Format.printf "%s" printed_clauses;
     Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses;
 
-
-    let possible_answer = Arg.possible_answer in
-    assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
     let max_ifs_count = ref Arg.max_ifs_count in
-    Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) possible_answer;
+    let () =
+      match Arg.possible_answer with
+      | None -> ()
+      | Some a ->
+          Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) a;
+          assert (Arg.max_ifs_count <= (IR.count_ifs_ground a))
+    in
     Format.printf "Initial upper bound of IF-ish constructions = %d\n%!" !max_ifs_count;
     Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
     Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
@@ -169,35 +172,40 @@ module Make(Arg: ARG_FINAL) = struct
 
         demo_exprs |> List.iter (fun e ->
           if print_examples then Format.printf "  %s ~~> %!" (Expr.show e);
-          let answer_demo = IR.inject possible_answer in
-          let scru_demo = Expr.inject e in
-          let open OCanren in
-          run one (fun ir ->
-              fresh (n rez)
-                (Work.eval_pat scru_demo injected_clauses rez)
-                (rez === Std.Option.some ir)
-                (ir === IR.int n)
-                (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
-            )
-            (fun r -> r)
-            |> (fun s ->
+          match Arg.possible_answer with
+          | None -> Format.printf "?\n%!"
+          | Some ans ->
+              let answer_demo = IR.inject ans in
+              let scru_demo = Expr.inject e in
+              let stream =
+                OCanren.(run one) (fun ir ->
+                  fresh (n rez)
+                    (Work.eval_pat scru_demo injected_clauses rez)
+                    (rez === Std.Option.some ir)
+                    (ir === IR.int n)
+                    (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                )
+                (fun r -> r)
+              in
+
+              let () =
+                if OCanren.Stream.is_empty stream
+                then(*
                   let () =
-                    if OCanren.Stream.is_empty s
-                    then
-                      let () =
-                        let open Mytester in
-                        runR (Std.Option.reify OCanren.reify)
-                          (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
-                          (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
-                          1 q qh
-                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo))
-                      in
-                      failwith "Bad (?) example"
+                    let open Mytester in
+                    runR (Std.Option.reify OCanren.reify)
+                      (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
+                      (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
+                      1 q qh
+                      ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo))
                   in
-                  if print_examples
-                  then Format.printf "%s\n%!" @@
-                        IR.show_logic ((OCanren.Stream.hd s)#reify IR.reify);
-            )
+                  *)
+                  failwith "Bad (?) example"
+              in
+              if print_examples
+              then Format.printf "%s\n%!" @@
+                    IR.show_logic ((OCanren.Stream.hd stream)#reify IR.reify);
+
           )
       in
       List.map Expr.inject demo_exprs
