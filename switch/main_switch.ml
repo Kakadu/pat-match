@@ -15,30 +15,30 @@ let () =
     "msg"
 
 [%% define Algo2]
-(*[%% undef  Algo2]*)
+[%% undef  Algo2]
 
 
 [%% define ManualAlgo]
 [%% undef  ManualAlgo]
 
 [%% define TrueFalse]
-[%% undef  TrueFalse]
+(*[%% undef  TrueFalse]*)
 [%% define AB]
-[%% undef  AB]
+(*[%% undef  AB]*)
 [%% define ABC]
-[%% undef  ABC]
+(*[%% undef  ABC]*)
 [%% define PairTrueFalse]
-[%% undef  PairTrueFalse]
+(*[%% undef  PairTrueFalse]*)
 [%% define TripleBool]
 (*[%% undef  TripleBool]*)
 [%% define Peano]
 (*[%% undef  Peano]*)
 [%% define SimpleList]
-[%% undef  SimpleList]
+(*[%% undef  SimpleList]*)
 [%% define TwoNilLists1]
-[%% undef  TwoNilLists1]
+(*[%% undef  TwoNilLists1]*)
 [%% define TwoNilLists2]
-[%% undef  TwoNilLists2]
+(*[%% undef  TwoNilLists2]*)
 
 [%% define ABCD]
 [%% undef  ABCD]

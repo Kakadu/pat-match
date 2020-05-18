@@ -335,17 +335,12 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
            *)
           match shortcut_tag constr_names cases with
           | true ->
-          match constr_names with
-          | constr_hd :: constr_tl ->
             match cases with
             | (qtag, ontag) :: clauses_tl ->
-                  match qtag = constr_hd with
-                  | true  -> begin
                       match qtag = etag with
                       | true ->  inner next_histo test_list ontag
-                      | false -> helper constr_tl clauses_tl
-                  end
-                  | false -> helper constr_tl cases
+                      | false -> helper constr_names clauses_tl
+
     in
     helper cnames cases0
   in
