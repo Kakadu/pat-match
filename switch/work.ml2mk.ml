@@ -313,7 +313,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
      * of tags in type information. So, type information cuts search branches
      * where switches are equivalent
      *)
-    let rec helper constr_names cases =
+    let rec helper prev_tags constr_names cases =
       match cases=[] with
       | true -> inner next_histo test_list on_default
       | false ->
@@ -339,15 +339,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
           | constr_hd :: constr_tl ->
             match cases with
             | (qtag, ontag) :: clauses_tl ->
-                  match qtag = constr_hd with
-                  | true  -> begin
+                 match not_in_history qtag prev_tags with
+                 | true ->
                       match qtag = etag with
                       | true ->  inner next_histo test_list ontag
-                      | false -> helper constr_tl clauses_tl
-                  end
-                  | false -> helper constr_tl cases
+                      | false -> helper (qtag::prev_tags) constr_tl clauses_tl
+
     in
-    helper cnames cases0
+    helper [] cnames cases0
   in
 
   inner [] test_list ir

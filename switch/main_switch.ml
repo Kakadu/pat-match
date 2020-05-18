@@ -22,13 +22,13 @@ let () =
 [%% undef  ManualAlgo]
 
 [%% define TrueFalse]
-(*[%% undef  TrueFalse]*)
+[%% undef  TrueFalse]
 [%% define AB]
-(*[%% undef  AB]*)
+[%% undef  AB]
 [%% define ABC]
-(*[%% undef  ABC]*)
+[%% undef  ABC]
 [%% define PairTrueFalse]
-(*[%% undef  PairTrueFalse]*)
+[%% undef  PairTrueFalse]
 [%% define TripleBool]
 (*[%% undef  TripleBool]*)
 [%% define Peano]
