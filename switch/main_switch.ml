@@ -14,6 +14,9 @@ let () =
     (fun _ -> print_endline "WTF")
     "msg"
 
+[%% define Algo2]
+(*[%% undef  Algo2]*)
+
 
 [%% define ManualAlgo]
 [%% undef  ManualAlgo]
@@ -31,9 +34,9 @@ let () =
 [%% define Peano]
 (*[%% undef  Peano]*)
 [%% define SimpleList]
-(*[%% undef  SimpleList]*)
+[%% undef  SimpleList]
 [%% define TwoNilLists1]
-(*[%% undef  TwoNilLists1]*)
+[%% undef  TwoNilLists1]
 [%% define TwoNilLists2]
 [%% undef  TwoNilLists2]
 
@@ -49,6 +52,12 @@ let () = Algo_fair.is_enabled := true
 let () = Algo_fair_manual.is_enabled := true
 [%% else ]
 let () = Algo_fair_manual.is_enabled := false
+[%% endif ]
+
+[%% if (defined Algo2) ]
+let () = Algo_fair2.is_enabled := true
+[%% else ]
+let () = Algo_fair2.is_enabled := false
 [%% endif ]
 
 let default_shortcut eta m cases history rez =
@@ -89,7 +98,6 @@ let () =
 module FPairBool = Algo_fair.Make(struct
   include ArgMake(ArgPairTrueFalse)
 end)
-
 
 let  () =
   let module L = Algo_fair.Make(ArgMake(ArgPairTrueFalse)) in
@@ -172,6 +180,14 @@ let () =
 (*    ~prunes_period:None*)
 (*    ~check_repeated_ifs:true*)
 (*    ~debug_filtered_by_size:true*)
+
+[%% if (defined Algo2) ]
+let () =
+  let module M = Algo_fair2.Make(TripleBoolHack1) in
+  M.test (-1)
+
+[%% endif]
+
 
 [%% if (defined ManualAlgo) ]
 let () =
@@ -392,14 +408,19 @@ module Peano = struct
 
 end
 
-
-
 let () =
   let module L = Algo_fair.Make(Peano) in
   L.test
 (*    ~debug_filtered_by_size:false*)
     ~prunes_period:None
     (-1)
+
+[%% if (defined Algo2) ]
+let () =
+  let module M = Algo_fair2.Make(Peano) in
+  M.test (-1) ~prunes_period:None
+
+[%% endif]
 
 [%% if (defined ManualAlgo) ]
 let () =

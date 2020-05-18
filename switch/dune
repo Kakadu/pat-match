@@ -1,7 +1,7 @@
 (executable
   (name main_switch)
-  (modules main_switch main_inputs work unn_pre
-          algo_fair algo_fair_manual
+  (modules main_switch main_inputs unn_pre work work2
+          algo_fair algo_fair2 algo_fair_manual
           )
   (flags (-rectypes -warn-error +20+5))
   (libraries OCanren helper mytester mybench)
@@ -11,4 +11,10 @@
 (rule
   (targets work.ml)
   (deps    work.ml2mk.ml)
+  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+
+
+(rule
+  (targets work2.ml)
+  (deps    work2.ml2mk.ml)
   (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
