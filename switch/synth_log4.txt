@@ -1,0 +1,405 @@
+dune exec switch/main_switch.exe 
+good!
+Benchmarking is on=false
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| true -> 1 
+| false -> 0 
+A priori answer:
+(match S with 
+                                                            | true -> 1 
+                                                            | _ -> (match 
+                                                                    S with 
+                                                                    | 
+                                                                   false -> 0 
+                                                                    | _ -> fail))
+Initial upper bound of IF-ish constructions = 2
+		max_matchable_height = 1
+		max_nested_switches = 1
+		prunes_period = 100
+Testing 2 examples:
+  true ~~> 1 
+  false ~~> 0 
+fair lozovML (bool), all answers {
+         0ms
+Set upper bound of IF-ish constructions to 1
+q=(match S with  | true -> 1   | _ -> 0 ) with ifs_low=1;
+         0ms
+}
+
+Total synthesis time:          0ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (true, _) -> 1 
+| pair (_, true) -> 1 
+| pair (false, false) -> 0 
+A priori answer:
+
+(match S[0] with  | true -> 1 
+ | _ -> (match S[1] with  | true -> 1 
+         | _ -> (match S[1] with  | false -> (match S[0] with  | false -> 0 
+                                              | _ -> fail)
+                 | _ -> fail)))
+Initial upper bound of IF-ish constructions = 4
+		max_matchable_height = 2
+		max_nested_switches = 3
+		prunes_period = 100
+Testing 4 examples:
+  pair [true; true] ~~> 1 
+  pair [false; true] ~~> 1 
+  pair [true; false] ~~> 1 
+  pair [false; false] ~~> 0 
+fair lozovML (bool*bool), all answers {
+         6ms
+Set upper bound of IF-ish constructions to 2
+q=(match S[0] with  | true -> 1   | _ -> (match S[1] with  | true -> 1   | _ -> 0 )) with ifs_low=2;
+         4ms
+q=(match S[1] with  | true -> 1   | _ -> (match S[0] with  | true -> 1   | _ -> 0 )) with ifs_low=2;
+         7ms
+}
+
+Total synthesis time:         17ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| _ -> 0 
+| A -> 1 
+A priori answer:
+0 
+Initial upper bound of IF-ish constructions = 0
+		max_matchable_height = 1
+		max_nested_switches = 1
+		prunes_period = 100
+Testing 2 examples:
+  A ~~> 0 
+  B ~~> 0 
+fair lozovML (A|B), all answers {
+         0ms
+q=0  with ifs_low=0;
+         0ms
+}
+
+Total synthesis time:          0ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| A -> 1 
+| B -> 1 
+| C -> 0 
+A priori answer:
+(match S with 
+                                                               | A -> 1 
+                                                               | _ -> 
+                                                              (match S with 
+                                                               | B -> 1 
+                                                               | _ -> 
+                                                              (match S with 
+                                                               | C -> 0 
+                                                               | _ -> fail)))
+Initial upper bound of IF-ish constructions = 3
+		max_matchable_height = 1
+		max_nested_switches = 1
+		prunes_period = 100
+Testing 3 examples:
+  A ~~> 1 
+  B ~~> 1 
+  C ~~> 0 
+fair lozovML (A|B|C), all answers {
+         2ms
+Set upper bound of IF-ish constructions to 2
+q=(match S with  | A -> 1   | B -> 1   | _ -> 0 ) with ifs_low=2;
+         0ms
+}
+
+Total synthesis time:          2ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| triple (_, false, true) -> 1 
+| triple (false, true, _) -> 2 
+| triple (_, _, false) -> 3 
+| triple (_, _, true) -> 4 
+A priori answer:
+
+(match S[2] with  | true -> (match S[1] with  | false -> 1 
+                             | _ -> (match S[1] with  | true -> (match 
+                                                                 S[0] with 
+                                                                 | false -> 2 
+                                                                 | _ -> 
+                                                                (match 
+                                                                 S[2] with 
+                                                                 | false -> 3 
+                                                                 | _ -> 
+                                                                (match 
+                                                                 S[2] with 
+                                                                 | true -> 4 
+                                                                 | _ -> fail)))
+                                     | _ -> (match S[2] with  | false -> 3 
+                                             | _ -> (match S[2] with 
+                                                     | true -> 4 
+                                                     | _ -> fail))))
+ | _ -> (match S[1] with  | true -> (match S[0] with  | false -> 2 
+                                     | _ -> (match S[2] with  | false -> 3 
+                                             | _ -> (match S[2] with 
+                                                     | true -> 4 
+                                                     | _ -> fail)))
+         | _ -> (match S[2] with  | false -> 3 
+                 | _ -> (match S[2] with  | true -> 4   | _ -> fail))))
+Initial upper bound of IF-ish constructions = 14
+		max_matchable_height = 2
+		max_nested_switches = 4
+		prunes_period = 100
+Testing 8 examples:
+  triple [true; true; true] ~~> 4 
+  triple [false; true; true] ~~> 2 
+  triple [true; false; true] ~~> 1 
+  triple [true; true; false] ~~> 3 
+  triple [false; false; true] ~~> 1 
+  triple [false; true; false] ~~> 2 
+  triple [true; false; false] ~~> 3 
+  triple [false; false; false] ~~> 3 
+fair lozovML (bool*bool*bool (Maranget;page1)), all answers {
+       222ms
+Set upper bound of IF-ish constructions to 6
+q=(match S[0] with  | true -> (match S[1] with  | true -> (match S[2] with  | true -> 4   | _ -> 3 )  | _ -> (match S[2] with  | true -> 1   | _ -> 3 ))  | _ -> (match S[1] with  | true -> 2   | _ -> (match S[2] with  | true -> 1   | _ -> 3 ))) with ifs_low=6;
+       241ms
+Set upper bound of IF-ish constructions to 5
+q=(match S[0] with  | true -> (match S[2] with  | true -> (match S[1] with  | true -> 4   | _ -> 1 )  | _ -> 3 )  | _ -> (match S[1] with  | true -> 2   | _ -> (match S[2] with  | true -> 1   | _ -> 3 ))) with ifs_low=5;
+       164ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[1] with  | true -> (match S[0] with  | true -> (match S[2] with  | true -> 4   | _ -> 3 )  | _ -> 2 )  | _ -> (match S[2] with  | true -> 1   | _ -> 3 )) with ifs_low=4;
+       144ms
+}
+
+Total synthesis time:        771ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (succ (_), succ (_)) -> 30 
+| pair (zero, _) -> 10 
+| pair (_, zero) -> 10 
+A priori answer:
+
+(match S[1] with  | succ -> (match S[0] with  | succ -> 30 
+                             | _ -> (match S[0] with  | zero -> 10 
+                                     | _ -> (match S[1] with  | zero -> 10 
+                                             | _ -> fail)))
+ | _ -> (match S[0] with  | zero -> 10 
+         | _ -> (match S[1] with  | zero -> 10   | _ -> fail)))
+Initial upper bound of IF-ish constructions = 6
+		max_matchable_height = 2
+		max_nested_switches = 5
+		prunes_period = always
+Testing 4 examples:
+  pair [zero; zero] ~~> 10 
+  pair [succ [zero]; zero] ~~> 10 
+  pair [zero; succ [zero]] ~~> 10 
+  pair [succ [zero]; succ [zero]] ~~> 30 
+fair lozovML (simple nats (a la Maranget2008)), all answers {
+        53ms
+Set upper bound of IF-ish constructions to 2
+q=(match S[0] with  | zero -> 10   | _ -> (match S[1] with  | zero -> 10   | _ -> 30 )) with ifs_low=2;
+        49ms
+q=(match S[1] with  | zero -> 10   | _ -> (match S[0] with  | zero -> 10   | _ -> 30 )) with ifs_low=2;
+        73ms
+}
+
+Total synthesis time:        175ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (nil, _) -> 10 
+| pair (_, nil) -> 20 
+| pair (cons (_, _), cons (_, _)) -> 30 
+A priori answer:
+
+(match S[0] with  | nil -> 10 
+ | _ -> (match S[1] with  | nil -> 20 
+         | _ -> (match S[1] with  | cons -> (match S[0] with  | cons -> 30 
+                                             | _ -> fail)
+                 | _ -> fail)))
+Initial upper bound of IF-ish constructions = 4
+		max_matchable_height = 2
+		max_nested_switches = 7
+		prunes_period = 100
+Testing 4 examples:
+  pair [nil; nil] ~~> 10 
+  pair [cons [nil; nil]; nil] ~~> 20 
+  pair [nil; cons [nil; nil]] ~~> 10 
+  pair [cons [nil; nil]; cons [nil; nil]] ~~> 30 
+fair lozovML (simple lists (from Maranget2008)), 10 answers {
+         5ms
+Set upper bound of IF-ish constructions to 2
+q=(match S[0] with  | nil -> 10   | _ -> (match S[1] with  | nil -> 20   | _ -> 30 )) with ifs_low=2;
+         7ms
+}
+
+Total synthesis time:         13ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (nil, _) -> 10 
+| pair (_, nil) -> 20 
+| pair (nil2, _) -> 30 
+| pair (_, nil2) -> 40 
+| pair (cons (_, _), cons (_, _)) -> 60 
+A priori answer:
+
+(match S[0] with  | nil -> 10 
+ | _ -> (match S[1] with  | nil -> 20 
+         | _ -> (match S[0] with  | nil2 -> 30 
+                 | _ -> (match S[1] with  | nil2 -> 40 
+                         | _ -> (match S[1] with  | cons -> (match S[0] with 
+                                                             | cons -> 60 
+                                                             | _ -> fail)
+                                 | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6
+		max_matchable_height = 2
+		max_nested_switches = 7
+		prunes_period = 100
+Testing 9 examples:
+  pair [nil; nil] ~~> 10 
+  pair [nil; nil2] ~~> 10 
+  pair [nil2; nil] ~~> 20 
+  pair [nil; cons [nil; nil]] ~~> 10 
+  pair [nil2; nil2] ~~> 30 
+  pair [cons [nil; nil]; nil] ~~> 20 
+  pair [cons [nil; nil]; nil2] ~~> 40 
+  pair [nil2; cons [nil; nil]] ~~> 30 
+  pair [cons [nil; nil]; cons [nil; nil]] ~~> 60 
+fair lozovML (two-nil lists (with cons)), 10 answers {
+        65ms
+Set upper bound of IF-ish constructions to 5
+q=(match S[0] with  | nil -> 10   | nil2 -> (match S[1] with  | nil -> 20   | _ -> 30 )  | _ -> (match S[1] with  | nil -> 20   | nil2 -> 40   | _ -> 60 )) with ifs_low=5;
+       978ms
+}
+
+Total synthesis time:       1043ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (nil, _) -> 10 
+| pair (_, nil) -> 10 
+| pair (nil2, _) -> 10 
+| pair (_, nil2) -> 10 
+| pair (cons (_, _), cons (_, _)) -> 60 
+A priori answer:
+
+(match S[0] with  | nil -> 10 
+ | _ -> (match S[1] with  | nil -> 10 
+         | _ -> (match S[0] with  | nil2 -> 10 
+                 | _ -> (match S[1] with  | nil2 -> 10 
+                         | _ -> (match S[1] with  | cons -> (match S[0] with 
+                                                             | cons -> 60 
+                                                             | _ -> fail)
+                                 | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6
+		max_matchable_height = 2
+		max_nested_switches = 7
+		prunes_period = 100
+Testing 9 examples:
+  pair [nil; nil] ~~> 10 
+  pair [nil; nil2] ~~> 10 
+  pair [nil2; nil] ~~> 10 
+  pair [nil; cons [nil; nil]] ~~> 10 
+  pair [nil2; nil2] ~~> 10 
+  pair [cons [nil; nil]; nil] ~~> 10 
+  pair [cons [nil; nil]; nil2] ~~> 10 
+  pair [nil2; cons [nil; nil]] ~~> 10 
+  pair [cons [nil; nil]; cons [nil; nil]] ~~> 60 
+fair lozovML (two-nil lists (with cons; simplified RHS)), 10 answers {
+        46ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+       190ms
+q=(match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+      1399ms
+}
+
+Total synthesis time:       1634ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (nil, _) -> 10 
+| pair (_, nil) -> 10 
+| pair (nil2, _) -> 10 
+| pair (_, nil2) -> 10 
+| pair (cons (_, _), cons (_, _)) -> 60 
+A priori answer:
+
+(match S[0] with  | nil -> 10 
+ | _ -> (match S[1] with  | nil -> 10 
+         | _ -> (match S[0] with  | nil2 -> 10 
+                 | _ -> (match S[1] with  | nil2 -> 10 
+                         | _ -> (match S[1] with  | cons -> (match S[0] with 
+                                                             | cons -> 60 
+                                                             | _ -> fail)
+                                 | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6
+		max_matchable_height = 2
+		max_nested_switches = 7
+		prunes_period = 10
+Testing 9 examples:
+  pair [nil; nil] ~~> 10 
+  pair [nil; nil2] ~~> 10 
+  pair [nil2; nil] ~~> 10 
+  pair [nil; cons [nil; nil]] ~~> 10 
+  pair [nil2; nil2] ~~> 10 
+  pair [cons [nil; nil]; nil] ~~> 10 
+  pair [cons [nil; nil]; nil2] ~~> 10 
+  pair [nil2; cons [nil; nil]] ~~> 10 
+  pair [cons [nil; nil]; cons [nil; nil]] ~~> 60 
+fair lozovML (two-nil lists (with cons; simplified RHS)), 10 answers {
+        98ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+       451ms
+q=(match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+      3193ms
+}
+
+Total synthesis time:       3742ms
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+match ... with
+| pair (nil, _) -> 10 
+| pair (_, nil) -> 10 
+| pair (nil2, _) -> 10 
+| pair (_, nil2) -> 10 
+| pair (cons (_, _), cons (_, _)) -> 60 
+A priori answer:
+
+(match S[0] with  | nil -> 10 
+ | _ -> (match S[1] with  | nil -> 10 
+         | _ -> (match S[0] with  | nil2 -> 10 
+                 | _ -> (match S[1] with  | nil2 -> 10 
+                         | _ -> (match S[1] with  | cons -> (match S[0] with 
+                                                             | cons -> 60 
+                                                             | _ -> fail)
+                                 | _ -> fail)))))
+Initial upper bound of IF-ish constructions = 6
+		max_matchable_height = 2
+		max_nested_switches = 7
+		prunes_period = always
+Testing 9 examples:
+  pair [nil; nil] ~~> 10 
+  pair [nil; nil2] ~~> 10 
+  pair [nil2; nil] ~~> 10 
+  pair [nil; cons [nil; nil]] ~~> 10 
+  pair [nil2; nil2] ~~> 10 
+  pair [cons [nil; nil]; nil] ~~> 10 
+  pair [cons [nil; nil]; nil2] ~~> 10 
+  pair [nil2; cons [nil; nil]] ~~> 10 
+  pair [cons [nil; nil]; cons [nil; nil]] ~~> 60 
+fair lozovML (two-nil lists (with cons; simplified RHS)), 10 answers {
+       707ms
+Set upper bound of IF-ish constructions to 4
+q=(match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+      3164ms
+q=(match S[1] with  | nil -> 10   | nil2 -> 10   | _ -> (match S[0] with  | nil -> 10   | nil2 -> 10   | _ -> 60 )) with ifs_low=4;
+        25s 
+}
+
+Total synthesis time:         29s 
+
