@@ -1,7 +1,7 @@
 (executable
   (name main_switch)
   (modules main_switch main_inputs unn_pre work work2
-          algo_fair algo_fair2
+          algo_fair
           algo_fair_manual
           )
   (flags (-rectypes -warn-error +20+5))

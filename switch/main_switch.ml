@@ -21,14 +21,16 @@ let () =
 [%% define ManualAlgo]
 [%% undef  ManualAlgo]
 
-[%% define TrueFalse]
-[%% undef  TrueFalse]
 [%% define AB]
 [%% undef  AB]
+
+
 [%% define ABC]
-[%% undef  ABC]
+(*[%% undef  ABC]*)
+[%% define TrueFalse]
+(*[%% undef  TrueFalse]*)
 [%% define PairTrueFalse]
-[%% undef  PairTrueFalse]
+(*[%% undef  PairTrueFalse]*)
 [%% define TripleBool]
 (*[%% undef  TripleBool]*)
 [%% define Peano]
@@ -55,9 +57,9 @@ let () = Algo_fair_manual.is_enabled := false
 [%% endif ]
 
 [%% if (defined Algo2) ]
-let () = Algo_fair2.is_enabled := true
+(*let () = Algo_fair2.is_enabled := true*)
 [%% else ]
-let () = Algo_fair2.is_enabled := false
+(*let () = Algo_fair2.is_enabled := false*)
 [%% endif ]
 
 let default_shortcut eta m cases history rez =
@@ -344,7 +346,7 @@ end
 module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
 
 (* 2s *)
-(*let () = FTripleBool4.test ~debug_filtered_by_size:false
+(*(*let () = FTripleBool4.test ~debug_filtered_by_size:false*)
     ~check_repeated_ifs:true
     1*)
 *)

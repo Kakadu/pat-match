@@ -2,7 +2,7 @@ val enable: on:bool -> unit
 
 val when_enabled: fail:(unit -> 'a) -> (unit -> 'a) -> 'a
 
-val set_start_info: string -> n:int -> int option -> clauses:string -> unit
+val set_start_info: string -> n:int -> int option -> clauses:string -> examples:int -> unit
 
 val repeat: (unit -> unit) -> unit
 

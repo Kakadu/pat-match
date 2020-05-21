@@ -49,8 +49,6 @@ module Make(Arg: ARG_FINAL) = struct
 
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
     Format.printf "%s" printed_clauses;
-    Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses;
-
     let max_ifs_count = ref Arg.max_ifs_count in
     let () =
       match Arg.possible_answer with
@@ -210,6 +208,8 @@ module Make(Arg: ARG_FINAL) = struct
       in
       List.map Expr.inject demo_exprs
     in
+
+    Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses ~examples:(List.length injected_exprs);
 
     let () =
       match prunes_period with
