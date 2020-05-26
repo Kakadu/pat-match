@@ -44,17 +44,6 @@
  (deps    work.ml2mk.ml)
  (action  (run noCanren work.ml2mk.ml -o %{targets})))
 
-(rule
- (targets work_guards.ml)
- (deps    work_guards.ml2mk.ml)
- (action  (run noCanren work_guards.ml2mk.ml -o %{targets})))
-
-(rule
- (targets work_nonlinear.ml)
- (deps    work_nonlinear.ml2mk.ml)
- (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
-
-
 (executable
   (name main2)
   (modules main2 work)
@@ -63,28 +52,6 @@
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
 )
 
-(executable
-  (name main_gadt)
-  (modules main_gadt)
-  (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
-
-(executable
-  (name main_guards)
-  (modules main_guards work_guards)
-  (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
 
 
 
-(executable
-  (name main_nonlinear)
-  (modules main_nonlinear work_nonlinear)
-  (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
