@@ -593,10 +593,12 @@ let () =
 
 (* ************************************************************************** *)
 [%% if (defined PCF) ]
-
 let () =
-  print_endline "here";
-  let module M = Algo_fair.Make(ArgMake(ArgPCF)) in
+  let module M = Algo_fair.Make(struct
+    include ArgMake(ArgPCF)
+    let max_examples_count = 10
+  end)
+  in
   M.test 1
 
 [%% endif]

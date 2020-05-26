@@ -50,6 +50,7 @@ module type ARG_FINAL = sig
   (* maximum count of IFs in the example answer *)
   val max_ifs_count : int
 
+  val max_examples_count : int
   val ir_hint : IR.injected -> OCanren.goal
   val max_nested_switches : int
 end
@@ -1031,18 +1032,18 @@ module ArgPCF : ARG0 = struct
     let pairint = T [ ("pair", [ int; int ]) ] in
     let code = T
       [ ("Push", [])
-      ; ("Extend", [])
-      ; ("Pushenv", [])
+(*      ; ("Extend", [])*)
+(*      ; ("Pushenv", [])*)
       ; ("Popenv", [])
-      ; ("Apply", [])
+(*      ; ("Apply", [])*)
       ; ("Ldi", [ int ])
-      ; ("Search", [ int ])
+      (*; ("Search", [ int ])
       ; ("Mkclos", [ int ])
-      ; ("Mkclosrec", [ int ])
+      ; ("Mkclosrec", [ int ])*)
       ; ("IOp", [ int ])
       ; ("Int", [ int ])
-      ; ("Test", [ pairint ])
-      ; ("Clo", [ pairint ])
+(*      ; ("Test", [ pairint ])*)
+(*      ; ("Clo", [ pairint ])*)
       ]
     in
     let prog =
@@ -1053,9 +1054,9 @@ module ArgPCF : ARG0 = struct
       t
     in
     let stack_item = T
-      [ ("Push", [ code ])
-      ; ("Env",  [ int ])
-      ; ("Code", [ int ])
+      [ ("Val", [ code ])
+      (*; ("Env",  [ int ])
+      ; ("Code", [ int ])*)
       ]
     in
     let stack  =
@@ -1096,7 +1097,7 @@ module ArgPCF : ARG0 = struct
     [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
     ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
     ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3
-    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4
+(*    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4*)
 
 (*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
     ; ptriple pwc   pwc (pcons (psearch pwc) pwc), IR.eint 7
@@ -1129,7 +1130,7 @@ module ArgPCF : ARG0 = struct
       (fun _ _ -> failwith "should not happen5")
       e
 
-  let to_expr demo_exprs =
+(*  let to_expr demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
     | TwoNilList.L.Nil -> econstr "nil" []
@@ -1139,7 +1140,7 @@ module ArgPCF : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       econstr "pair" [ hack_list a; hack_list b ]
-    )
+    )*)
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -1176,6 +1177,7 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
 
   let ir_hint _ = OCanren.success
 
+  let max_examples_count = -1
 
   let max_nested_switches : int =
     List.map (fun (p,_) ->
