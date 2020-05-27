@@ -76,7 +76,7 @@ module ArgTrueFalse : ARG0 = struct
     ]
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
 
   let max_height =
@@ -130,7 +130,7 @@ module ArgAB : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "A|B"
 
@@ -183,7 +183,7 @@ module ArgABC : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
 
 
 
@@ -392,7 +392,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     Typs.inject @@ Typs.construct p
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "bool*bool"
 
@@ -456,7 +456,7 @@ module ArgTripleBool : ARG0 = struct
 
   let () =
     let wrap expr =
-      run q (fun q -> Work.well_typed_expr (Expr.inject expr) typs !!true)
+      run q (fun q -> well_typed_expr (Expr.inject expr) typs !!true)
         (fun r -> r)
       |> (fun s ->
         assert (not(OCanren.Stream.is_empty s));
@@ -466,7 +466,7 @@ module ArgTripleBool : ARG0 = struct
     wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let clauses =
     [ ptriple pwc    pfalse ptrue , IR.eint 1
@@ -551,7 +551,7 @@ module ArgPeanoSimple : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
 
 
   let info = "simple nats (a la Maranget2008)"
@@ -650,7 +650,7 @@ module ArgSimpleList : ARG0 = struct
   let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))*)
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 (*
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
@@ -891,7 +891,7 @@ module ArgTwoNilLists1 : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
@@ -1029,7 +1029,7 @@ module ArgPCF : ARG0 = struct
     let open Unn_pre in
     let open Unn_pre.Typs in
     let int = T [ ("int",[]) ] in
-    let pairint = T [ ("pair", [ int; int ]) ] in
+(*    let pairint = T [ ("pair", [ int; int ]) ] in*)
     let code = T
       [ ("Push", [])
 (*      ; ("Extend", [])*)
@@ -1071,7 +1071,7 @@ module ArgPCF : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    Work.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
@@ -1158,7 +1158,7 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
           let injected : Clauses.injected = Clauses.inject clauses in
 
           let first =
-            OCanren.(run q (Work.compile_naively injected)) (fun rr -> rr#prj)
+            OCanren.(run q (compile_naively injected)) (fun rr -> rr#prj)
             |> OCanren.Stream.hd
           in
           let second = Arg.optimize first in

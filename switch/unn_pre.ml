@@ -1,5 +1,9 @@
 open OCanren
 
+
+[%% define Unnesting]
+[%% undef  Unnesting]
+
 open Work
 
 let id x = x
@@ -749,7 +753,7 @@ module EvalMRez = struct
   let reifier env x = Std.Pair.reify Expr.reify (Std.List.reify OCanren.reify) env x
 end
 
-
+[%% if (defined Unnesting) ]
 let eval_ir :
   Expr.injected -> N.injected -> Typs.injected ->
   _ ->
@@ -764,6 +768,62 @@ let eval_m : Expr.injected -> Typs.injected -> Matchable.injected ->
   goal
   = Work.eval_m
 
+[%% else ]
+
+type bool_inj = OCanren.Std.Bool.groundi
+
+let eval_ir :
+  (Expr.injected -> goal) ->
+  (N.injected -> goal) ->
+  (Typs.injected -> goal) ->
+  ( (Matchable.injected -> goal) ->
+    (N.injected -> goal) ->
+    ( (Tag.ground * IR.ground, _) Std.List.groundi -> goal) ->
+    bool_inj -> goal) ->
+  (_ -> _ -> _ -> _ ->
+    bool_inj -> goal) ->
+  (_ -> _ -> _ -> goal) ->
+  (IR.injected  -> goal) ->
+  (int, int OCanren.logic) Std.Option.groundi ->
+  goal =
+    Work.eval_ir
+
+let eval_ir e depth typs shct1 shct2 shct3 ir rez =
+  eval_ir ((===)e) ((===)depth) ((===)typs)
+    (fun a b c r   -> Fresh.three (fun a2 b2 c2 -> (a a2) &&& (b b2) &&& (c c2) &&& (shct1 a2 b2 c2 r)))
+    (fun a b c d r -> Fresh.four  (fun a2 b2 c2 d2 -> (a a2) &&& (b b2) &&& (c c2) &&& (d d2) &&& (shct2 a2 b2 c2 d2 r)))
+    (fun a b r     -> Fresh.two @@ fun x y -> (a x) &&& (b y) &&& (shct3 x y r) )
+    ((===)ir)
+    rez
+
+let well_typed_expr_height:
+  (N.injected -> goal) ->
+  (Expr.injected -> goal) ->
+  (Expr.injected -> goal) ->
+  (Typs.injected -> goal) ->
+  bool_inj -> goal
+  = Work.well_typed_expr_height
+
+let well_typed_expr_height: N.injected -> Expr.injected -> Expr.injected -> Typs.injected -> bool_inj -> goal =
+  fun h ed e t r -> Work.well_typed_expr_height ((===)h) ((===)ed) ((===)e) ((===)t) r
+
+let well_typed_expr:
+  (Expr.injected -> goal) ->
+  (Typs.injected -> goal) ->
+  bool_inj -> goal
+  = Work.well_typed_expr
+
+let well_typed_expr: Expr.injected -> Typs.injected -> bool_inj -> goal =
+  fun e t r -> Work.well_typed_expr ((===)e) ((===)t) r
+
+let compile_naively p ir =
+  Work.compile_naively ((===)p) ir
+
+let eval_pat s p r = Work.eval_pat ((===)s) ((===)p) r
+let matchable_leq_nat m n r = Work.matchable_leq_nat ((===)m) ((===)n) r
+let not_in_history x xs r = Work.not_in_history ((===)x) ((===)xs) r
+
+[%% endif ]
 (*
 let _f ()  =
   run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("test eval_ir", fun q ->

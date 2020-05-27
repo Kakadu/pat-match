@@ -12,7 +12,7 @@
 (rule
   (targets work.ml)
   (deps    work.ml2mk.ml)
-  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+  (action  (run noCanren  -without-activate-tactics %{deps} -o %{targets})))
 
 
 (rule

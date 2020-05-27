@@ -14,13 +14,13 @@ let disable_periodic_prunes () =
 (* ******************** Default synthesis shortucts ************************* *)
 let default_shortcut0 m max_height cases rez =
   let open OCanren in
-  (Work.matchable_leq_nat m max_height !!true) &&&
+  (matchable_leq_nat m max_height !!true) &&&
   (cases =/= Std.nil()) &&&
   (rez === !!true)
 
 let default_shortcut etag m cases history rez =
   let open OCanren in
-  (Work.not_in_history m history !!true)
+  (not_in_history m history !!true)
 
 let default_shortcut_tag constr_names cases rez =
   let open OCanren in
@@ -178,10 +178,10 @@ module Make(Arg: ARG_FINAL) = struct
               let stream =
                 OCanren.(run one) (fun ir ->
                   fresh (n rez)
-                    (Work.eval_pat scru_demo injected_clauses rez)
+                    (eval_pat scru_demo injected_clauses rez)
                     (rez === Std.Option.some ir)
                     (ir === IR.int n)
-                    (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                    (eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
                 )
                 (fun r -> r)
               in
@@ -270,7 +270,7 @@ module Make(Arg: ARG_FINAL) = struct
       (* There we use shortcuts optimized for search.
        * These shortcuts canptentially broke execution in default direction
        *)
-      (Work.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
+      (eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
     in
 
     let start = Mtime_clock.counter () in
@@ -282,7 +282,7 @@ module Make(Arg: ARG_FINAL) = struct
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (Work.eval_pat             scru injected_clauses res_pat)
+            (eval_pat             scru injected_clauses res_pat)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
