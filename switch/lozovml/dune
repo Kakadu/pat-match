@@ -1,0 +1,70 @@
+; direct
+(library
+  (name        work_base)
+  (modules     work_base)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  ;(flags      (-rectypes))
+)
+
+(library
+  (name        work)
+  (modules     work)
+  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags       (-open Work_base))
+  (libraries   work_base)
+)
+
+
+(library
+  (name        work_base_common)
+  (modules     work_base_common)
+  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags       (-rectypes))
+  (libraries   GT OCanren)
+)
+
+(rule
+  (targets work_base_common.ml)
+  (deps    work_base.ml)
+  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets}))
+  ; we expect that only types there so unesting and high-order will generate the same
+)
+
+; high order
+(library
+  (name        work_ho)
+  (modules     work_ho)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags      (-rectypes -open Work_base_common))
+  (libraries   GT OCanren work_base_common)
+)
+
+(rule
+  (targets work_ho.ml)
+  (deps    work.ml)
+  (action  (run noCanren %{deps} -open Work_base -I .work_base.objs/byte -o %{targets}))
+)
+
+; unnesting
+(library
+  (name        work_unn)
+  (modules     work_unn)
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+  (flags      (-rectypes -open Work_base_common))
+  (libraries   GT OCanren work_base_common)
+)
+
+(rule
+  (targets work_unn.ml)
+  (deps    work.ml)
+  (action  (run noCanren -unnesting-mode -without-activate-tactics
+              %{deps} -open Work_base -I .work_base.objs/byte -o %{targets}))
+)
+
+
+
+
+
+
+
+

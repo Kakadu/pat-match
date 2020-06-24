@@ -76,7 +76,7 @@ module ArgTrueFalse : ARG0 = struct
     ]
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
 
   let max_height =
@@ -130,7 +130,7 @@ module ArgAB : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "A|B"
 
@@ -183,7 +183,7 @@ module ArgABC : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
 
 
 
@@ -392,7 +392,7 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     Typs.inject @@ Typs.construct p
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let info = "bool*bool"
 
@@ -454,7 +454,7 @@ module ArgTripleBool : ARG0 = struct
     let p    = T [ ("triple", [bool; bool; bool]) ] in
     Typs.inject @@ Typs.construct p
 
-  let () =
+(*  let () =
     let wrap expr =
       run q (fun q -> well_typed_expr (Expr.inject expr) typs !!true)
         (fun r -> r)
@@ -463,10 +463,10 @@ module ArgTripleBool : ARG0 = struct
         Format.printf "good!\n%!"
       )
     in
-    wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])
+    wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])*)
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
 
   let clauses =
     [ ptriple pwc    pfalse ptrue , IR.eint 1
@@ -551,7 +551,7 @@ module ArgPeanoSimple : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
 
 
   let info = "simple nats (a la Maranget2008)"
@@ -650,7 +650,7 @@ module ArgSimpleList : ARG0 = struct
   let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))*)
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 (*
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
@@ -891,7 +891,7 @@ module ArgTwoNilLists1 : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
@@ -1034,7 +1034,7 @@ module ArgPCF : ARG0 = struct
       [ ("Push", [])
 (*      ; ("Extend", [])*)
 (*      ; ("Pushenv", [])*)
-      ; ("Popenv", [])
+(*      ; ("Popenv", [])*)
 (*      ; ("Apply", [])*)
       ; ("Ldi", [ int ])
       (*; ("Search", [ int ])
@@ -1071,7 +1071,7 @@ module ArgPCF : ARG0 = struct
     Typs.inject grounded
 
   let inhabit n e =
-    well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
 
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
@@ -1096,7 +1096,7 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
     ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
-    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3
+(*    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3*)
 (*    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4*)
 
 (*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
@@ -1158,7 +1158,7 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
           let injected : Clauses.injected = Clauses.inject clauses in
 
           let first =
-            OCanren.(run q (compile_naively injected)) (fun rr -> rr#prj)
+            OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr -> rr#prj)
             |> OCanren.Stream.hd
           in
           let second = Arg.optimize first in
@@ -1201,3 +1201,15 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
 end
 
 
+
+module type ALGO = sig
+  module Make: functor (W: WORK)(Arg: ARG_FINAL) -> sig
+    val test:
+      ?print_examples:bool ->
+      ?debug_filtered_by_size:bool ->
+      ?with_hack:bool ->
+      ?check_repeated_ifs:bool ->
+      ?prunes_period:int option ->
+      ?with_default_shortcuts:bool -> int -> unit
+  end
+end

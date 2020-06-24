@@ -1,37 +1,14 @@
-(* Executes exactly what is written in lozovML
+(*
  *
  *)
 open Main_inputs
 open Unn_pre
 open OCanren
 open Unn_pre.IR
+
 let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
-
-
-(* ******************** Default synthesis shortucts ************************* *)
-let default_shortcut0 m max_height cases rez =
-  let open OCanren in
-  (Work.matchable_leq_nat m max_height !!true) &&&
-  (cases =/= Std.nil()) &&&
-  (rez === !!true)
-
-let default_shortcut etag m cases history rez =
-  let open OCanren in
-  (Work.not_in_history m history !!true)
-
-let default_shortcut_tag constr_names cases rez =
-  let open OCanren in
-  let open OCanren.Std in
-  (conde
-    [ (constr_names === nil()) &&& failure
-    ; fresh (u)
-        (constr_names === u % (nil()))
-        (cases === nil())
-    ; fresh (u v w)
-        (constr_names === u % (v % w) )
-    ])
 
 
 exception FilteredOutBySize of int
@@ -40,21 +17,50 @@ exception FilteredOutByNestedness
 
 let is_enabled = ref true
 
-(*
-module Make(Arg: ARG_FINAL) = struct
+
+module Make(W: WORK)(Arg: ARG_FINAL) = struct
+
+  (* ******************** Default synthesis shortucts ************************* *)
+  let default_shortcut0 m max_height cases rez =
+    let open OCanren in
+    (W.matchable_leq_nat m max_height !!true) &&&
+    (cases =/= Std.nil()) &&&
+    (rez === !!true)
+
+  let default_shortcut etag m cases history rez =
+    let open OCanren in
+    (W.not_in_history m history !!true)
+
+  let default_shortcut_tag constr_names cases rez =
+    let open OCanren in
+    let open OCanren.Std in
+    (conde
+      [ (constr_names === nil()) &&& failure
+      ; fresh (u)
+          (constr_names === u % (nil()))
+          (cases === nil())
+      ; fresh (u v w)
+          (constr_names === u % (v % w) )
+      ])
+
+
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
     Format.printf "%s" printed_clauses;
-    Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses;
+    let max_ifs_count = ref 0 in
+    let set_initial_bound () = max_ifs_count := Arg.max_ifs_count in
+    set_initial_bound ();
 
-
-    let possible_answer = Arg.possible_answer in
-    assert (Arg.max_ifs_count <= (IR.count_ifs_ground possible_answer));
-    let max_ifs_count = ref Arg.max_ifs_count in
-    Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) possible_answer;
+    let () =
+      match Arg.possible_answer with
+      | None -> ()
+      | Some a ->
+          Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) a;
+          assert (Arg.max_ifs_count <= (IR.count_ifs_ground a))
+    in
     Format.printf "Initial upper bound of IF-ish constructions = %d\n%!" !max_ifs_count;
     Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
     Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
@@ -69,6 +75,7 @@ module Make(Arg: ARG_FINAL) = struct
         let () = Format.printf "Set upper bound of IF-ish constructions to %d\n%!" x in
         max_ifs_count := x
     in
+
 
 
     let max_height = N.(inject @@ of_int Arg.max_height) in
@@ -233,36 +240,38 @@ module Make(Arg: ARG_FINAL) = struct
         all_exprs |> List.iter (fun e ->
           if print_examples then Format.printf "  %s -> %!" (Expr.show e);
 
-
-          let answer_demo = IR.inject possible_answer in
-          let scru_demo = Expr.inject e in
-          let open OCanren in
-          run one (fun ir ->
-              fresh (n rez)
-                (Work.eval_pat scru_demo injected_clauses rez)
-                (rez === Std.Option.some ir)
-                (ir === IR.int n)
-                (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
-            )
-            (fun r -> r)
-            |> (fun s ->
-                  let () =
-                    if OCanren.Stream.is_empty s
-                    then
+          match Arg.possible_answer with
+          | None -> Format.printf "?\n%!"
+          | Some ans ->
+              let answer_demo = IR.inject ans in
+              let scru_demo = Expr.inject e in
+              let open OCanren in
+              run one (fun ir ->
+                  fresh (n rez)
+                    (W.eval_pat scru_demo injected_clauses rez)
+                    (rez === Std.Option.some ir)
+                    (ir === IR.int n)
+                    (W.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                )
+                (fun r -> r)
+                |> (fun s ->
                       let () =
-                        let open Mytester in
-                        runR (Std.Option.reify OCanren.reify)
-                          (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
-                          (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
-                          1 q qh
-                          ("eval_ir", (Work.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo))
+                        if OCanren.Stream.is_empty s
+                        then
+                          let () =
+                            let open Mytester in
+                            runR (Std.Option.reify OCanren.reify)
+                              (fun ~span:_ -> GT.show Std.Option.ground @@ GT.show GT.int)
+                              (fun ~span:_ -> GT.show Std.Option.logic (GT.show logic @@ GT.show GT.int))
+                              1 q qh
+                              ("eval_ir", (W.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo))
+                          in
+                          failwith "Bad (?) example"
                       in
-                      failwith "Bad (?) example"
-                  in
-                  if print_examples
-                  then Format.printf "%s\n%!" @@
-                        IR.show_logic ((OCanren.Stream.hd s)#reify IR.reify);
-            )
+                      if print_examples
+                      then Format.printf "%s\n%!" @@
+                            IR.show_logic ((OCanren.Stream.hd s)#reify IR.reify);
+                )
 
           )
       in
@@ -329,7 +338,7 @@ module Make(Arg: ARG_FINAL) = struct
       (* There we use shortcuts optimized for search.
        * These shortcuts canptentially broke execution in default direction
        *)
-      (Work.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
+      (W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
     in
 
     let start = Mtime_clock.counter () in
@@ -341,7 +350,7 @@ module Make(Arg: ARG_FINAL) = struct
         List.fold_left (fun acc (scru: Expr.injected) ->
           fresh (res_pat res_ir)
             acc
-            (Work.eval_pat             scru injected_clauses res_pat)
+            (W.eval_pat             scru injected_clauses res_pat)
             (conde
               [ fresh (n)
                   (res_pat === Std.Option.some (IR.int n))
@@ -379,4 +388,4 @@ module Make(Arg: ARG_FINAL) = struct
     else ()
 end
 
-*)
+

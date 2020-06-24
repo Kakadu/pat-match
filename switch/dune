@@ -1,21 +1,22 @@
 (executable
   (name main_switch)
-  (modules main_switch main_inputs unn_pre work work2
+  (modules
+          main_switch main_inputs unn_pre
           algo_fair
           algo_fair_manual
           )
-  (flags (-rectypes -warn-error +20+5))
-  (libraries OCanren helper mytester mybench)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
+  (flags       (-rectypes -warn-error +20+5))
+  (libraries   work_base_common work_ho work_unn OCanren helper mytester mybench)
+  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
 )
 
-(rule
-  (targets work.ml)
-  (deps    work.ml2mk.ml)
-  (action  (run noCanren  -without-activate-tactics %{deps} -o %{targets})))
 
 
-(rule
-  (targets work2.ml)
-  (deps    work2.ml2mk.ml)
-  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+
+
+
+
+;(rule
+;  (targets work2.ml)
+;  (deps    work2.ml2mk.ml)
+;  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))

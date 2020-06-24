@@ -1,5 +1,4 @@
 open Printf
-open Work
 open OCanren
 open Mytester
 open Helper
@@ -14,40 +13,55 @@ let () =
     (fun _ -> print_endline "WTF")
     "msg"
 
-[%% define Algo2]
-[%% undef  Algo2]
 
 
-[%% define ManualAlgo]
-[%% undef  ManualAlgo]
+[%% define Unnesting]
+(*[%% undef  Unnesting]*)
+
+[%%if (defined Unnesting)]
+module Work = Unn_pre.WorkUnnesting
+[%%else]
+module Work = Unn_pre.WorkHO
+[%%endif]
+
+
+let algo =
+  match Sys.getenv "PAT_MATCH_ALGO" with
+  | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
+  | "unn"    -> (module Algo_fair_manual : Main_inputs.ALGO)
+  | exception Not_found -> (module Algo_fair : Main_inputs.ALGO)
+  | _ -> (module Algo_fair : Main_inputs.ALGO)
+
+
 
 [%% define AB]
 [%% undef  AB]
 
 
 [%% define ABC]
-(*[%% undef  ABC]*)
+[%% undef  ABC]
 [%% define TrueFalse]
-(*[%% undef  TrueFalse]*)
+[%% undef  TrueFalse]
 [%% define PairTrueFalse]
-(*[%% undef  PairTrueFalse]*)
+[%% undef  PairTrueFalse]
 [%% define TripleBool]
-(*[%% undef  TripleBool]*)
+[%% undef  TripleBool]
 [%% define Peano]
-(*[%% undef  Peano]*)
+[%% undef  Peano]
 [%% define SimpleList]
-(*[%% undef  SimpleList]*)
+[%% undef  SimpleList]
 [%% define TwoNilLists1]
-(*[%% undef  TwoNilLists1]*)
+[%% undef  TwoNilLists1]
 [%% define TwoNilLists2]
-(*[%% undef  TwoNilLists2]*)
+[%% undef  TwoNilLists2]
 
 [%% define ABCD]
 [%% undef  ABCD]
 
 [%% define PCF]
-[%% undef  PCF]
+(*[%% undef  PCF]*)
 
+(*
 let () = Algo_fair.is_enabled := true
 
 [%% if (defined ManualAlgo) ]
@@ -61,8 +75,8 @@ let () = Algo_fair_manual.is_enabled := false
 [%% else ]
 (*let () = Algo_fair2.is_enabled := false*)
 [%% endif ]
-
-let default_shortcut eta m cases history rez =
+ *)
+(*let default_shortcut eta m cases history rez =
   (not_in_history m history !!true)
 
 let default_shortcut_tag constr_names cases rez =
@@ -74,35 +88,29 @@ let default_shortcut_tag constr_names cases rez =
         (cases === nil())
     ; fresh (u v w)
         (constr_names === u % (v % w) )
-    ])
+    ])*)
+
 
 
 (* ************************************************************************** *)
+
 [%% if (defined TrueFalse) ]
-module FTrueFalse = Algo_fair.Make(struct
-  include ArgMake(ArgTrueFalse)
-end)
-
 let () =
-  let module M = Algo_fair.Make(ArgMake(ArgTrueFalse)) in
+  let (module Algo) = algo in
+  let module M = Algo.Make(Work)(ArgMake(ArgTrueFalse)) in
   M.test (-1)
 
-[%% if (defined ManualAlgo) ]
-let () =
-  let module M = Algo_fair_manual.Make(ArgMake(ArgTrueFalse)) in
-  M.test (-1)
 
-[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
 [%% if (defined PairTrueFalse) ]
-module FPairBool = Algo_fair.Make(struct
+module FPairBool = Algo_fair.Make(Work)(struct
   include ArgMake(ArgPairTrueFalse)
 end)
 
 let  () =
-  let module L = Algo_fair.Make(ArgMake(ArgPairTrueFalse)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgPairTrueFalse)) in
   L.test (-1)
 
 [%% if (defined ManualAlgo) ]
@@ -115,28 +123,28 @@ let  () =
 
 (* ************************************************************************** *)
 [%% if (defined AB) ]
-module FAAAAAAAAAAAA = Algo_fair.Make(struct
+module FAAAAAAAAAAAA = Algo_fair.Make(Work)(struct
   include ArgMake(ArgAB)
 
   (* in this demo merging cases can be helpful *)
 end)
 
 let  () =
-  let module L = Algo_fair.Make(ArgMake(ArgAB)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgAB)) in
   L.test (-1)
 
 [%% endif]
 
 (* ************************************************************************** *)
 [%% if (defined ABC) ]
-module FABC = Algo_fair.Make(struct
+module FABC = Algo_fair.Make(Work)(struct
   include ArgMake(ArgABC)
 
   (* in this demo merging cases can be helpful *)
 end)
 
 let  () =
-  let module L = Algo_fair.Make(ArgMake(ArgABC)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgABC)) in
   L.test (-1)
 
 [%% if (defined ManualAlgo) ]
@@ -164,18 +172,19 @@ module TripleBoolHack1 = struct
 
   let info = Printf.sprintf "%s + hint" info*)
 
-  let shortcut _tag m _branches history rez =
+(*  let shortcut _tag m _branches history rez =
     (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
 
   let shortcut_tag constr_names cases rez =
     (rez === !!true) &&&
-    (default_shortcut_tag constr_names cases rez)
+    (default_shortcut_tag constr_names cases rez)*)
 
 end
 
 
 let () =
-  let module L = Algo_fair.Make(TripleBoolHack1) in
+  let (module Algo) = algo in
+  let module L = Algo.Make(Work)(TripleBoolHack1) in
 (*  let _ = assert false in*)
   L.test (-1)
 (*    ~prunes_period:(Some 100)*)
@@ -183,19 +192,7 @@ let () =
 (*    ~check_repeated_ifs:true*)
 (*    ~debug_filtered_by_size:true*)
 
-[%% if (defined Algo2) ]
-let () =
-  let module M = Algo_fair2.Make(TripleBoolHack1) in
-  M.test (-1)
 
-[%% endif]
-
-
-[%% if (defined ManualAlgo) ]
-let () =
-  let module M = Algo_fair_manual.Make(TripleBoolHack1) in
-  M.test (-1)
-[%% endif]
 
 [%% endif]
 
@@ -211,7 +208,7 @@ module TripleBoolHack2 = struct
 
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
 end
-module FTripleBool2 = Algo_fair.Make(TripleBoolHack2)
+module FTripleBool2 = Algo_fair.Make(Work)(TripleBoolHack2)
 
 (* first answer -- 34s *)
 (*let () = FTripleBool2.test ~prunes_period:None 1*)
@@ -274,7 +271,7 @@ module TripleBoolHack3 = struct
 
   let info = Printf.sprintf "%s + tag=/=\'triple' " info
 end
-module FTripleBool3 = Algo_fair.Make(TripleBoolHack3)
+module FTripleBool3 = Algo_fair.Make(Work)(TripleBoolHack3)
 
 
 (* 14 seconds *)
@@ -306,7 +303,7 @@ module TripleBoolHack4 = struct
     assert (max_nested_switches = 4);
     3*)
 end
-module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
+module FTripleBool4 = Algo_fair.Make(Work)(TripleBoolHack4)
 
 
 (* 8 seconds *)
@@ -343,7 +340,7 @@ module TripleBoolHack4 = struct
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
   let info = Printf.sprintf "%s + match_on_true" info
 end
-module FTripleBool4 = Algo_fair.Make(TripleBoolHack4)
+module FTripleBool4 = Algo_fair.Make(Work)(TripleBoolHack4)
 
 (* 2s *)
 (*(*let () = FTripleBool4.test ~debug_filtered_by_size:false*)
@@ -366,7 +363,7 @@ module TripleBoolHack41 = struct
   let info = Printf.sprintf "%s + tag=/=\'triple'" info
   let info = Printf.sprintf "%s + match_on_not_false" info
 end
-module FTripleBool41 = Algo_fair.Make(TripleBoolHack41)
+module FTripleBool41 = Algo_fair.Make(Work)(TripleBoolHack41)
 
 
 (* 2s *)
@@ -391,7 +388,7 @@ end
 
 (* ? *)
 let __ () =
-  let module M = Algo_fair.Make(TripleBoolHack5) in
+  let module M = Algo_fair.Make(Work)(TripleBoolHack5) in
 (*  M.test ~debug_filtered_by_size:false ~check_repeated_ifs:true 1;*)
   ()
 *)
@@ -401,61 +398,62 @@ let __ () =
 
 module Peano = struct
   include ArgMake(ArgPeanoSimple)
-  let shortcut _tag m _branches history rez =
+(*  let shortcut _tag m _branches history rez =
     (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
 
   let shortcut_tag constr_names cases rez =
     (rez === !!true) &&&
-    (default_shortcut_tag constr_names cases rez)
+    (default_shortcut_tag constr_names cases rez)*)
 
 end
 
 let () =
-  let module L = Algo_fair.Make(Peano) in
+  let module L = Algo_fair.Make(Work)(Peano) in
   L.test
 (*    ~debug_filtered_by_size:false*)
     ~prunes_period:None
     (-1)
 
-[%% if (defined Algo2) ]
+(*[%% if (defined Algo2) ]
 let () =
   let module M = Algo_fair2.Make(Peano) in
   M.test (-1) ~prunes_period:None
 
-[%% endif]
+[%% endif]*)
 
-[%% if (defined ManualAlgo) ]
+(*[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(Peano) in
   M.test (-1) ~prunes_period:None
 
-[%% endif]
+[%% endif]*)
+
 [%% endif]
 
 (* ************************************************************************** *)
 
 [%% if (defined SimpleList) ]
-(*module FairLists1 = Algo_fair.Make(struct
+(*module FairLists1 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgSimpleList)
 end)*)
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgSimpleList)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgSimpleList)) in
   L.test
 (*    ~debug_filtered_by_size:false*)
     (10)
 
-[%% if (defined ManualAlgo) ]
+(*[%% if (defined ManualAlgo) ]
 let () =
   (* TODO: this call may produce more answers than needed *)
   let module M = Algo_fair_manual.Make(ArgMake(ArgSimpleList)) in
   M.test (10)
 
-[%% endif]
+[%% endif]*)
 [%% endif]
 
 (*
-module FairLists2 = Algo_fair.Make(struct
+module FairLists2 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgSimpleList)
   (* adding non-pair shourtcut optimizes from 1.8 (for all answers) to 1.4 (for all answers) *)
   let shortcut tag _ _ _ rez =
@@ -470,7 +468,7 @@ end)
 
 
 let __ () =
-  let module L = Algo_fair.Make(ArgMake(ArgSimpleList)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgSimpleList)) in
   L.test (10)
 
 
@@ -479,7 +477,7 @@ let __ () =
   M.test (-1)
 *)
 
-(*module F2NilShort = Algo_fair.Make(struct
+(*module F2NilShort = Algo_fair.Make(Work)(struct
   include ArgMake(ArgTwoNilLists2Cons)
 end)*)
 
@@ -489,48 +487,48 @@ end)*)
 [%% if (defined TwoNilLists1) ]
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Cons)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Cons)) in
   L.test (10)
 
-[%% if (defined ManualAlgo) ]
+(*[%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Cons)) in
   M.test (10)
 
-[%% endif]
+[%% endif]*)
 [%% endif]
 
 (* ************************************************************************** *)
 [%% if (defined TwoNilLists2) ]
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test 10
 
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test 10
     (* ~prunes_period:None*)
     ~prunes_period:(Some 10)
 
 
 let () =
-  let module L = Algo_fair.Make(ArgMake(ArgTwoNilLists2Simplified)) in
+  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test 10
     ~prunes_period:None
 
-
+(*
 [%% if (defined ManualAlgo) ]
 let () =
   let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Simplified)) in
   M.test (10)
     (*~prunes_period:None*)
     ~prunes_period:(Some 100)
-[%% endif]
+[%% endif]*)
 
 
-(*module WWW2 = Algo_fair.Make(struct
+(*module WWW2 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 
   let info = info ^ "+ max_height=2 + check_repeated_ifs"
@@ -540,7 +538,7 @@ end)*)
 [%% endif]
 
 (* ************************************************************************** *)
-(*module XXX = Algo_fair.Make(struct
+(*module XXX = Algo_fair.Make(Work)(struct
   include ArgMake(ArgTwoNilLists2Simplified)
   let shortcut tag _ _ _ rez =
     fresh ()
@@ -558,7 +556,7 @@ let __ () =
 
 (* ************************************************************************** *)
 (*
-module XXX2 = Algo_fair.Make(struct
+module XXX2 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgTwoNilLists2Simplified)
   let shortcut tag _ _ _ rez =
     fresh ()
@@ -594,12 +592,12 @@ let () =
 (* ************************************************************************** *)
 [%% if (defined PCF) ]
 let () =
-  let module M = Algo_fair.Make(struct
+  let module M = Algo_fair.Make(Work)(struct
     include ArgMake(ArgPCF)
     let max_examples_count = 10
   end)
   in
-  M.test 1
+  M.test (-1)
 
 [%% endif]
 

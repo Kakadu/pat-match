@@ -1,4 +1,3 @@
-type nat = Z | S of nat
 
 let nat_lt a b =
   let rec helper root =
@@ -98,10 +97,6 @@ let rec list_nth_nat idx xs = match (idx, xs) with
 
 (* Notation: everywhere below tag means a constructor name *)
 
-type pattern =
-  | WildCard
-  | PConstr of nat * pattern list
-type expr = EConstr of nat * expr list
 
 let rec match1pat s p =
   match s,p with
@@ -124,7 +119,7 @@ let rec eval_pat s pats =
 
 (* *************************** eval pat hacky *************************** *)
 let rec eval_pat_hacky s on_fail pats =
-  let rec helper acc pats = 
+  let rec helper acc pats =
     match pats with
     | [] -> on_fail
     | (p,rhs)::ps ->
@@ -133,29 +128,16 @@ let rec eval_pat_hacky s on_fail pats =
         then (match list_all (fun p -> not (match1pat s p)) acc with
               true -> rhs)
         else helper (p::acc) ps
-  in 
+  in
   helper [] pats
 
 (* *************************** Types thing ********************************* *)
-type typ_info =
-  (* list of pairs: tag of constructor and type information for every argument *)
-  | T of (nat * typ_info list) list
 
 let tinfo_names tt = match tt with T xs -> list_map fst xs
 let tinfo_args tt name = match tt with
   | T xs -> list_assoc name xs
 let tinfo_nth_arg tt n = match tt with T xs -> list_nth_nat n xs
 let info_assoc tt name = match tt with T xs -> list_assoc name xs
-
-let rec well_typed_expr_height height default e typs =
-  match height with
-  | Z -> (e=default)
-  | S n ->
-      match e,typs with
-      | (EConstr (tag, es), ts) ->
-          let arg_infos = info_assoc typs tag in
-          list_all2 (well_typed_expr_height n default) es arg_infos
-
 
 
 let rec well_typed_expr e0 typs0 =
@@ -166,11 +148,6 @@ let rec well_typed_expr e0 typs0 =
 
 
 (* *************************** IR thing ********************************* *)
-type matchable = Scru | Field of nat * matchable
-type ir =
-  | Fail
-  | Switch of matchable * (nat * ir) list * ir
-  | Lit of int
 
 let rec height_of_matchable root =
   match root with
@@ -227,27 +204,7 @@ let rec eval_m s typinfo0 path0 =
   | (ans, info) ->  (ans, tinfo_names info)
 
 
-let compile_naively pats : ir =
-  let rec helper_pat scru pat rhs else_top =
-    match pat with
-    | WildCard -> rhs
-    | PConstr (tag, args) ->
-       let dec_args = list_decorate_nat args in
-        let then_ =
-          list_foldl (fun acc z -> match z with (idx, pat1) ->
-              helper_pat (Field (idx, scru)) pat1 acc else_top
-          ) rhs dec_args
-        in
-       Switch (scru, [(tag,then_)], else_top)
-  in
-  let rec helper pats =
-    match pats with
-    | [] -> Fail
-    | (p,rhs)::ps ->
-        let else_ = helper ps in
-        helper_pat Scru p rhs else_
-  in
-  helper pats
+
 
 
 (* ********************* Specializable-ish IR interpreter ******************* *)

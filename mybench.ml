@@ -1,3 +1,5 @@
+let iterations_count = 2
+
 module Time = struct
   let now () = Unix.(localtime @@ time() )
   let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
@@ -30,7 +32,27 @@ module TMap = Map.Make(struct
     | GT.LT -> -1
     | GT.GT -> 1
 end)
-type test_data = Mtime.Span.t IMap.t TMap.t
+module Runs = struct
+  open Mtime
+
+  type t = Span.t list
+
+  let extend t x = x::t
+  let count = List.length
+  let make span = [span]
+  let avg_ms t =
+    assert (count t = iterations_count);
+    let s = List.fold_left (fun acc span -> acc +. (Mtime.Span.to_ms span)) 0.0 t in
+    s /. (float_of_int (count t))
+  let avg_s t =
+    assert (count t = iterations_count);
+    (avg_ms t) /. 1000.0
+  let sum_span xs =
+    assert (count xs = iterations_count);
+    List.fold_left Mtime.Span.add Mtime.Span.zero xs
+
+end
+type test_data = Runs.t IMap.t TMap.t
 let make_key tk_name tk_prunes tk_answers tk_clauses tk_ex_count =
   { tk_name; tk_prunes; tk_answers; tk_clauses; tk_ex_count }
 
@@ -61,22 +83,35 @@ let set_start_info s ~n prunes ~clauses ~examples =
 
 let clear_startistics () = ()
 
+let add_span ~span idx map =
+  try let r = IMap.find idx map in
+      IMap.add idx (Runs.extend r span) map
+  with Not_found -> IMap.add idx (Runs.make span) map
+
 let add_test_data idx span =
   let map1 = TMap.find cfg.cur_key cfg.data in
-  let map2 = IMap.add idx span map1 in
+  let map2 = add_span idx ~span map1 in
   cfg.data <- TMap.add cfg.cur_key map2 cfg.data
 
 (* ************************************************************************ *)
 let when_enabled ~fail ok =
   if cfg.is_enabled then ok () else fail ()
 
+
 let repeat f =
   when_enabled
     ~fail:f
     (fun () ->
       (* warmup *)
-      f ();
-
+(*      f ();*)
+      for i=1 to iterations_count do
+        Printf.printf "going iteration %d/%d\n%!" i iterations_count;
+        Gc.full_major ();
+        Gc.compact ();
+        f ();
+        Gc.full_major ();
+        Gc.compact ();
+      done
     )
 
 let got_answer span ~idx =
@@ -101,10 +136,11 @@ let finish () =
 
       cfg.data |> TMap.iter (fun ({ tk_name; tk_prunes; tk_answers=answers_requested } as tk) v ->
         let answer1_str =
-          let span = IMap.find 0 v in
-          if Mtime.Span.to_ms span < 1000.
-          then Printf.sprintf "%dms" (int_of_float @@ Mtime.Span.to_ms span)
-          else Printf.sprintf "%30fs" (Mtime.Span.to_s span)
+          let runs = IMap.find 0 v in
+          let ms = Runs.avg_ms runs in
+          if ms < 1000.
+          then Printf.sprintf "%dms" (int_of_float ms)
+          else Printf.sprintf "%30fs" (Runs.avg_s runs)
         in
         let answers_requested =
           if answers_requested<0 then "all" else string_of_int answers_requested
@@ -116,8 +152,8 @@ let finish () =
         in
         let found_anwsers_count = IMap.cardinal v in
         let sum =
-          let s = IMap.fold (fun _ v acc -> Mtime.Span.add acc v) v Mtime.Span.zero  in
-          Format.asprintf "%3.1fms" (Mtime.Span.to_ms s)
+          let s = IMap.fold (fun _ v acc -> acc  +. (Runs.avg_ms v)) v 0.0 in
+          Format.asprintf "%3.1fms" s
         in
         Format.fprintf ppf "%s,%s,%s,%d,%s,%d,%s\n%!"
           tk.tk_name

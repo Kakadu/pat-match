@@ -11,30 +11,6 @@ let disable_periodic_prunes () =
   enable_skips ~on:false
 
 
-(* ******************** Default synthesis shortucts ************************* *)
-let default_shortcut0 m max_height cases rez =
-  let open OCanren in
-  (matchable_leq_nat m max_height !!true) &&&
-  (cases =/= Std.nil()) &&&
-  (rez === !!true)
-
-let default_shortcut etag m cases history rez =
-  let open OCanren in
-  (not_in_history m history !!true)
-
-let default_shortcut_tag constr_names cases rez =
-  let open OCanren in
-  let open OCanren.Std in
-  (conde
-    [ (constr_names === nil()) &&& failure
-    ; fresh (u)
-        (constr_names === u % (nil()))
-        (cases === nil())
-    ; fresh (u v w)
-        (constr_names === u % (v % w) )
-    ])
-
-
 exception FilteredOutBySize of int
 exception FilteredOutByForm
 exception FilteredOutByNestedness
@@ -42,14 +18,43 @@ exception FilteredOutByNestedness
 let is_enabled = ref true
 
 
-module Make(Arg: ARG_FINAL) = struct
+module Make(W: WORK)(Arg: ARG_FINAL) = struct
+
+  (* ******************** Default synthesis shortucts ************************* *)
+  let default_shortcut0 m max_height cases rez =
+    let open OCanren in
+    (W.matchable_leq_nat m max_height !!true) &&&
+    (cases =/= Std.nil()) &&&
+    (rez === !!true)
+
+  let default_shortcut etag m cases history rez =
+    let open OCanren in
+    (W.not_in_history m history !!true)
+
+  let default_shortcut_tag constr_names cases rez =
+    let open OCanren in
+    let open OCanren.Std in
+    (conde
+      [ (constr_names === nil()) &&& failure
+      ; fresh (u)
+          (constr_names === u % (nil()))
+          (cases === nil())
+      ; fresh (u v w)
+          (constr_names === u % (v % w) )
+      ])
+
+  (* ************************************************************************ *)
+  (** synthetizer main  *)
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
     Format.printf "%s" printed_clauses;
-    let max_ifs_count = ref Arg.max_ifs_count in
+    let max_ifs_count = ref 0 in
+    let set_initial_bound () = max_ifs_count := Arg.max_ifs_count in
+    set_initial_bound ();
+
     let () =
       match Arg.possible_answer with
       | None -> ()
@@ -178,10 +183,10 @@ module Make(Arg: ARG_FINAL) = struct
               let stream =
                 OCanren.(run one) (fun ir ->
                   fresh (n rez)
-                    (eval_pat scru_demo injected_clauses rez)
+                    (W.eval_pat scru_demo injected_clauses rez)
                     (rez === Std.Option.some ir)
                     (ir === IR.int n)
-                    (eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                    (W.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
                 )
                 (fun r -> r)
               in
@@ -270,43 +275,47 @@ module Make(Arg: ARG_FINAL) = struct
       (* There we use shortcuts optimized for search.
        * These shortcuts canptentially broke execution in default direction
        *)
-      (eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
+      (W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez)
     in
 
-    let start = Mtime_clock.counter () in
 
-    let open Mytester in
-    runR IR.reify on_ground on_logic n q qh (info, (fun ideal_IR ->
-        let init = Arg.ir_hint ideal_IR in
+    Mybench.repeat begin fun () ->
+      set_initial_bound ();
+      answer_index := -1;
+      let start = Mtime_clock.counter () in
+      let open Mytester in
+      runR IR.reify on_ground on_logic n q qh (info, (fun ideal_IR ->
+          let init = Arg.ir_hint ideal_IR in
 
-        List.fold_left (fun acc (scru: Expr.injected) ->
-          fresh (res_pat res_ir)
-            acc
-            (eval_pat             scru injected_clauses res_pat)
-            (conde
-              [ fresh (n)
-                  (res_pat === Std.Option.some (IR.int n))
-                  (res_ir  === Std.Option.some n)
-              ; fresh ()
-                  (res_pat === Std.Option.none ())
-                  (res_ir === Std.Option.none())
-              ])
-              (my_eval_ir  ideal_IR scru typs ideal_IR res_ir)
-          )
-          init
-          injected_exprs
-      ));
-    let span = Mtime_clock.count start in
-    let () = disable_periodic_prunes () in
-
-    Format.printf "\n";
-    Format.printf "Total synthesis time: %s\n%!"
-      ( let ms = Mtime.Span.to_ms span in
-        if ms > 10000.0
-        then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
-        else Format.sprintf "%10.0fms\n%!" ms)
+          List.fold_left (fun acc (scru: Expr.injected) ->
+            fresh (res_pat res_ir)
+              acc
+              (W.eval_pat             scru injected_clauses res_pat)
+              (conde
+                [ fresh (n)
+                    (res_pat === Std.Option.some (IR.int n))
+                    (res_ir  === Std.Option.some n)
+                ; fresh ()
+                    (res_pat === Std.Option.none ())
+                    (res_ir === Std.Option.none())
+                ])
+                (my_eval_ir  ideal_IR scru typs ideal_IR res_ir)
+            )
+            init
+            injected_exprs
+        ));
+      let span = Mtime_clock.count start in
 
 
+      Format.printf "\n";
+      Format.printf "Total synthesis time: %s\n%!"
+        ( let ms = Mtime.Span.to_ms span in
+          if ms > 10000.0
+          then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
+          else Format.sprintf "%10.0fms\n%!" ms)
+  end;
+  let () = disable_periodic_prunes () in
+  ()
 
   let test ?(print_examples=true) ?(debug_filtered_by_size=false)
       ?(with_hack=true) ?(check_repeated_ifs=false)
