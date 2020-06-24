@@ -14,21 +14,16 @@ let () =
     "msg"
 
 
-
-[%% define Unnesting]
-(*[%% undef  Unnesting]*)
-
-[%%if (defined Unnesting)]
-module Work = Unn_pre.WorkUnnesting
-[%%else]
-module Work = Unn_pre.WorkHO
-[%%endif]
-
+let work =
+  match Sys.getenv "PAT_MATCH_WORK" with
+  | "unn" -> (module Unn_pre.WorkUnnesting : Unn_pre.WORK)
+  | "ho"  -> (module Unn_pre.WorkHO : Unn_pre.WORK)
+  | exception Not_found -> (module Unn_pre.WorkHO : Unn_pre.WORK)
 
 let algo =
   match Sys.getenv "PAT_MATCH_ALGO" with
   | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
-  | "unn"    -> (module Algo_fair_manual : Main_inputs.ALGO)
+(*  | "unn"    -> (module Algo_fair_manual : Main_inputs.ALGO)*)
   | exception Not_found -> (module Algo_fair : Main_inputs.ALGO)
   | _ -> (module Algo_fair : Main_inputs.ALGO)
 
@@ -45,15 +40,15 @@ let algo =
 [%% define PairTrueFalse]
 [%% undef  PairTrueFalse]
 [%% define TripleBool]
-[%% undef  TripleBool]
+(*[%% undef  TripleBool]*)
 [%% define Peano]
-[%% undef  Peano]
+(*[%% undef  Peano]*)
 [%% define SimpleList]
-[%% undef  SimpleList]
+(*[%% undef  SimpleList]*)
 [%% define TwoNilLists1]
-[%% undef  TwoNilLists1]
+(*[%% undef  TwoNilLists1]*)
 [%% define TwoNilLists2]
-[%% undef  TwoNilLists2]
+(*[%% undef  TwoNilLists2]*)
 
 [%% define ABCD]
 [%% undef  ABCD]
@@ -184,6 +179,7 @@ end
 
 let () =
   let (module Algo) = algo in
+  let (module Work) = work in
   let module L = Algo.Make(Work)(TripleBoolHack1) in
 (*  let _ = assert false in*)
   L.test (-1)
@@ -408,7 +404,9 @@ module Peano = struct
 end
 
 let () =
+  let (module Work) = work in
   let module L = Algo_fair.Make(Work)(Peano) in
+
   L.test
 (*    ~debug_filtered_by_size:false*)
     ~prunes_period:None
@@ -438,6 +436,7 @@ let () =
 end)*)
 
 let () =
+  let (module Work) = work in
   let module L = Algo_fair.Make(Work)(ArgMake(ArgSimpleList)) in
   L.test
 (*    ~debug_filtered_by_size:false*)
@@ -487,6 +486,7 @@ end)*)
 [%% if (defined TwoNilLists1) ]
 
 let () =
+  let (module Work) = work in
   let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Cons)) in
   L.test (10)
 
@@ -502,19 +502,25 @@ let () =
 [%% if (defined TwoNilLists2) ]
 
 let () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
+  let (module Work) = work in
+  let (module Algo) = algo in
+  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test 10
+    ~prunes_period:(Some 100)
 
 
 let () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
-  L.test 10
-    (* ~prunes_period:None*)
+  let (module Work) = work in
+  let (module Algo) = algo in
+  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
+  L.test 10    
     ~prunes_period:(Some 10)
 
 
 let () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
+  let (module Work) = work in
+  let (module Algo) = algo in
+  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
   L.test 10
     ~prunes_period:None
 
@@ -592,6 +598,8 @@ let () =
 (* ************************************************************************** *)
 [%% if (defined PCF) ]
 let () =
+  let (module Algo) = algo in
+  let (module Work) = work in
   let module M = Algo_fair.Make(Work)(struct
     include ArgMake(ArgPCF)
     let max_examples_count = 10

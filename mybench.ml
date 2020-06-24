@@ -72,6 +72,11 @@ let cfg =
   ; list_filename = "/home/kakadu/asp/ocanren-ICFP2020/papers/MiniKanren-2020/matching/lst.tex"
   }
 
+let () =
+  cfg.csv_filename <- "bench.csv";
+  cfg.list_filename <- "lst.tex";
+  ()
+
 let enable ~on =
   cfg.is_enabled <- on;
   Format.printf "Benchmarking is on=%b\n%!" on
