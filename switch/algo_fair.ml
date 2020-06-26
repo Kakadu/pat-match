@@ -18,14 +18,53 @@ exception FilteredOutByNestedness
 let is_enabled = ref true
 
 
+let flip f a b =  f b a
+
 module Make(W: WORK)(Arg: ARG_FINAL) = struct
+
+  module MatchableMap = Map.Make(struct
+    type t = Matchable.ground
+    let compare x y =
+(*      Format.printf "\t%a\n\t%a\n%!" (GT.fmt Matchable.ground) x  (GT.fmt Matchable.ground) y;*)
+      let ans = Matchable.ground.plugins#compare x y in
+      GT.cmp_to_int ans
+  end)
+  let matchables_counts : int MatchableMap.t ref = ref MatchableMap.empty
+  let incr_mc k =
+    try let n = MatchableMap.find k !matchables_counts in
+        matchables_counts := (MatchableMap.add k (n+1) !matchables_counts)
+    with Not_found ->
+        matchables_counts := (MatchableMap.add k 1 !matchables_counts)
+
+  let with_fresh_vars = ref 0
+  let clear_mc () =
+    with_fresh_vars := 0;
+    matchables_counts := MatchableMap.empty
+
+  let report_mc () =
+    Format.printf "with fresh = %d\n%!" !with_fresh_vars;
+    !matchables_counts |> MatchableMap.iter (fun k v ->
+      Format.printf "\t%s -> %d\n%!" (GT.show Matchable.ground k) v
+    )
+
 
   (* ******************** Default synthesis shortucts ************************* *)
   let default_shortcut0 m max_height cases rez =
     let open OCanren in
-    (W.matchable_leq_nat m max_height !!true) &&&
-    (cases =/= Std.nil()) &&&
-    (rez === !!true)
+    fresh ()
+      (debug_var m (flip Matchable.reify) (fun ms ->
+(*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
+        match ms with
+        | [] -> ()
+        | _::_::_ -> failwith "too many answers"
+        | [ms] ->
+            match Matchable.to_ground ms with
+            | None -> incr with_fresh_vars
+            | Some m -> incr_mc m
+      ))
+      (W.matchable_leq_nat m max_height !!true)
+      (cases =/= Std.nil())
+      (rez === !!true)
 
   let default_shortcut etag m cases history rez =
     let open OCanren in
@@ -282,6 +321,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     Mybench.repeat begin fun () ->
       set_initial_bound ();
       answer_index := -1;
+      clear_mc ();
       let start = Mtime_clock.counter () in
       let open Mytester in
       runR IR.reify on_ground on_logic n q qh (info, (fun ideal_IR ->
@@ -312,7 +352,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         ( let ms = Mtime.Span.to_ms span in
           if ms > 10000.0
           then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
-          else Format.sprintf "%10.0fms\n%!" ms)
+          else Format.sprintf "%10.0fms\n%!" ms);
+      report_mc ();
   end;
   let () = disable_periodic_prunes () in
   ()

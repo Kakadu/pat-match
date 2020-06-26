@@ -40,21 +40,24 @@ let algo =
 [%% define PairTrueFalse]
 [%% undef  PairTrueFalse]
 [%% define TripleBool]
-(*[%% undef  TripleBool]*)
+[%% undef  TripleBool]
 [%% define Peano]
-(*[%% undef  Peano]*)
+[%% undef  Peano]
 [%% define SimpleList]
-(*[%% undef  SimpleList]*)
+[%% undef  SimpleList]
 [%% define TwoNilLists1]
-(*[%% undef  TwoNilLists1]*)
+[%% undef  TwoNilLists1]
 [%% define TwoNilLists2]
-(*[%% undef  TwoNilLists2]*)
+[%% undef  TwoNilLists2]
 
 [%% define ABCD]
 [%% undef  ABCD]
 
+[%% define Tuple5]
+(*[%% undef  Tuple5]*)
+
 [%% define PCF]
-(*[%% undef  PCF]*)
+[%% undef  PCF]
 
 (*
 let () = Algo_fair.is_enabled := true
@@ -610,6 +613,20 @@ let () =
 [%% endif]
 
 (* ************************************************************************** *)
+
+[%% if (defined Tuple5) ]
+let () =
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module M = Algo_fair.Make(Work)(struct
+    include ArgMake(ArgTuple5)
+  end)
+  in
+  M.test (-1)
+
+[%% endif]
+(* ************************************************************************** *)
+
 let () =
   Mybench.finish ()
 

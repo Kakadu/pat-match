@@ -36,7 +36,7 @@
   (modules     work_ho)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
   (flags      (-rectypes -open Work_base_common))
-  (libraries   GT OCanren work_base_common)
+  (libraries  work_base work_base_common GT OCanren )
 )
 
 (rule
@@ -51,7 +51,7 @@
   (modules     work_unn)
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
   (flags      (-rectypes -open Work_base_common))
-  (libraries   GT OCanren work_base_common)
+  (libraries   work_base GT OCanren work_base_common)
 )
 
 (rule

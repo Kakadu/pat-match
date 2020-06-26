@@ -18,7 +18,6 @@ module type ARG0 = sig
   val typs : Typs.injected
   val max_height : int
   val optimize: IR.ground -> IR.ground
-(*  val prjp: OCanren.Env.t -> qtyp_injected -> g*)
 
   val shortcut0:
     Matchable.injected ->
@@ -1118,29 +1117,99 @@ module ArgPCF : ARG0 = struct
 
   let optimize = optimize_pair
 
-  let prjp e =
-    let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
-    let prjl e =
-      TwoNilList.L.prjc
-        prj1
-        (fun _ _ -> failwith "should not happen2")
-        e
-      in
-    Std.Pair.prjc prjl prjl
-      (fun _ _ -> failwith "should not happen5")
-      e
 
-(*  let to_expr demo_exprs =
-    let open Unn_pre.Expr in
-    let rec hack_list = function
-    | TwoNilList.L.Nil -> econstr "nil" []
-    | TwoNilList.L.Nil2 -> econstr "nil2" []
-    | TwoNilList.L.Cons (_,tl) ->
-        econstr "cons"  [ econstr "int" []; hack_list tl ]
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = false
+end
+
+
+module ArgTuple5 : ARG0 = struct
+  open OCanren
+
+  type g
+  type l
+  type qtyp_injected = (g, l) OCanren.injected
+
+  let info = "for path heuristic (no cons -- use WCs)"
+
+  let typs =
+    let open Unn_pre in
+    let open Unn_pre.Typs in
+    let int = T [ ("int",[]) ] in
+    let list_item = T
+      [ ("Push", [])
+      ; ("Extend", [])
+(*      ; ("Pushenv", [])*)
+
+(*      ; ("Popenv", [])*)
+(*      ; ("Apply", [])*)
+      (*; ("Ldi", [ int ])
+      ; ("Search", [ int ])
+      ; ("Mkclos", [ int ])
+      ; ("Mkclosrec", [ int ])
+      ; ("IOp", [ int ])
+      ; ("Int", [ int ])
+      ; ("Test", [ int ])
+      ; ("Clo", [ int ])*)
+      ]
     in
-    ListLabels.map demo_exprs ~f:(fun (a,b) ->
-      econstr "pair" [ hack_list a; hack_list b ]
-    )*)
+    let stack  =
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      t
+    in
+    let pairs = T [ ("triple", [ stack; stack; stack ]) ] in
+    let grounded = Typs.construct pairs in
+    Typs.inject grounded
+
+  let inhabit n e =
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+
+  let pldi x = pconstr "Ldi" [ x ]
+  let psearch x = pconstr "Search" [ x ]
+  let ppush  = pconstr "Push" [ ]
+  let ppushenv  = pconstr "Pushenv" [ ]
+  let ppopenv  = pconstr "Popenv" [ ]
+  let pextend = pconstr "Extend" [ ]
+  let papply = pconstr "Apply" [ ]
+  let pmkclos x = pconstr "Mkclos" [ x ]
+  let pmkclosrec x = pconstr "Mkclosrec" [ x ]
+
+  let pint x = pconstr "Int" [ x ]
+  let pval x = pconstr "Val" [ x ]
+  let piop x = pconstr "IOp" [ x ]
+  let ptest x y = pconstr "Test" [ x; y ]
+  let pclo  x y = pconstr "Clo" [ x; y ]
+
+  let pval x = pconstr "Val" [ x ]
+  let penv x = pconstr "Env" [ x ]
+  let pcode x = pconstr "Code" [ x ]
+
+  let optimize = id
+
+  let clauses =
+    [ ptriple pwc        pwc  (pcons pwc (pcons pwc (pcons pwc pwc))), IR.eint 1
+    (*; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2*)
+    ]
+
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+  (*    Format.printf "patterns max height = %d\n%!" n;*)
+  (*    assert (2 = n);*)
+    n
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
