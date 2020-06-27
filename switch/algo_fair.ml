@@ -60,12 +60,16 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       (debug_var m (flip Matchable.reify) (fun ms ->
 (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
         match ms with
-        | [] -> ()
+        | [] -> failure
         | _::_::_ -> failwith "too many answers"
         | [ms] ->
             match Matchable.to_ground ms with
-            | None -> incr with_fresh_vars
-            | Some m -> incr_mc m
+              | None -> incr with_fresh_vars; success
+              | Some m ->
+                incr_mc m;
+                if Pats_tree.is_set !trie (Matchable.ground_to_list_repr m)
+                then success
+                else failure
       ))
       (W.matchable_leq_nat m max_height !!true)
       (cases =/= Std.nil())
