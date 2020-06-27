@@ -6,6 +6,8 @@ open Unn_pre
 open OCanren
 open Unn_pre.IR
 
+
+
 let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
@@ -44,8 +46,11 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   let report_mc () =
     Format.printf "with fresh = %d\n%!" !with_fresh_vars;
     !matchables_counts |> MatchableMap.iter (fun k v ->
-      Format.printf "\t%s -> %d\n%!" (GT.show Matchable.ground k) v
+      Format.printf "\t%s -> %d (%s)\n%!" (GT.show Matchable.ground k) v
+        "?"
     )
+
+  let trie = ref Pats_tree.empty
 
 
   (* ******************** Default synthesis shortucts ************************* *)
@@ -200,6 +205,11 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
 (*    let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> IR.injected -> _ -> goal) = Work.eval_ir in*)
 (*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
+
+    let () =
+        trie := Pats_tree.build clauses;
+        Pats_tree.pp Format.std_formatter !trie
+    in
 
     let injected_clauses = Clauses.inject clauses in
     let injected_exprs =

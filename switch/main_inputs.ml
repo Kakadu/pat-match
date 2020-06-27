@@ -1137,7 +1137,7 @@ module ArgTuple5 : ARG0 = struct
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
-    let int = T [ ("int",[]) ] in
+(*    let int = T [ ("int",[]) ] in*)
     let list_item = T
       [ ("Push", [])
       ; ("Extend", [])

@@ -2,11 +2,12 @@
   (name main_switch)
   (modules
           main_switch main_inputs unn_pre
+          pats_tree
           algo_fair
           algo_fair_manual
           )
   (flags       (-rectypes -warn-error +20+5))
-  (libraries   work_base_common work_ho work_unn OCanren helper mytester mybench)
+  (libraries   lazy-trie work_base_common work_ho work_unn OCanren helper mytester mybench)
   (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
 )
 

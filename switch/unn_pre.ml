@@ -202,6 +202,9 @@ let ground_list_length xs =
 let ground_list_iteri f xs =
   GT.foldl Std.List.ground (fun acc x -> f acc x; acc+1) 0 xs |> ignore
 
+let ground_list_foldi f init xs =
+  GT.foldl Std.List.ground (fun (i,acc) x -> let ans = f acc i x in (i+1,ans)) (0, init) xs |> snd
+
 
 let logic_list_len_lo =
   let rec helper acc = function
@@ -547,6 +550,13 @@ module Matchable = struct
     | Var (_,_) -> None
     in
     helper l
+
+  let ground_to_list_repr : ground -> N.ground list =
+    let rec helper acc = function
+    | Scru -> acc
+    | Field (n, m) -> helper (n::acc) m
+    in
+    helper []
 
   let low_height_of_logic root =
     let rec helper len = function

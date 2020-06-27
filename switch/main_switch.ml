@@ -13,11 +13,13 @@ let () =
     (fun _ -> print_endline "WTF")
     "msg"
 
+let env_work = "PAT_MATCH_WORK"
 
 let work =
-  match Sys.getenv "PAT_MATCH_WORK" with
+  match Sys.getenv env_work with
   | "unn" -> (module Unn_pre.WorkUnnesting : Unn_pre.WORK)
   | "ho"  -> (module Unn_pre.WorkHO : Unn_pre.WORK)
+  | _     -> failwith (sprintf "Bad argument of env variable %s" env_work)
   | exception Not_found -> (module Unn_pre.WorkHO : Unn_pre.WORK)
 
 let algo =
