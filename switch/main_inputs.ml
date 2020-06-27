@@ -5,6 +5,7 @@ let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
 
 
+
 module type ARG0 = sig
   open OCanren
 
@@ -1174,9 +1175,6 @@ module ArgTuple5 : ARG0 = struct
     let grounded = Typs.construct pairs in
     Typs.inject grounded
 
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
-
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
   let ppush  = pconstr "Push" [ ]
@@ -1201,14 +1199,73 @@ module ArgTuple5 : ARG0 = struct
 
   let clauses =
     [ ptriple pwc        pwc  (pcons pwc (pcons pwc (pcons pwc pwc))), IR.eint 1
-    (*; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2*)
+    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
     ]
 
+  let trie = Pats_tree.build clauses
+
+  let inhabit n e =
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+
+  let inhabit _ =
+    let open Unn_pre in
+    let module W = Unn_pre.WorkHO in
+    let iter2io f =
+      let rec helper n xs ys =
+        conde
+          [ (xs === Std.List.nil()) &&& (ys === Std.List.nil())
+          ; fresh (h1 tl1 h2 tl2)
+              (xs === Std.(h1 % tl1))
+              (ys === Std.(h2 % tl2))
+              (f n h1 h2)
+              (helper (N.s n) tl1 tl2 )
+          ]
+      in
+      helper N.(z)
+    in
+    let is_good_m m ans =
+      fresh ()
+        (debug_var m (flip Matchable.reify) (fun ms ->
+        (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
+          match ms with
+          | [] -> failure
+          | _::_::_ -> failwith "too many answers"
+          | [ms] ->
+              match Matchable.to_ground ms with
+                | None ->  success
+                | Some m ->
+                  let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
+(*                  Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
+                  (ans === !!b)
+
+        ))
+        success
+    in
+    let rec helper m typs e =
+      fresh (c es is_ok arg_typs)
+        (is_good_m m is_ok)
+        (conde
+          [ fresh ()
+              (is_ok === !!true)
+              (e === Expr.constr c es)
+              (W.info_assoc typs c arg_typs)
+              (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
+          ; fresh ()
+              (is_ok === !!false)
+              (debug_var is_ok (flip OCanren.reify) (fun ok ->
+                 let () =
+                   match ok with
+                   | [Value false] -> ()
+                   | _ -> assert false
+                 in
+                 (only_head @@ W.well_typed_expr e typs !!true)
+              ))
+          ])
+    in
+    helper (Matchable.scru ()) typs
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
-  (*    Format.printf "patterns max height = %d\n%!" n;*)
-  (*    assert (2 = n);*)
     n
 
   let shortcut0 = simple_shortcut0

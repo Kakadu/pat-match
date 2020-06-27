@@ -611,6 +611,7 @@ let () =
   end)
   in
   M.test (-1)
+    ~prunes_period:(Some 10)
 
 [%% endif]
 

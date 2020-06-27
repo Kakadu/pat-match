@@ -1,8 +1,6 @@
 open OCanren
 
-
-[%% define Unnesting]
-[%% undef  Unnesting]
+let flip f a b =  f b a
 
 module W = Work_base_common
 open W
@@ -851,89 +849,71 @@ module type WORK = sig
 
   val matchable_leq_nat: Matchable.injected -> N.injected ->  bool_inj -> goal
   val not_in_history: Matchable.injected -> (Matchable.ground, Matchable.logic) Std.List.groundi ->  bool_inj -> goal
+  val info_assoc: Typs.injected -> Tag.injected -> (Typs.ground, Typs.logic) Std.List.groundi -> goal
+  val well_typed_expr: Expr.injected -> Typs.injected -> bool_inj -> goal
 end
 
 
 
-module WorkUnnesting : WORK = struct
-  let eval_ir :
-    Expr.injected -> N.injected -> Typs.injected ->
-    (Matchable.injected -> N.injected -> Cases.injected  -> bool_inj -> goal) ->
-    (Tag.injected -> Matchable.injected -> Cases.injected -> (Matchable.ground, Matchable.logic) Std.List.groundi ->
-        bool_inj -> goal ) ->
-    (CNames.injected -> Cases.injected ->  bool_inj -> goal ) ->
-    IR.injected  ->
-    (int, int OCanren.logic) Std.Option.groundi -> goal =
-      Work_unn.eval_ir
-
-  let eval_m : Expr.injected -> Typs.injected -> Matchable.injected ->
-    EvalMRez.injected ->
-    goal
-    = Work_unn.eval_m
-
-  let eval_pat = Work_unn.eval_pat
-  let matchable_leq_nat = Work_unn.matchable_leq_nat
-  let not_in_history = Work_unn.not_in_history
-end
-
-
-
+module WorkUnnesting : WORK = Work_unn
 
 module WorkHO : WORK = struct
   module Wrap = Work_ho
 
 
-let eval_ir :
-  (Expr.injected -> goal) ->
-  (N.injected -> goal) ->
-  (Typs.injected -> goal) ->
-  ( (Matchable.injected -> goal) ->
+  let eval_ir :
+    (Expr.injected -> goal) ->
     (N.injected -> goal) ->
-    ( (Tag.ground * IR.ground, _) Std.List.groundi -> goal) ->
-    bool_inj -> goal) ->
-  (_ -> _ -> _ -> _ ->
-    bool_inj -> goal) ->
-  (_ -> _ -> _ -> goal) ->
-  (IR.injected  -> goal) ->
-  (int, int OCanren.logic) Std.Option.groundi ->
-  goal =
-    Wrap.eval_ir
+    (Typs.injected -> goal) ->
+    ( (Matchable.injected -> goal) ->
+      (N.injected -> goal) ->
+      ( (Tag.ground * IR.ground, _) Std.List.groundi -> goal) ->
+      bool_inj -> goal) ->
+    (_ -> _ -> _ -> _ ->
+      bool_inj -> goal) ->
+    (_ -> _ -> _ -> goal) ->
+    (IR.injected  -> goal) ->
+    (int, int OCanren.logic) Std.Option.groundi ->
+    goal =
+      Wrap.eval_ir
 
-let eval_ir e depth typs shct1 shct2 shct3 ir rez =
-  eval_ir ((===)e) ((===)depth) ((===)typs)
-    (fun a b c r   -> Fresh.three (fun a2 b2 c2 -> (a a2) &&& (b b2) &&& (c c2) &&& (shct1 a2 b2 c2 r)))
-    (fun a b c d r -> Fresh.four  (fun a2 b2 c2 d2 -> (a a2) &&& (b b2) &&& (c c2) &&& (d d2) &&& (shct2 a2 b2 c2 d2 r)))
-    (fun a b r     -> Fresh.two @@ fun x y -> (a x) &&& (b y) &&& (shct3 x y r) )
-    ((===)ir)
-    rez
-(*
-let well_typed_expr_height:
-  (N.injected -> goal) ->
-  (Expr.injected -> goal) ->
-  (Expr.injected -> goal) ->
-  (Typs.injected -> goal) ->
-  bool_inj -> goal
-  = Work_base_common.well_typed_expr_height
-*)
-let well_typed_expr_height: N.injected -> Expr.injected -> Expr.injected -> Typs.injected -> bool_inj -> goal =
-  (*fun h ed e t r -> Wrap.well_typed_expr_height ((===)h) ((===)ed) ((===)e) ((===)t) r*)
-  Work_base_common.well_typed_expr_height
+  let eval_ir e depth typs shct1 shct2 shct3 ir rez =
+    eval_ir ((===)e) ((===)depth) ((===)typs)
+      (fun a b c r   -> Fresh.three (fun a2 b2 c2 -> (a a2) &&& (b b2) &&& (c c2) &&& (shct1 a2 b2 c2 r)))
+      (fun a b c d r -> Fresh.four  (fun a2 b2 c2 d2 -> (a a2) &&& (b b2) &&& (c c2) &&& (d d2) &&& (shct2 a2 b2 c2 d2 r)))
+      (fun a b r     -> Fresh.two @@ fun x y -> (a x) &&& (b y) &&& (shct3 x y r) )
+      ((===)ir)
+      rez
+  (*
+  let well_typed_expr_height:
+    (N.injected -> goal) ->
+    (Expr.injected -> goal) ->
+    (Expr.injected -> goal) ->
+    (Typs.injected -> goal) ->
+    bool_inj -> goal
+    = Work_base_common.well_typed_expr_height
+  *)
+  let well_typed_expr_height: N.injected -> Expr.injected -> Expr.injected -> Typs.injected -> bool_inj -> goal =
+    (*fun h ed e t r -> Wrap.well_typed_expr_height ((===)h) ((===)ed) ((===)e) ((===)t) r*)
+    Work_base_common.well_typed_expr_height
 
-let well_typed_expr:
-  (Expr.injected -> goal) ->
-  (Typs.injected -> goal) ->
-  bool_inj -> goal
-  = Wrap.well_typed_expr
+  let well_typed_expr:
+    (Expr.injected -> goal) ->
+    (Typs.injected -> goal) ->
+    bool_inj -> goal
+    = Wrap.well_typed_expr
 
-let well_typed_expr: Expr.injected -> Typs.injected -> bool_inj -> goal =
-  fun e t r -> Wrap.well_typed_expr ((===)e) ((===)t) r
+  let well_typed_expr: Expr.injected -> Typs.injected -> bool_inj -> goal =
+    fun e t r -> Wrap.well_typed_expr ((===)e) ((===)t) r
 
-(*let compile_naively p ir =
-  Wrap.compile_naively ((===)p) ir*)
+  (*let compile_naively p ir =
+    Wrap.compile_naively ((===)p) ir*)
 
-let eval_pat s p r = Wrap.eval_pat ((===)s) ((===)p) r
-let matchable_leq_nat m n r = Wrap.matchable_leq_nat ((===)m) ((===)n) r
-let not_in_history x xs r = Wrap.not_in_history ((===)x) ((===)xs) r
+  let eval_pat s p r = Wrap.eval_pat ((===)s) ((===)p) r
+  let matchable_leq_nat m n r = Wrap.matchable_leq_nat ((===)m) ((===)n) r
+  let not_in_history x xs r = Wrap.not_in_history ((===)x) ((===)xs) r
+
+  let info_assoc typs name rez = Wrap.info_assoc ((===)typs) ((===)name) rez
 
 end
 

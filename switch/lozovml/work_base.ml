@@ -15,7 +15,7 @@ type ir =
   | Switch of matchable * (nat * ir) list * ir
   | Lit of int
 
-let rec well_typed_expr_height height default e typs =
+let well_typed_expr_height height default e typs =
   let rec list_assoc name ys =
     match ys with
     | (k,v)::xs ->
@@ -32,15 +32,17 @@ let rec well_typed_expr_height height default e typs =
     | [],[] -> true
     | (_::_,[]) -> false
     | ([], _::_) -> false
+  in  
+  let rec helper height e typs =
+    match height with
+    | Z -> (e=default)
+    | S n ->
+        match e,typs with
+        | (EConstr (tag, es), ts) ->
+            let arg_infos = info_assoc typs tag in
+            list_all2 (helper n) es arg_infos
   in
-  match height with
-  | Z -> (e=default)
-  | S n ->
-      match e,typs with
-      | (EConstr (tag, es), ts) ->
-          let arg_infos = info_assoc typs tag in
-          list_all2 (well_typed_expr_height n default) es arg_infos
-
+  helper height e typs
 
 let compile_naively pats : ir =
   let rec list_combine xs ys =

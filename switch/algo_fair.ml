@@ -20,8 +20,6 @@ exception FilteredOutByNestedness
 let is_enabled = ref true
 
 
-let flip f a b =  f b a
-
 module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
   module MatchableMap = Map.Make(struct
@@ -46,8 +44,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   let report_mc () =
     Format.printf "with fresh = %d\n%!" !with_fresh_vars;
     !matchables_counts |> MatchableMap.iter (fun k v ->
-      Format.printf "\t%s -> %d (%s)\n%!" (GT.show Matchable.ground k) v
-        "?"
+      Format.printf "\t%s -> %d\n%!" (GT.show Matchable.ground k) v
     )
 
   let trie = ref Pats_tree.empty
