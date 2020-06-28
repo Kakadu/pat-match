@@ -351,6 +351,27 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (res_ir === Std.Option.none())
                 ])
                 (my_eval_ir  ideal_IR scru typs ideal_IR res_ir)
+                (debug_var ideal_IR (flip IR.reify) (fun irs ->
+                  let ir =
+                    match irs with
+                    | [] -> assert false
+                    | [ir] -> ir
+                    | _ -> assert false
+                  in
+                  let verdict =
+                    try
+                      let n = count_if_constructors ir in
+                      assert (n >= 0);
+                      match n with
+                      | x when x > !max_ifs_count ->  raise (FilteredOutBySize x)
+                      | _ -> true
+                    with
+                      | FilteredOutBySize n ->                    false
+                      | FilteredOutByForm ->                    false
+                      | FilteredOutByNestedness ->                    false
+                  in
+                  if verdict then success else failure
+                ))
             )
             init
             injected_exprs

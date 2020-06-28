@@ -1016,6 +1016,67 @@ end[@warning "-8"]
 end
 
 
+
+let inhabit_by_trie typs trie =
+  let open OCanren in
+  let open Unn_pre in
+  let module W = Unn_pre.WorkHO in
+  let iter2io f =
+    let rec helper n xs ys =
+      conde
+        [ (xs === Std.List.nil()) &&& (ys === Std.List.nil())
+        ; fresh (h1 tl1 h2 tl2)
+            (xs === Std.(h1 % tl1))
+            (ys === Std.(h2 % tl2))
+            (f n h1 h2)
+            (helper (N.s n) tl1 tl2 )
+        ]
+    in
+    helper N.(z)
+  in
+  let is_good_m m ans =
+    fresh ()
+      (debug_var m (flip Matchable.reify) (fun ms ->
+      (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
+        match ms with
+        | [] -> failure
+        | _::_::_ -> failwith "too many answers"
+        | [ms] ->
+            match Matchable.to_ground ms with
+              | None ->
+                  let _ = assert false in success
+              | Some m ->
+                let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
+                (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
+                (ans === !!b)
+
+      ))
+      success
+  in
+  let rec helper m typs e =
+    fresh (c es is_ok arg_typs)
+      (is_good_m m is_ok)
+      (conde
+        [ fresh ()
+            (is_ok === !!true)
+            (e === Expr.constr c es)
+            (W.info_assoc typs c arg_typs)
+            (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
+        ; fresh ()
+            (is_ok === !!false)
+            (debug_var is_ok (flip OCanren.reify) (fun ok ->
+               let () =
+                 match ok with
+                 | [Value false] -> ()
+                 | _ -> assert false
+               in
+               (only_head @@ W.well_typed_expr e typs !!true)
+            ))
+        ])
+  in
+  helper (Matchable.scru ()) typs
+
+
 module ArgPCF : ARG0 = struct
   open OCanren
 
@@ -1096,7 +1157,7 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
     ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
-(*    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3*)
+    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3
 (*    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4*)
 
 (*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
@@ -1116,15 +1177,15 @@ module ArgPCF : ARG0 = struct
 (*    assert (2 = n);*)
     n
 
+  let trie = Pats_tree.build clauses
+  let inhabit _ = inhabit_by_trie typs trie
+
   let optimize = optimize_pair
-
-
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
   let try_compile_naively = false
 end
-
 
 module ArgTuple5 : ARG0 = struct
   open OCanren
@@ -1203,66 +1264,7 @@ module ArgTuple5 : ARG0 = struct
     ]
 
   let trie = Pats_tree.build clauses
-
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
-
-  let inhabit _ =
-    let open Unn_pre in
-    let module W = Unn_pre.WorkHO in
-    let iter2io f =
-      let rec helper n xs ys =
-        conde
-          [ (xs === Std.List.nil()) &&& (ys === Std.List.nil())
-          ; fresh (h1 tl1 h2 tl2)
-              (xs === Std.(h1 % tl1))
-              (ys === Std.(h2 % tl2))
-              (f n h1 h2)
-              (helper (N.s n) tl1 tl2 )
-          ]
-      in
-      helper N.(z)
-    in
-    let is_good_m m ans =
-      fresh ()
-        (debug_var m (flip Matchable.reify) (fun ms ->
-        (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
-          match ms with
-          | [] -> failure
-          | _::_::_ -> failwith "too many answers"
-          | [ms] ->
-              match Matchable.to_ground ms with
-                | None ->  success
-                | Some m ->
-                  let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
-(*                  Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
-                  (ans === !!b)
-
-        ))
-        success
-    in
-    let rec helper m typs e =
-      fresh (c es is_ok arg_typs)
-        (is_good_m m is_ok)
-        (conde
-          [ fresh ()
-              (is_ok === !!true)
-              (e === Expr.constr c es)
-              (W.info_assoc typs c arg_typs)
-              (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
-          ; fresh ()
-              (is_ok === !!false)
-              (debug_var is_ok (flip OCanren.reify) (fun ok ->
-                 let () =
-                   match ok with
-                   | [Value false] -> ()
-                   | _ -> assert false
-                 in
-                 (only_head @@ W.well_typed_expr e typs !!true)
-              ))
-          ])
-    in
-    helper (Matchable.scru ()) typs
+  let inhabit _ = inhabit_by_trie typs trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
