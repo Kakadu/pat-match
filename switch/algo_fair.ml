@@ -15,7 +15,10 @@ let disable_periodic_prunes () =
 
 exception FilteredOutBySize of int
 exception FilteredOutByForm
+exception FilteredOutByUnsat
+exception FilteredOutByTooManyCases
 exception FilteredOutByNestedness
+exception Unsat
 
 let is_enabled = ref true
 
@@ -130,18 +133,20 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     let max_height = N.(inject @@ of_int Arg.max_height) in
 
     (** Raises [FilteredOut] when answer is not worth it *)
-    let count_if_constructors init_g folder : IR.logic -> _ * int = fun root ->
+    let count_if_constructors ~check_repeated_ifs init_g folder : IR.logic -> _ * int = fun root ->
       let next_seen seen scru tag =
         if not check_repeated_ifs
         then seen
         else
-            match (Matchable.to_ground scru) with
+            match Matchable.to_ground scru with
             | Some mground ->
                 if List.mem mground seen
                 then raise FilteredOutByForm
-                else if not (Pats_tree.is_set !trie (Matchable.ground_to_list_repr mground))
-                then raise FilteredOutByForm
-                else mground :: seen
+                else
+(*                  let () = Format.printf "looking for matchable %a\n%!" (GT.fmt Matchable.ground) mground in*)
+                  if not (Pats_tree.is_set !trie (Matchable.ground_to_list_repr mground))
+                  then raise FilteredOutByForm
+                  else mground :: seen
             | _ -> seen
       in
       let rec helper ~height ~count seen goal_acc = function
@@ -155,20 +160,21 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             if height > Arg.max_nested_switches
             then raise FilteredOutByNestedness
           in
-          let goal_acc = folder goal_acc xs in
+          let seen = next_seen seen scru scru in
+          let goal_acc = folder goal_acc scru xs in
           let goal_acc,count =
             (helper ~height ~count:(count + (logic_list_len_lo xs)) seen goal_acc on_default)
           in
           GT.foldl Std.List.logic (fun ((acc_g,count) as acc) -> function
             | Value (Var (n,cstr), code) ->
-                let () =
+                (*let () =
                   match cstr with
                   | [] -> ()
                   | _ -> Format.printf "\t\t\x1b[33mVar %d has %d constraints\x1b[39;49m\n%!" n (List.length cstr)
-                in
+                in*)
                 helper ~height ~count seen goal_acc code
             | Value (tagl, code) ->
-                let seen = next_seen seen scru tagl in
+
                 helper ~height ~count seen goal_acc code
             | Var _ -> acc)
             (goal_acc,count)
@@ -185,20 +191,24 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
       structural ans IR.reify (fun (ir: IR.logic) ->
         let verbose = true in
+        let verbose = false in
         let debug fmt =
           Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
             fmt
         in
         try
-          debug "height_hack `%s` = %!" (IR.show_logic ir);
-          let ((),n) = count_if_constructors () (fun () _ -> ()) ir in
+          if verbose then
+            Format.printf "height_hack `%s` = %!" (IR.show_logic ir);
+          let ((),n) = count_if_constructors ~check_repeated_ifs:false () (fun () _ _ -> ()) ir in
           assert (n >= 0);
-          debug "%d%!" n;
+          if verbose then
+            Format.printf "\x1b[32m%d\x1b[39;49m%!" n;
           match n with
           | x when x > !max_ifs_count ->
             raise (FilteredOutBySize x)
           | _ ->
-              debug "\n%!";
+              if verbose then
+                Format.printf "\n%!";
               true
         with
           | FilteredOutBySize n ->
@@ -343,18 +353,73 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     in
 
 
-    let my_satisfiability acc xs =
-      try
-        GT.foldl Std.List.logic (fun acc p ->
-          match p with
-          | Var _ -> acc
-          | Value (Var _,_) -> acc
-          | Value (tag,_)
-          acc
-        )
-        acc
-        xs
-      with _ -> assert false
+    let my_satisfiability acc scrul (xs: (Tag.logic * _) OCanren.logic Std.List.logic) =
+      (* check single switch case *)
+      let check_single acc m tag_names = function
+        | Value _ -> acc
+        | Var (_,cstrs) ->
+            let open Unn_pre in
+
+            if List.length cstrs < TagSet.cardinal tag_names - 1
+            then acc
+            else
+              (* we need to try to exclude possible constructors to get a verdict *)
+              let survieved_tags =
+                ListLabels.fold_left ~init:tag_names cstrs ~f:(fun acc tagl ->
+                  match Tag.to_ground tagl with
+                  | None ->
+                      (* less chances to deduce something interesting *)
+                      acc
+                  | Some tag when not (TagSet.mem tag acc) ->
+                      failwith "should not happen. Probably we already removed that tag"
+                  | Some tag -> TagSet.remove tag acc
+                )
+              in
+              match TagSet.cardinal survieved_tags with
+              | card when card <= 0 -> raise FilteredOutByUnsat
+(*              | 1 -> (Tag.inject (TagSet.min_elt survieved_tags) === *)
+              | _ -> acc
+      in
+      match Matchable.to_ground scrul with
+      | None -> acc
+      | Some m ->
+          try
+            let tag_names = Pats_tree.find_exn !trie (Matchable.ground_to_list_repr m) in
+            let card = TagSet.cardinal tag_names in
+            let rec my_fold_list_logic count acc = function
+              | Var _ -> acc
+              | Value (Std.List.Cons (Var _, tl))
+              | Value (Std.List.Cons (Value (Value _,_), tl)) ->
+                  let count = count + 1 in
+                  if count >= card then raise FilteredOutByTooManyCases;
+                  my_fold_list_logic count acc tl
+              | Value (Cons (Value (Var (_,_) as case, _), tl)) ->
+                  let count = count + 1 in
+                  if count >= card then raise FilteredOutByTooManyCases;
+                  let acc = check_single acc m tag_names case in
+                  my_fold_list_logic count acc  tl
+              | Value Nil -> acc
+            in
+            my_fold_list_logic 0 acc xs
+            (*
+            GT.foldl Std.List.logic (fun (len,acc) p ->
+              let len = len+1 in
+              if len >= card then raise Unsat;
+              match p with
+              | Var _ -> (len,acc)
+              | Value (Value _,_) ->
+                  (* we dont' check cases known to be ground *)
+                  (len,acc)
+              | Value (Var (_,_) as case,_) -> (len,check_single acc m tag_names case)
+            )
+            (0,acc)
+            xs
+            |> snd
+            *)
+          with Unsat -> failure
+             | Not_found ->
+(*                Format.printf "Can't find info for matchable %a\n%!" (GT.fmt Matchable.ground) m;*)
+                failure
     in
 
     Mybench.repeat begin fun () ->
@@ -386,40 +451,61 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     | [ir] -> ir
                     | _ -> assert false
                   in
+                  let _verbose_exc = true in
+                  let _verbose_exc = false in
                   let verbose = true in
-(*                  let verbose = false in*)
-                  let debug fmt =
+                  let verbose = false in
+(*                  let debug fmt =
                     Format.ksprintf (fun s -> if verbose then Format.printf "%s" s else ())
                       fmt
-                  in
+                  in*)
                   let verdict =
                     try
-                      debug "after_hack `%s` = %!" (IR.show_logic ir);
-                      let (hack,n) = count_if_constructors success my_satisfiability ir in
+                      (*if verbose then
+                        Format.printf "after_hack `%s` = %!" (IR.show_logic ir);*)
+                      let (hack,n) = count_if_constructors ~check_repeated_ifs:true success my_satisfiability ir in
                       assert (n >= 0);
-                      debug "%d%!" n;
                       match n with
                       | x when x > !max_ifs_count ->
                         raise (FilteredOutBySize x)
                       | _ ->
-                          debug "\n%!";
+                          if verbose then
+                            Format.printf "after_hack `%s` = \x1b[32m%d\x1b[39;49m\n%!" (IR.show_logic ir) n;
+
+                          (*if verbose then
+                            Format.printf "\n%!";*)
                           Some hack
                     with
                       | FilteredOutBySize n ->
-                        if verbose
-                        then debug "  %s (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
-                          (IR.show_logic ir) n ;
+                        if verbose && _verbose_exc then begin
+                          Format.printf "after_hack `%s` (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
+                            (IR.show_logic ir) n
+                        end;
                         None
                       | FilteredOutByForm ->
-                        if verbose
-                        then debug "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
-                            (IR.show_logic ir) ;
-                        None
+                          if verbose && _verbose_exc then begin
+                            Format.printf "after_hack `%s` \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
+                              (IR.show_logic ir)
+                          end;
+                          None
+                      | FilteredOutByTooManyCases ->
+                          if verbose && _verbose_exc then begin
+                            Format.printf "after_hack `%s` \x1b[31mFILTERED OUT\x1b[39;49m by too many cases\n%!"
+                              (IR.show_logic ir)
+                          end;
+                          None
                       | FilteredOutByNestedness ->
-                        if verbose
-                        then debug "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
-                            (IR.show_logic ir) ;
-                        None
+                          if verbose && _verbose_exc then
+                            Format.printf "after_hack `%s` \x1b[31mFILTERED OUT\x1b[39;49m by nestedness\n%!"
+                              (IR.show_logic ir)
+                          ;
+                          None
+                      | FilteredOutByUnsat ->
+                          if verbose && _verbose_exc then
+                            Format.printf "after_hack `%s` \x0b[36mFILTERED OUT\x1b[39;49m by unsat\n%!"
+                              (IR.show_logic ir)
+                          ;
+                          None
                   in
                   match verdict with
                   | Some g -> g
@@ -444,7 +530,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   ()
 
   let test ?(print_examples=true) ?(debug_filtered_by_size=false)
-      ?(with_hack=true) ?(check_repeated_ifs=false)
+      ?(with_hack=true) ?(check_repeated_ifs=true)
       ?(prunes_period=(Some 100)) ?(with_default_shortcuts=true)
       n =
     if !is_enabled

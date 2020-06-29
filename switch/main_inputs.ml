@@ -1158,7 +1158,8 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
     ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
-    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3
+    ; ptriple (pint pwc) pwc  (pcons pwc pwc), IR.eint 3
+(*    ; ptriple (pint pwc) (pcons (pval (pint pwc)) pwc) (pcons (piop pwc) pwc), IR.eint 3*)
 (*    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4*)
 
 (*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
@@ -1261,7 +1262,7 @@ module ArgTuple5 : ARG0 = struct
 
   let clauses =
     [ ptriple pwc        pwc  (pcons pwc (pcons pwc (pcons pwc pwc))), IR.eint 1
-    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
+(*    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2*)
     ]
 
   let trie = Pats_tree.build clauses typs

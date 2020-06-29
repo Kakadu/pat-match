@@ -56,10 +56,10 @@ let algo =
 [%% undef  ABCD]
 
 [%% define Tuple5]
-(*[%% undef  Tuple5]*)
+[%% undef  Tuple5]
 
 [%% define PCF]
-[%% undef  PCF]
+(*[%% undef  PCF]*)
 
 (*
 let () = Algo_fair.is_enabled := true
@@ -601,6 +601,18 @@ let () =
 [%% endif]
 
 (* ************************************************************************** *)
+[%% if (defined Tuple5) ]
+let () =
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module M = Algo_fair.Make(Work)(struct
+    include ArgMake(ArgTuple5)
+  end)
+  in
+  M.test (-1)
+
+[%% endif]
+(* ************************************************************************** *)
 [%% if (defined PCF) ]
 let () =
   let (module Algo) = algo in
@@ -615,19 +627,6 @@ let () =
 
 [%% endif]
 
-(* ************************************************************************** *)
-
-[%% if (defined Tuple5) ]
-let () =
-  let (module Algo) = algo in
-  let (module Work) = work in
-  let module M = Algo_fair.Make(Work)(struct
-    include ArgMake(ArgTuple5)
-  end)
-  in
-  M.test (-1)
-
-[%% endif]
 (* ************************************************************************** *)
 
 let () =
