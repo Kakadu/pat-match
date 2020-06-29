@@ -203,6 +203,16 @@ let ground_list_iteri f xs =
 let ground_list_foldi f init xs =
   GT.foldl Std.List.ground (fun (i,acc) x -> let ans = f acc i x in (i+1,ans)) (0, init) xs |> snd
 
+let ground_list_fold2i_exn f init xs ys =
+  let open Std.List in
+  let rec helper acc n = function
+    | Nil,Nil -> acc
+    | Cons (x,xs), Cons(y,ys) -> helper (f acc n x y) (n+1) (xs,ys)
+    | _ -> failwith "bad length"
+  in
+  helper init 0 (xs,ys)
+
+
 
 let logic_list_len_lo =
   let rec helper acc = function
@@ -762,6 +772,8 @@ module Clauses = struct
 
 end
 
+module TagSet = Set.Make(struct type t = Tag.ground let compare = Caml.compare end)
+
 
 
 module Typs = struct
@@ -784,6 +796,22 @@ module Typs = struct
     | T xs -> t (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
 
   let mkt xs: ground = T (Std.List.of_list id xs)
+
+  let get_names (T xs) =
+    GT.foldl Std.List.ground (fun acc (t,_) -> TagSet.add t acc) TagSet.empty xs
+
+  let assoc (T xs) key =
+    GT.foldl Std.List.ground (fun acc (x,v) ->
+      match acc with
+      | (Some _) as ans -> ans
+      | None -> if x=key then (Some v) else None
+    )
+    None xs
+
+  let assoc_exn typs key =
+    match assoc typs key with
+    | None -> raise Not_found
+    | Some x -> x
 
   type pre_typ = (string * pre_typ list) list t
   let rec construct (root: pre_typ) : ground =

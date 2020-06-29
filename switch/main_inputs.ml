@@ -16,7 +16,7 @@ module type ARG0 = sig
   val try_compile_naively: bool
   val inhabit: int -> Expr.injected -> goal
   val clauses : Clauses.pre_ground
-  val typs : Typs.injected
+  val typs : Typs.ground
   val max_height : int
   val optimize: IR.ground -> IR.ground
 
@@ -68,7 +68,7 @@ module ArgTrueFalse : ARG0 = struct
   let typs =
     let open Unn_pre.Typs in
     let grounded = Typs.construct @@ T [ ("true", []); ("false", []) ]  in
-    Typs.inject grounded
+    grounded
 
   let clauses =
     [ ptrue, IR.eint 1
@@ -76,7 +76,7 @@ module ArgTrueFalse : ARG0 = struct
     ]
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
 
 
   let max_height =
@@ -127,10 +127,10 @@ module ArgAB : ARG0 = struct
   let typs =
     let open Unn_pre.Typs in
     let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
-    Typs.inject grounded
+    grounded
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
 
   let info = "A|B"
 
@@ -180,10 +180,10 @@ module ArgABC : ARG0 = struct
     let open Unn_pre.Typs in
 
     let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
-    Typs.inject grounded
+    grounded
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e (Typs.inject typs) !!true
 
 
 
@@ -304,7 +304,7 @@ module ArgABCD : ARG0 = struct
     let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
 
     let grounded = Typs.construct @@ l in
-    Typs.inject grounded
+    grounded
 
   let rec optimize (root: IR.ground)  = root
 
@@ -389,10 +389,10 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     let open Unn_pre.Typs in
     let bool = T [ ("true", []); ("false", []) ]  in
     let p    = T [ ("pair", [bool; bool]) ] in
-    Typs.inject @@ Typs.construct p
+    Typs.construct p
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject @@ typs) !!true
 
   let info = "bool*bool"
 
@@ -452,7 +452,7 @@ module ArgTripleBool : ARG0 = struct
     let open Unn_pre.Typs in
     let bool = T [ ("true", []); ("false", []) ]  in
     let p    = T [ ("triple", [bool; bool; bool]) ] in
-    Typs.inject @@ Typs.construct p
+    Typs.construct p
 
 (*  let () =
     let wrap expr =
@@ -466,7 +466,7 @@ module ArgTripleBool : ARG0 = struct
     wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])*)
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
 
   let clauses =
     [ ptriple pwc    pfalse ptrue , IR.eint 1
@@ -548,10 +548,10 @@ module ArgPeanoSimple : ARG0 = struct
     let height = make height in
     let pairs = T [ ("pair", [ height; height ]) ] in
     let grounded = Typs.construct pairs in
-    Typs.inject grounded
+    grounded
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e (Typs.inject typs) !!true
 
 
   let info = "simple nats (a la Maranget2008)"
@@ -622,7 +622,7 @@ module ArgSimpleList : ARG0 = struct
     let listints2 = T [ ("nil", []);  ("cons", [ ints; listints1]) ] in
     let pairs = T [ ("pair", [ listints2; listints2]) ] in
     let grounded = Typs.construct pairs in
-    Typs.inject grounded
+     grounded
 
   let info = "simple lists (from Maranget2008)"
 
@@ -650,7 +650,7 @@ module ArgSimpleList : ARG0 = struct
   let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))*)
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e (Typs.inject typs) !!true
 (*
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
@@ -888,10 +888,10 @@ module ArgTwoNilLists1 : ARG0 = struct
     let lists  = T [ ("nil", []); ("nil2", []); ("cons", [ ints; lists]) ] in
     let pairs = T [ ("pair", [ lists; lists ]) ] in
     let grounded = Typs.construct pairs in
-    Typs.inject grounded
+    grounded
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e (Typs.inject typs) !!true
 
   let clauses =
     [ ppair pnil  pwc, IR.eint 10
@@ -1074,7 +1074,7 @@ let inhabit_by_trie typs trie =
             ))
         ])
   in
-  helper (Matchable.scru ()) typs
+  helper (Matchable.scru ()) (Typs.inject typs)
 
 
 module ArgPCF : ARG0 = struct
@@ -1128,11 +1128,12 @@ module ArgPCF : ARG0 = struct
       t
     in
     let pairs = T [ ("triple", [ code; stack; prog ]) ] in
-    let grounded = Typs.construct pairs in
-    Typs.inject grounded
+    Typs.construct pairs
+
 
   let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e typs !!true
+    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e
+      (Typs.inject typs) !!true
 
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
@@ -1177,7 +1178,7 @@ module ArgPCF : ARG0 = struct
 (*    assert (2 = n);*)
     n
 
-  let trie = Pats_tree.build clauses
+  let trie = Pats_tree.build clauses typs
   let inhabit _ = inhabit_by_trie typs trie
 
   let optimize = optimize_pair
@@ -1234,7 +1235,7 @@ module ArgTuple5 : ARG0 = struct
     in
     let pairs = T [ ("triple", [ stack; stack; stack ]) ] in
     let grounded = Typs.construct pairs in
-    Typs.inject grounded
+    grounded
 
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
@@ -1263,7 +1264,7 @@ module ArgTuple5 : ARG0 = struct
     ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
     ]
 
-  let trie = Pats_tree.build clauses
+  let trie = Pats_tree.build clauses typs
   let inhabit _ = inhabit_by_trie typs trie
 
   let max_height =

@@ -91,10 +91,10 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   (* ************************************************************************ *)
   (** synthetizer main  *)
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
-          ~prunes_period ~with_default_shortcuts clauses typs =
+          ~prunes_period ~with_default_shortcuts =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
-    let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
+    let printed_clauses = Format.asprintf "%a" Clauses.pretty_print Arg.clauses in
     Format.printf "%s" printed_clauses;
     let max_ifs_count = ref 0 in
     let set_initial_bound () = max_ifs_count := Arg.max_ifs_count in
@@ -122,11 +122,15 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         max_ifs_count := x
     in
 
-
+    let () =
+        trie := Pats_tree.build Arg.clauses Arg.typs;
+        trie := Pats_tree.remove !trie [];
+        Pats_tree.pp Format.std_formatter !trie
+    in
     let max_height = N.(inject @@ of_int Arg.max_height) in
 
     (** Raises [FilteredOut] when answer is not worth it *)
-    let count_if_constructors : IR.logic -> int = fun root ->
+    let count_if_constructors init_g folder : IR.logic -> _ * int = fun root ->
       let next_seen seen scru tag =
         if not check_repeated_ifs
         then seen
@@ -135,13 +139,15 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             | Some mground ->
                 if List.mem mground seen
                 then raise FilteredOutByForm
+                else if not (Pats_tree.is_set !trie (Matchable.ground_to_list_repr mground))
+                then raise FilteredOutByForm
                 else mground :: seen
             | _ -> seen
       in
-      let rec helper ~height ~count seen = function
+      let rec helper ~height ~count seen goal_acc = function
       | Var (_,_)
       | Value (Lit _)
-      | Value Fail -> count
+      | Value Fail -> (goal_acc,count)
       | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOutByForm
       | Value (Switch (scru, xs, on_default)) ->
           let height = height + 1 in
@@ -149,18 +155,28 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             if height > Arg.max_nested_switches
             then raise FilteredOutByNestedness
           in
-          GT.foldl Std.List.logic (fun acc -> function
-            | Value (Var _, code) -> helper ~height ~count:acc seen code
+          let goal_acc = folder goal_acc xs in
+          let goal_acc,count =
+            (helper ~height ~count:(count + (logic_list_len_lo xs)) seen goal_acc on_default)
+          in
+          GT.foldl Std.List.logic (fun ((acc_g,count) as acc) -> function
+            | Value (Var (n,cstr), code) ->
+                let () =
+                  match cstr with
+                  | [] -> ()
+                  | _ -> Format.printf "\t\t\x1b[33mVar %d has %d constraints\x1b[39;49m\n%!" n (List.length cstr)
+                in
+                helper ~height ~count seen goal_acc code
             | Value (tagl, code) ->
                 let seen = next_seen seen scru tagl in
-                helper ~height ~count:acc seen code
+                helper ~height ~count seen goal_acc code
             | Var _ -> acc)
-            0
+            (goal_acc,count)
             xs
-          +
-          (helper ~height ~count:(count + (logic_list_len_lo xs)) seen on_default)
+
+
       in
-      helper ~height:0 ~count:0 [] root
+      helper ~height:0 ~count:0 [] init_g root
     in
 
     let _ifs_size_hack (ans: IR.injected) =
@@ -175,7 +191,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         in
         try
           debug "height_hack `%s` = %!" (IR.show_logic ir);
-          let n = count_if_constructors ir in
+          let ((),n) = count_if_constructors () (fun () _ -> ()) ir in
           assert (n >= 0);
           debug "%d%!" n;
           match n with
@@ -207,12 +223,10 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 (*    let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> IR.injected -> _ -> goal) = Work.eval_ir in*)
 (*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
 
-    let () =
-        trie := Pats_tree.build clauses;
-        Pats_tree.pp Format.std_formatter !trie
-    in
 
-    let injected_clauses = Clauses.inject clauses in
+
+    let injected_clauses = Clauses.inject Arg.clauses in
+    let injected_typs = Typs.inject Arg.typs in
     let injected_exprs =
       let demo_exprs =
         run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Expr.prjc)
@@ -236,7 +250,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (W.eval_pat scru_demo injected_clauses rez)
                     (rez === Std.Option.some ir)
                     (ir === IR.int n)
-                    (W.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
                 )
                 (fun r -> r)
               in
@@ -329,6 +343,20 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     in
 
 
+    let my_satisfiability acc xs =
+      try
+        GT.foldl Std.List.logic (fun acc p ->
+          match p with
+          | Var _ -> acc
+          | Value (Var _,_) -> acc
+          | Value (tag,_)
+          acc
+        )
+        acc
+        xs
+      with _ -> assert false
+    in
+
     Mybench.repeat begin fun () ->
       set_initial_bound ();
       answer_index := -1;
@@ -350,7 +378,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (res_pat === Std.Option.none ())
                     (res_ir === Std.Option.none())
                 ])
-                (my_eval_ir  ideal_IR scru typs ideal_IR res_ir)
+                (my_eval_ir  ideal_IR scru injected_typs ideal_IR res_ir)
                 (debug_var ideal_IR (flip IR.reify) (fun irs ->
                   let ir =
                     match irs with
@@ -358,19 +386,44 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     | [ir] -> ir
                     | _ -> assert false
                   in
+                  let verbose = true in
+(*                  let verbose = false in*)
+                  let debug fmt =
+                    Format.ksprintf (fun s -> if verbose then Format.printf "%s" s else ())
+                      fmt
+                  in
                   let verdict =
                     try
-                      let n = count_if_constructors ir in
+                      debug "after_hack `%s` = %!" (IR.show_logic ir);
+                      let (hack,n) = count_if_constructors success my_satisfiability ir in
                       assert (n >= 0);
+                      debug "%d%!" n;
                       match n with
-                      | x when x > !max_ifs_count ->  raise (FilteredOutBySize x)
-                      | _ -> true
+                      | x when x > !max_ifs_count ->
+                        raise (FilteredOutBySize x)
+                      | _ ->
+                          debug "\n%!";
+                          Some hack
                     with
-                      | FilteredOutBySize n ->                    false
-                      | FilteredOutByForm ->                    false
-                      | FilteredOutByNestedness ->                    false
+                      | FilteredOutBySize n ->
+                        if verbose
+                        then debug "  %s (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
+                          (IR.show_logic ir) n ;
+                        None
+                      | FilteredOutByForm ->
+                        if verbose
+                        then debug "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
+                            (IR.show_logic ir) ;
+                        None
+                      | FilteredOutByNestedness ->
+                        if verbose
+                        then debug "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
+                            (IR.show_logic ir) ;
+                        None
                   in
-                  if verdict then success else failure
+                  match verdict with
+                  | Some g -> g
+                  | None -> failure
                 ))
             )
             init
@@ -398,7 +451,6 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     then work ~n ~with_hack ~print_examples ~check_repeated_ifs
       ~debug_filtered_by_size ~with_default_shortcuts
       ~prunes_period
-      Arg.clauses Arg.typs
     else ()
 end
 

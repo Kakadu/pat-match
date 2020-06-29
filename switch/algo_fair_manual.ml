@@ -46,6 +46,9 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts clauses typs =
+
+    failwith "not upgraded, not implemented"
+    (*
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
@@ -373,7 +376,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         if ms > 10000.0
         then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
         else Format.sprintf "%10.0fms\n%!" ms)
-
+*)
 
 
   let test ?(print_examples=true) ?(debug_filtered_by_size=false)
