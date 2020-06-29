@@ -394,6 +394,7 @@ end
 
 
 let pwc = WildCard
+let __ = pwc
 let pconstr name xs = PConstr (Tag.tag_of_string_exn name, Std.List.of_list id xs)
 let pleaf s = pconstr s []
 let pnil    = pleaf "nil"

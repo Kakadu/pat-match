@@ -134,7 +134,7 @@ module ArgAB : ARG0 = struct
   let info = "A|B"
 
   let clauses =
-    [ pwc      , IR.eint 0
+    [ __      , IR.eint 0
     ; pleaf "A", IR.eint 1
     ]
 
@@ -283,8 +283,8 @@ module ArgABCD : ARG0 = struct
 
   let clauses =
     [ pc (pa pb), IR.eint 1
-    ; pc pwc    , IR.eint 2
-    ; pwc       , IR.eint 3
+    ; pc __    , IR.eint 2
+    ; __       , IR.eint 3
     ]
 
   let max_height =
@@ -396,8 +396,8 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
   let info = "bool*bool"
 
   let clauses =
-    [ ppair ptrue pwc , IR.eint 1
-    ; ppair pwc ptrue , IR.eint 1
+    [ ppair ptrue __ , IR.eint 1
+    ; ppair __ ptrue , IR.eint 1
     ; ppair pfalse pfalse, IR.eint 0
     ]
 
@@ -468,10 +468,10 @@ module ArgTripleBool : ARG0 = struct
     Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
 
   let clauses =
-    [ ptriple pwc    pfalse ptrue , IR.eint 1
-    ; ptriple pfalse ptrue  pwc   , IR.eint 2
-    ; ptriple pwc    pwc    pfalse, IR.eint 3
-    ; ptriple pwc    pwc    ptrue , IR.eint 4
+    [ ptriple __    pfalse ptrue , IR.eint 1
+    ; ptriple pfalse ptrue  __   , IR.eint 2
+    ; ptriple __    __    pfalse, IR.eint 3
+    ; ptriple __    __    ptrue , IR.eint 4
     ]
 
   let max_height =
@@ -556,9 +556,9 @@ module ArgPeanoSimple : ARG0 = struct
   let info = "simple nats (a la Maranget2008)"
 
   let clauses =
-    [ ppair (psucc pwc) (psucc pwc), IR.eint 30
-    ; ppair pzero  pwc, IR.eint 10
-    ; ppair pwc  pzero, IR.eint 10
+    [ ppair (psucc __) (psucc __), IR.eint 30
+    ; ppair pzero  __, IR.eint 10
+    ; ppair __  pzero, IR.eint 10
     ;
     ]
 
@@ -626,9 +626,9 @@ module ArgSimpleList : ARG0 = struct
   let info = "simple lists (from Maranget2008)"
 
   let clauses =
-    [ ppair pnil  pwc, IR.eint 10
-    ; ppair pwc  pnil, IR.eint 20
-    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 30
+    [ ppair pnil  __, IR.eint 10
+    ; ppair __  pnil, IR.eint 20
+    ; ppair (pcons __ __) (pcons __ __), IR.eint 30
     ]
 
 (*
@@ -893,11 +893,11 @@ module ArgTwoNilLists1 : ARG0 = struct
     Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e (Typs.inject typs) !!true
 
   let clauses =
-    [ ppair pnil  pwc, IR.eint 10
-    ; ppair pwc  pnil, IR.eint 20
-    ; ppair pnil2 pwc, IR.eint 30
-    ; ppair pwc pnil2, IR.eint 40
-    ; ppair pwc   pwc, IR.eint 60
+    [ ppair pnil  __, IR.eint 10
+    ; ppair __  pnil, IR.eint 20
+    ; ppair pnil2 __, IR.eint 30
+    ; ppair __ pnil2, IR.eint 40
+    ; ppair __   __, IR.eint 60
     ]
 
   let max_height =
@@ -944,11 +944,11 @@ module ArgTwoNilLists2Cons : ARG0 = struct
   let info = "two-nil lists (with cons)"
 
   let clauses =
-    [ ppair pnil  pwc, IR.eint 10
-    ; ppair pwc  pnil, IR.eint 20
-    ; ppair pnil2 pwc, IR.eint 30
-    ; ppair pwc pnil2, IR.eint 40
-    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 60
+    [ ppair pnil  __, IR.eint 10
+    ; ppair __  pnil, IR.eint 20
+    ; ppair pnil2 __, IR.eint 30
+    ; ppair __ pnil2, IR.eint 40
+    ; ppair (pcons __ __) (pcons __ __), IR.eint 60
     ]
 
 end
@@ -959,11 +959,11 @@ module ArgTwoNilLists2Simplified : ARG0 = struct
   let info = "two-nil lists (with cons; simplified RHS)"
 
   let clauses =
-    [ ppair pnil  pwc, IR.eint 10
-    ; ppair pwc  pnil, IR.eint 10
-    ; ppair pnil2 pwc, IR.eint 10
-    ; ppair pwc pnil2, IR.eint 10
-    ; ppair (pcons pwc pwc) (pcons pwc pwc), IR.eint 60
+    [ ppair pnil  __, IR.eint 10
+    ; ppair __  pnil, IR.eint 10
+    ; ppair pnil2 __, IR.eint 10
+    ; ppair __ pnil2, IR.eint 10
+    ; ppair (pcons __ __) (pcons __ __), IR.eint 60
     ]
 
   let () = assert (max_height = 2)
@@ -1154,23 +1154,23 @@ module ArgPCF : ARG0 = struct
   let pcode x = pconstr "Code" [ x ]
 
   let clauses =
-    [ ptriple pwc        pwc  (pcons (pldi pwc) pwc), IR.eint 1
-    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
-    ; ptriple (pint pwc) pwc  (pcons (piop pwc) pwc), IR.eint 3
+    [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
+    ; ptriple __        __  (pcons ppush __), IR.eint 2
+    ; ptriple (pint __) (pcons (pval (pint __)) __)  (pcons (piop __) __), IR.eint 3
 
-(*    ; ptriple (pint pwc) pwc  (pcons pwc pwc), IR.eint 3*)
+(*    ; ptriple (pint __) __  (pcons __ __), IR.eint 3*)
 
-(*    ; ptriple (pint pwc) pwc              (pcons (ptest pwc pwc) pwc), IR.eint 4*)
+(*    ; ptriple (pint __) __              (pcons (ptest __ __) __), IR.eint 4*)
 
-(*    ; ptriple pwc   pwc (pcons pextend pwc), IR.eint 6
-    ; ptriple pwc   pwc (pcons (psearch pwc) pwc), IR.eint 7
-    ; ptriple pwc   pwc (pcons ppushenv pwc), IR.eint 8
-    ; ptriple pwc   (pcons (penv pwc) pwc) (pcons ppopenv pwc), IR.eint 9
-    ; ptriple pwc   pwc (pcons (pmkclos pwc) pwc), IR.eint 10
-    ; ptriple pwc   pwc (pcons (pmkclosrec pwc) pwc), IR.eint 10
-    ; ptriple (pclo pwc pwc) (pcons (pval pwc) pwc) (pcons papply pwc), IR.eint 12
-    ; ptriple pwc   (pcons (pcode pwc) (pcons (penv pwc) pwc)) pnil, IR.eint 13
-    ; ptriple pwc   pnil pnil, IR.eint 14*)
+(*    ; ptriple __   __ (pcons pextend __), IR.eint 6
+    ; ptriple __   __ (pcons (psearch __) __), IR.eint 7
+    ; ptriple __   __ (pcons ppushenv __), IR.eint 8
+    ; ptriple __   (pcons (penv __) __) (pcons ppopenv __), IR.eint 9
+    ; ptriple __   __ (pcons (pmkclos __) __), IR.eint 10
+    ; ptriple __   __ (pcons (pmkclosrec __) __), IR.eint 10
+    ; ptriple (pclo __ __) (pcons (pval __) __) (pcons papply __), IR.eint 12
+    ; ptriple __   (pcons (pcode __) (pcons (penv __) __)) pnil, IR.eint 13
+    ; ptriple __   pnil pnil, IR.eint 14*)
     ]
 
   let max_height =
@@ -1261,8 +1261,8 @@ module ArgTuple5 : ARG0 = struct
   let optimize = id
 
   let clauses =
-    [ ptriple pwc        pwc  (pcons pwc (pcons pwc (pcons pwc pwc))), IR.eint 1
-    ; ptriple pwc        pwc  (pcons ppush pwc), IR.eint 2
+    [ ptriple __        __  (pcons __ (pcons __ (pcons __ __))), IR.eint 1
+    ; ptriple __        __  (pcons ppush __), IR.eint 2
     ]
 
   let trie = Pats_tree.build clauses typs
