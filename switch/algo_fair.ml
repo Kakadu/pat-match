@@ -253,8 +253,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 (*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
 
     let () =
-        trie := Pats_tree.build Arg.clauses Arg.typs;
-        trie := Pats_tree.remove !trie [];
+        trie := Arg.minimal_trie;
         Pats_tree.pp Format.std_formatter !trie
     in
 
@@ -262,7 +261,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     let injected_typs = Typs.inject Arg.typs in
     let injected_exprs =
       let demo_exprs =
-        run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Expr.prjc)
+        run one Arg.inhabit (fun r -> r#prjc Expr.prjc)
         |> OCanren.Stream.take ~n:(-1)
       in
 

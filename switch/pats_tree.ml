@@ -12,6 +12,7 @@ module type S  = sig
   val is_set: t -> path -> bool
   val remove: t -> path -> t
   val find_exn: t -> path -> TagSet.t
+  val minimize: t -> t
 
   val pp: Format.formatter -> t -> unit
 end
@@ -39,6 +40,10 @@ include (struct
     with Not_found -> false
 
   let remove = Trie.sub
+  let minimize =
+    Trie.map_filter_values (fun set ->
+      if TagSet.cardinal set > 1 then Some set else None
+    )
 
   let pp fmt t =
     t |> Trie.iter (fun k set ->

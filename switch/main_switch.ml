@@ -42,7 +42,7 @@ let algo =
 [%% define PairTrueFalse]
 [%% undef  PairTrueFalse]
 [%% define TripleBool]
-[%% undef  TripleBool]
+(*[%% undef  TripleBool]*)
 [%% define Peano]
 [%% undef  Peano]
 [%% define SimpleList]
@@ -53,29 +53,15 @@ let algo =
 [%% undef  TwoNilLists2]
 
 [%% define ABCD]
-[%% undef  ABCD]
+(*[%% undef  ABCD]*)
 
 [%% define Tuple5]
-[%% undef  Tuple5]
+(*[%% undef  Tuple5]*)
 
 [%% define PCF]
 (*[%% undef  PCF]*)
 
-(*
-let () = Algo_fair.is_enabled := true
 
-[%% if (defined ManualAlgo) ]
-let () = Algo_fair_manual.is_enabled := true
-[%% else ]
-let () = Algo_fair_manual.is_enabled := false
-[%% endif ]
-
-[%% if (defined Algo2) ]
-(*let () = Algo_fair2.is_enabled := true*)
-[%% else ]
-(*let () = Algo_fair2.is_enabled := false*)
-[%% endif ]
- *)
 (*let default_shortcut eta m cases history rez =
   (not_in_history m history !!true)
 
@@ -97,6 +83,7 @@ let default_shortcut_tag constr_names cases rez =
 [%% if (defined TrueFalse) ]
 let () =
   let (module Algo) = algo in
+  let (module Work) = work in
   let module M = Algo.Make(Work)(ArgMake(ArgTrueFalse)) in
   M.test (-1)
 
@@ -105,20 +92,16 @@ let () =
 
 (* ************************************************************************** *)
 [%% if (defined PairTrueFalse) ]
-module FPairBool = Algo_fair.Make(Work)(struct
+(*module FPairBool = Algo_fair.Make(Work)(struct
   include ArgMake(ArgPairTrueFalse)
-end)
+end)*)
 
-let  () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgPairTrueFalse)) in
+let () =
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module L = Algo.Make(Work)(ArgMake(ArgPairTrueFalse)) in
   L.test (-1)
 
-[%% if (defined ManualAlgo) ]
-let  () =
-  let module M = Algo_fair_manual.Make(ArgMake(ArgPairTrueFalse)) in
-  M.test (-1)
-
-[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -129,30 +112,28 @@ module FAAAAAAAAAAAA = Algo_fair.Make(Work)(struct
   (* in this demo merging cases can be helpful *)
 end)
 
-let  () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgAB)) in
+let () =
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module L = Algo.Make(Work)(ArgMake(ArgAB)) in
   L.test (-1)
 
 [%% endif]
 
 (* ************************************************************************** *)
 [%% if (defined ABC) ]
-module FABC = Algo_fair.Make(Work)(struct
+(*module FABC = Algo_fair.Make(Work)(struct
   include ArgMake(ArgABC)
 
   (* in this demo merging cases can be helpful *)
-end)
+end)*)
 
 let  () =
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgABC)) in
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module L = Algo.Make(Work)(ArgMake(ArgABC)) in
   L.test (-1)
 
-[%% if (defined ManualAlgo) ]
-let  () =
-  let module M = Algo_fair_manual.Make(ArgMake(ArgABC)) in
-  M.test (-1)
-
-[%% endif]
 [%% endif]
 
 (* ************************************************************************** *)
@@ -594,8 +575,9 @@ end)
 let () = Algo_fair_manual.is_enabled := true
 
 let () =
-
-  let module M = Algo_fair_manual.Make(ArgMake(ArgABCD)) in
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module M = Algo.Make(Work)(ArgMake(ArgABCD)) in
   M.test (-1)
 
 [%% endif]

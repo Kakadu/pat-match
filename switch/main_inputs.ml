@@ -5,6 +5,65 @@ let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
 
 
+let inhabit_by_trie typs trie =
+  let open OCanren in
+  let open Unn_pre in
+  let module W = Unn_pre.WorkHO in
+  let iter2io f =
+    let rec helper n xs ys =
+      conde
+        [ (xs === Std.List.nil()) &&& (ys === Std.List.nil())
+        ; fresh (h1 tl1 h2 tl2)
+            (xs === Std.(h1 % tl1))
+            (ys === Std.(h2 % tl2))
+            (f n h1 h2)
+            (helper (N.s n) tl1 tl2 )
+        ]
+    in
+    helper N.(z)
+  in
+  let is_good_m m ans =
+    fresh ()
+      (debug_var m (flip Matchable.reify) (fun ms ->
+      (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
+        match ms with
+        | [] -> failure
+        | _::_::_ -> failwith "too many answers"
+        | [ms] ->
+            match Matchable.to_ground ms with
+              | None ->
+                  let _ = assert false in success
+              | Some m ->
+                let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
+                (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
+                (ans === !!b)
+
+      ))
+      success
+  in
+  let rec helper m typs e =
+    fresh (c es is_ok arg_typs)
+      (is_good_m m is_ok)
+      (conde
+        [ fresh ()
+            (is_ok === !!true)
+            (e === Expr.constr c es)
+            (W.info_assoc typs c arg_typs)
+            (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
+        ; fresh ()
+            (is_ok === !!false)
+            (debug_var is_ok (flip OCanren.reify) (fun ok ->
+               let () =
+                 match ok with
+                 | [Value false] -> ()
+                 | _ -> assert false
+               in
+               (only_head @@ W.well_typed_expr e typs !!true)
+            ))
+        ])
+  in
+  helper (Matchable.scru ()) typs
+
 
 module type ARG0 = sig
   open OCanren
@@ -14,11 +73,12 @@ module type ARG0 = sig
   type qtyp_injected = (g,l) injected
 
   val try_compile_naively: bool
-  val inhabit: int -> Expr.injected -> goal
+  val inhabit: Expr.injected -> goal
   val clauses : Clauses.pre_ground
   val typs : Typs.ground
   val max_height : int
   val optimize: IR.ground -> IR.ground
+  val initial_trie: Pats_tree.t
 
   val shortcut0:
     Matchable.injected ->
@@ -50,6 +110,7 @@ module type ARG_FINAL = sig
   (* maximum count of IFs in the example answer *)
   val max_ifs_count : int
 
+  val minimal_trie: Pats_tree.t
   val max_examples_count : int
   val ir_hint : IR.injected -> OCanren.goal
   val max_nested_switches : int
@@ -74,9 +135,9 @@ module ArgTrueFalse : ARG0 = struct
     ; pfalse, IR.eint 0
     ]
 
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
 
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -123,20 +184,20 @@ module ArgAB : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:helper
 
-  let typs =
-    let open Unn_pre.Typs in
-    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
-    grounded
-
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
-
   let info = "A|B"
 
   let clauses =
     [ __      , IR.eint 0
     ; pleaf "A", IR.eint 1
     ]
+
+  let typs =
+    let open Unn_pre.Typs in
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
+    grounded
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -177,14 +238,7 @@ module ArgABC : ARG0 = struct
 
   let typs =
     let open Unn_pre.Typs in
-
-    let grounded = Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ] in
-    grounded
-
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "A") e (Typs.inject typs) !!true
-
-
+    Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ]
 
   let info = "A|B|C"
 
@@ -194,12 +248,13 @@ module ArgABC : ARG0 = struct
     ; pleaf "C", IR.eint 0
     ]
 
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
     assert (1 = n);
     n
-
-
 
   let rec optimize (root: IR.ground)  = root
 
@@ -232,7 +287,7 @@ module ArgABCD : ARG0 = struct
   let b   : injected = inj @@ F.distrib B
   let d   : injected = inj @@ F.distrib D
 
-  let to_expr (demo_exprs: g list) =
+(*  let to_expr (demo_exprs: g list) =
     let open Unn_pre.Expr in
     let rec helper = function
     | A x  -> econstr "A" [helper x]
@@ -240,7 +295,7 @@ module ArgABCD : ARG0 = struct
     | C x  -> econstr "C" [helper x]
     | D    -> econstr "D" []
     in
-    ListLabels.map demo_exprs ~f:helper
+    ListLabels.map demo_exprs ~f:helper*)
 
   let rec inhabit_t (rez: Expr.injected) : goal =
     conde
@@ -276,6 +331,17 @@ module ArgABCD : ARG0 = struct
 
   let info = "A of t|B|C of t | D"
 
+  let typs =
+    let open Unn_pre.Typs in
+
+    let l = T [ ("A", []); ("B", []); ("C", []); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
+    Typs.construct l
+
   let pa x = pconstr "A" [x]
   let pc x = pconstr "C" [x]
   let pb   = pconstr "B" []
@@ -287,23 +353,14 @@ module ArgABCD : ARG0 = struct
     ; __       , IR.eint 3
     ]
 
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
     assert (3 = n);
     n
 
-  let typs =
-    let open Unn_pre.Typs in
-
-    let l = T [ ("A", []); ("B", []); ("C", []); ("D", []) ] in
-    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
-    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
-    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
-    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
-    let l = T [ ("A", [l]); ("B", []); ("C", [l]); ("D", []) ] in
-
-    let grounded = Typs.construct @@ l in
-    grounded
 
   let rec optimize (root: IR.ground)  = root
 
@@ -390,9 +447,6 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     let p    = T [ ("pair", [bool; bool]) ] in
     Typs.construct p
 
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
-
   let info = "bool*bool"
 
   let clauses =
@@ -400,6 +454,9 @@ module ArgPairTrueFalse : ARG0 (*with type g = bool * bool
     ; ppair __ ptrue , IR.eint 1
     ; ppair pfalse pfalse, IR.eint 0
     ]
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -453,26 +510,15 @@ module ArgTripleBool : ARG0 = struct
     let p    = T [ ("triple", [bool; bool; bool]) ] in
     Typs.construct p
 
-(*  let () =
-    let wrap expr =
-      run q (fun q -> well_typed_expr (Expr.inject expr) typs !!true)
-        (fun r -> r)
-      |> (fun s ->
-        assert (not(OCanren.Stream.is_empty s));
-        Format.printf "good!\n%!"
-      )
-    in
-    wrap Expr.(econstr "triple" [ eleaf "true"; eleaf "true"; eleaf "true" ])*)
-
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "true") e (Typs.inject typs) !!true
-
   let clauses =
     [ ptriple __    pfalse ptrue , IR.eint 1
     ; ptriple pfalse ptrue  __   , IR.eint 2
     ; ptriple __    __    pfalse, IR.eint 3
     ; ptriple __    __    ptrue , IR.eint 4
     ]
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -546,12 +592,7 @@ module ArgPeanoSimple : ARG0 = struct
     let height = make height in
     let height = make height in
     let pairs = T [ ("pair", [ height; height ]) ] in
-    let grounded = Typs.construct pairs in
-    grounded
-
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "zero") e (Typs.inject typs) !!true
-
+    Typs.construct pairs
 
   let info = "simple nats (a la Maranget2008)"
 
@@ -562,6 +603,9 @@ module ArgPeanoSimple : ARG0 = struct
     ;
     ]
 
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
   (*    Format.printf "patterns max height = %d\n%!" n;*)
@@ -570,7 +614,7 @@ module ArgPeanoSimple : ARG0 = struct
 
 
   let optimize = optimize_pair
-
+(*
   let prjp e =
     let prjl e =
       N.prjc
@@ -590,7 +634,7 @@ module ArgPeanoSimple : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:(fun (a,b) ->
       econstr "pair" [ helper a; helper b ]
-    )
+    )*)
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -648,8 +692,9 @@ module ArgSimpleList : ARG0 = struct
 
   let for_wildcard = make_wildcard_inhabitant (fun q -> (q=== Expr.constr !!"one" (Std.List.nil())))*)
 
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e (Typs.inject typs) !!true
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
 (*
   (** [inhabit_list height arg r] returns all inhabtants of the list where
     list elements are inhabited by [arg] and amount of Nil/Cons constructors
@@ -889,9 +934,6 @@ module ArgTwoNilLists1 : ARG0 = struct
     let grounded = Typs.construct pairs in
     grounded
 
-  let inhabit n e =
-    Work_base_common.well_typed_expr_height N.(inject @@ of_int n) Expr.(inject@@ eleaf "nil") e (Typs.inject typs) !!true
-
   let clauses =
     [ ppair pnil  __, IR.eint 10
     ; ppair __  pnil, IR.eint 20
@@ -899,6 +941,9 @@ module ArgTwoNilLists1 : ARG0 = struct
     ; ppair __ pnil2, IR.eint 40
     ; ppair __   __, IR.eint 60
     ]
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -1016,64 +1061,6 @@ end
 
 
 
-let inhabit_by_trie typs trie =
-  let open OCanren in
-  let open Unn_pre in
-  let module W = Unn_pre.WorkHO in
-  let iter2io f =
-    let rec helper n xs ys =
-      conde
-        [ (xs === Std.List.nil()) &&& (ys === Std.List.nil())
-        ; fresh (h1 tl1 h2 tl2)
-            (xs === Std.(h1 % tl1))
-            (ys === Std.(h2 % tl2))
-            (f n h1 h2)
-            (helper (N.s n) tl1 tl2 )
-        ]
-    in
-    helper N.(z)
-  in
-  let is_good_m m ans =
-    fresh ()
-      (debug_var m (flip Matchable.reify) (fun ms ->
-      (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
-        match ms with
-        | [] -> failure
-        | _::_::_ -> failwith "too many answers"
-        | [ms] ->
-            match Matchable.to_ground ms with
-              | None ->
-                  let _ = assert false in success
-              | Some m ->
-                let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
-                (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
-                (ans === !!b)
-
-      ))
-      success
-  in
-  let rec helper m typs e =
-    fresh (c es is_ok arg_typs)
-      (is_good_m m is_ok)
-      (conde
-        [ fresh ()
-            (is_ok === !!true)
-            (e === Expr.constr c es)
-            (W.info_assoc typs c arg_typs)
-            (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
-        ; fresh ()
-            (is_ok === !!false)
-            (debug_var is_ok (flip OCanren.reify) (fun ok ->
-               let () =
-                 match ok with
-                 | [Value false] -> ()
-                 | _ -> assert false
-               in
-               (only_head @@ W.well_typed_expr e typs !!true)
-            ))
-        ])
-  in
-  helper (Matchable.scru ()) typs
 
 
 module ArgPCF : ARG0 = struct
@@ -1179,8 +1166,8 @@ module ArgPCF : ARG0 = struct
 (*    assert (2 = n);*)
     n
 
-  let trie = Pats_tree.build clauses typs
-  let inhabit _ = inhabit_by_trie (Typs.inject typs) trie
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let optimize = optimize_pair
   let shortcut0 = simple_shortcut0
@@ -1235,8 +1222,7 @@ module ArgTuple5 : ARG0 = struct
       t
     in
     let pairs = T [ ("triple", [ stack; stack; stack ]) ] in
-    let grounded = Typs.construct pairs in
-    grounded
+    Typs.construct pairs
 
   let pldi x = pconstr "Ldi" [ x ]
   let psearch x = pconstr "Search" [ x ]
@@ -1265,8 +1251,8 @@ module ArgTuple5 : ARG0 = struct
     ; ptriple __        __  (pcons ppush __), IR.eint 2
     ]
 
-  let trie = Pats_tree.build clauses typs
-  let inhabit _ = inhabit_by_trie (Typs.inject typs) trie
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
     let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
@@ -1303,6 +1289,8 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
       in
       (None, sum)
     )
+
+  let minimal_trie = Pats_tree.minimize initial_trie
 
 
   let ir_hint _ = OCanren.success
