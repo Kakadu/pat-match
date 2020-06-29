@@ -48,6 +48,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
           ~prunes_period ~with_default_shortcuts clauses typs =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
+    failwith "not revived"
+    (*
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
     Format.printf "%s" printed_clauses;
     let max_ifs_count = ref 0 in
@@ -373,7 +375,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         if ms > 10000.0
         then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
         else Format.sprintf "%10.0fms\n%!" ms)
-
+*)
 
 
   let test ?(print_examples=true) ?(debug_filtered_by_size=false)

@@ -16,6 +16,7 @@ let disable_periodic_prunes () =
 exception FilteredOutBySize of int
 exception FilteredOutByForm
 exception FilteredOutByNestedness
+exception FilteredOutByTooManyCases
 
 let is_enabled = ref true
 
@@ -91,10 +92,10 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   (* ************************************************************************ *)
   (** synthetizer main  *)
   let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
-          ~prunes_period ~with_default_shortcuts clauses typs =
+          ~prunes_period ~with_default_shortcuts =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
-    let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
+    let printed_clauses = Format.asprintf "%a" Clauses.pretty_print Arg.clauses in
     Format.printf "%s" printed_clauses;
     let max_ifs_count = ref 0 in
     let set_initial_bound () = max_ifs_count := Arg.max_ifs_count in
@@ -131,9 +132,11 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         if not check_repeated_ifs
         then seen
         else
-            match (Matchable.to_ground scru) with
+            match Matchable.to_ground scru with
             | Some mground ->
                 if List.mem mground seen
+                then raise FilteredOutByForm
+                else if not (Pats_tree.is_set !trie (Matchable.ground_to_list_repr mground))
                 then raise FilteredOutByForm
                 else mground :: seen
             | _ -> seen
@@ -149,6 +152,40 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             if height > Arg.max_nested_switches
             then raise FilteredOutByNestedness
           in
+          let max_number_cases =
+            match Matchable.to_ground scru with
+            | Some m ->
+                let repr = Matchable.ground_to_list_repr m in
+                if not (Pats_tree.is_set !trie repr)
+                then raise FilteredOutByForm;
+                Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr)
+            | None -> max_int
+          in
+
+          let open Std.List in
+          let rec my_fold_list_logic cases_count acc = function
+             | Var _ -> acc
+             | Value (Cons (Var _, tl)) ->
+                 let cases_count = cases_count + 1 in
+                 if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
+                 my_fold_list_logic cases_count (acc+1) tl
+             | Value (Cons (Value (_, br), tl)) ->
+                 let cases_count = cases_count + 1 in
+                 if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
+                 let acc0 = helper ~height ~count:(acc+1) seen br in
+                 my_fold_list_logic cases_count acc0 tl
+             | Value Nil -> acc
+             (*| Value (Cons (Value (Var (_,_) as case, _), tl)) ->
+                 let count = count + 1 in
+                 if count >= max_number_cases then raise FilteredOutByTooManyCases;
+                 let acc = check_single acc m tag_names case in
+                 my_fold_list_logic count acc  tl*)
+          in
+          let count_in_cases =
+            my_fold_list_logic 0 count xs
+          in
+          helper ~height ~count:count_in_cases seen on_default
+  (*
           GT.foldl Std.List.logic (fun acc -> function
             | Value (Var _, code) -> helper ~height ~count:acc seen code
             | Value (tagl, code) ->
@@ -159,6 +196,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             xs
           +
           (helper ~height ~count:(count + (logic_list_len_lo xs)) seen on_default)
+   *)
       in
       helper ~height:0 ~count:0 [] root
     in
@@ -169,35 +207,42 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
       structural ans IR.reify (fun (ir: IR.logic) ->
         let verbose = true in
-        let debug fmt =
+        let verbose = false in
+        let verbose_exc = true in
+        let verbose_exc = false in
+        (*let debug fmt =
           Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
             fmt
-        in
+        in*)
         try
-          debug "height_hack `%s` = %!" (IR.show_logic ir);
           let n = count_if_constructors ir in
           assert (n >= 0);
-          debug "%d%!" n;
           match n with
           | x when x > !max_ifs_count ->
-            raise (FilteredOutBySize x)
+              raise (FilteredOutBySize x)
           | _ ->
-              debug "\n%!";
+              if verbose then
+                Format.printf "height_hack `%s` = %d\n%!" (IR.show_logic ir) n;
               true
         with
           | FilteredOutBySize n ->
-            if debug_filtered_by_size
+            if verbose && verbose_exc && debug_filtered_by_size
             then Format.printf "  %s (size = %d) \x1b[31mFILTERED OUT\x1b[39;49m because of Ifs count \n%!"
               (IR.show_logic ir) n ;
             false
           | FilteredOutByForm ->
-            if debug_filtered_by_size
+            if verbose && verbose_exc && debug_filtered_by_size
             then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
                 (IR.show_logic ir) ;
             false
           | FilteredOutByNestedness ->
-            if debug_filtered_by_size
+            if verbose && verbose_exc && debug_filtered_by_size
             then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
+                (IR.show_logic ir) ;
+            false
+          | FilteredOutByTooManyCases ->
+            if verbose && verbose_exc && debug_filtered_by_size
+            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by too many cases\n%!"
                 (IR.show_logic ir) ;
             false
 
@@ -208,11 +253,13 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 (*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
 
     let () =
-        trie := Pats_tree.build clauses;
+        trie := Pats_tree.build Arg.clauses Arg.typs;
+        trie := Pats_tree.remove !trie [];
         Pats_tree.pp Format.std_formatter !trie
     in
 
-    let injected_clauses = Clauses.inject clauses in
+    let injected_clauses = Clauses.inject Arg.clauses in
+    let injected_typs = Typs.inject Arg.typs in
     let injected_exprs =
       let demo_exprs =
         run one (fun q -> Arg.inhabit Arg.max_height q) (fun r -> r#prjc Expr.prjc)
@@ -236,7 +283,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (W.eval_pat scru_demo injected_clauses rez)
                     (rez === Std.Option.some ir)
                     (ir === IR.int n)
-                    (W.eval_ir scru_demo max_height typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
+                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))
                 )
                 (fun r -> r)
               in
@@ -350,7 +397,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (res_pat === Std.Option.none ())
                     (res_ir === Std.Option.none())
                 ])
-                (my_eval_ir  ideal_IR scru typs ideal_IR res_ir)
+                (my_eval_ir  ideal_IR scru injected_typs ideal_IR res_ir)
                 (debug_var ideal_IR (flip IR.reify) (fun irs ->
                   let ir =
                     match irs with
@@ -398,7 +445,6 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     then work ~n ~with_hack ~print_examples ~check_repeated_ifs
       ~debug_filtered_by_size ~with_default_shortcuts
       ~prunes_period
-      Arg.clauses Arg.typs
     else ()
 end
 

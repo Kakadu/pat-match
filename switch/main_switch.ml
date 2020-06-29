@@ -56,10 +56,10 @@ let algo =
 [%% undef  ABCD]
 
 [%% define Tuple5]
-(*[%% undef  Tuple5]*)
+[%% undef  Tuple5]
 
 [%% define PCF]
-[%% undef  PCF]
+(*[%% undef  PCF]*)
 
 (*
 let () = Algo_fair.is_enabled := true
