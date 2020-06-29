@@ -290,8 +290,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
            * are much slower
            *
            *)
-           match shortcut_tag constr_names cases with
-           | true ->
+(*           match shortcut_tag constr_names cases with
+           | true ->*)
            match constr_names with
            | constr_hd :: constr_tl ->
              match cases with
@@ -308,3 +308,4 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
   in
 
   inner [] test_list ir
+

@@ -413,9 +413,10 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                       | x when x > !max_ifs_count ->  raise (FilteredOutBySize x)
                       | _ -> true
                     with
-                      | FilteredOutBySize n ->                    false
-                      | FilteredOutByForm ->                    false
-                      | FilteredOutByNestedness ->                    false
+                      | FilteredOutBySize n ->       false
+                      | FilteredOutByForm ->         false
+                      | FilteredOutByNestedness ->   false
+                      | FilteredOutByTooManyCases -> false
                   in
                   if verdict then success else failure
                 ))
