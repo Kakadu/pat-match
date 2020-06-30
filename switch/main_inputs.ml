@@ -1143,7 +1143,9 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
     ; ptriple __        __  (pcons ppush __), IR.eint 2
-    ; ptriple (pint __) (pcons (pval (pint __)) __)  (pcons (piop __) __), IR.eint 3
+    ; ptriple (pint __) __  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pint __) (pcons (pval (pint __)) __)  (pcons (piop __) __), IR.eint 3*)
+
 
 (*    ; ptriple (pint __) __  (pcons __ __), IR.eint 3*)
 

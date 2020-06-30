@@ -91,6 +91,14 @@ module N = struct
     in
     helper root
 
+  let to_ground_exn n =
+    let rec helper = function
+      | Var _ -> raise Not_found
+      | Value Z -> Z
+      | Value (S x) -> S (helper x)
+    in
+    helper n
+
   let rec to_ground = function
     | Var (_,_) -> None
     | Value (Z) -> Some Z
@@ -125,7 +133,7 @@ module Tag = struct
     [ "zero"; "succ"; "true"; "false"
     ; "nil"; "cons"; "nil2"; "pair"; "A"; "B"; "C"
     ; "int"; "triple"; "D"
-    ; "Ldi"; "Search"; "Push"; "Pushenv"; "Popenv"
+    ; "Push";  "Search"; "Ldi"; "Pushenv"; "Popenv"
     ; "Extend"; "Apply"; "Mkclos"; "Mkclosrec"
     ; "Int"; "Val"; "IOp"; "Test"; "Clo"
     ; "Val"; "Env"; "Code"

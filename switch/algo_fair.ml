@@ -17,6 +17,7 @@ exception FilteredOutBySize of int
 exception FilteredOutByForm
 exception FilteredOutByNestedness
 exception FilteredOutByTooManyCases
+exception FilteredOutByTagsOrder
 
 let is_enabled = ref true
 
@@ -75,7 +76,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
   let default_shortcut etag m cases history rez =
     let open OCanren in
-    (W.not_in_history m history !!true)
+    (W.not_in_history m history !!true) &&&
+    success
 
   let default_shortcut_tag constr_names cases rez =
     let open OCanren in
@@ -127,7 +129,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     let max_height = N.(inject @@ of_int Arg.max_height) in
 
     (** Raises [FilteredOut] when answer is not worth it *)
-    let count_if_constructors : IR.logic -> int = fun root ->
+    let count_if_constructors ?(chk_too_many_cases=true) ?(chk_history=false): IR.logic -> int = fun root ->
+      (*
       let next_seen seen scru tag =
         if not check_repeated_ifs
         then seen
@@ -141,6 +144,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                 else mground :: seen
             | _ -> seen
       in
+      *)
       let rec helper ~height ~count seen = function
       | Var (_,_)
       | Value (Lit _)
@@ -152,28 +156,59 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
             if height > Arg.max_nested_switches
             then raise FilteredOutByNestedness
           in
-          let max_number_cases =
+          let max_number_cases,new_seen =
             match Matchable.to_ground scru with
             | Some m ->
                 let repr = Matchable.ground_to_list_repr m in
                 if not (Pats_tree.is_set !trie repr)
                 then raise FilteredOutByForm;
-                Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr)
-            | None -> max_int
+                let max_cases = Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr) in
+
+                let new_seen =
+                  if chk_history && (List.mem m seen)
+                  then raise FilteredOutByForm;
+                  m :: seen
+                in
+                max_cases,new_seen
+            | None -> max_int,seen
           in
 
           let open Std.List in
-          let rec my_fold_list_logic cases_count acc = function
+          let rec my_fold_list_logic cases_count prev_ground_cstr acc = function
              | Var _ -> acc
              | Value (Cons (Var _, tl)) ->
-                 let cases_count = cases_count + 1 in
-                 if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
-                 my_fold_list_logic cases_count (acc+1) tl
-             | Value (Cons (Value (_, br), tl)) ->
-                 let cases_count = cases_count + 1 in
-                 if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
-                 let acc0 = helper ~height ~count:(acc+1) seen br in
-                 my_fold_list_logic cases_count acc0 tl
+                 let cases_count =
+                   let cases_count = cases_count + 1 in
+                   if chk_too_many_cases
+                   then
+                     if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
+                   cases_count
+                 in
+                 my_fold_list_logic cases_count prev_ground_cstr (acc+1) tl
+             | Value (Cons (Value (c, br), tl)) ->
+                 let cases_count =
+                   let cases_count = cases_count + 1 in
+                   if chk_too_many_cases
+                   then
+                     if cases_count >= max_number_cases then raise FilteredOutByTooManyCases;
+                   cases_count
+                 in
+                 let next_constructor  = None in
+                 let next_constructor =
+                   match prev_ground_cstr,c with
+                   | None, Var _ -> None
+                   | None, Value _ ->
+                       let cur_tag = N.to_ground_exn c in
+                       Some (N.to_int cur_tag)
+                   | Some _, Var _ ->  prev_ground_cstr
+                   | Some p, Value _ ->
+                        let cur_tag = N.to_int @@ N.to_ground_exn c in
+                        if cur_tag <= p
+                        then raise FilteredOutByTagsOrder;
+                        Some cur_tag
+                 in
+                 let acc0 = helper ~height ~count:(acc+1) new_seen br in
+                 my_fold_list_logic cases_count next_constructor acc0 tl
              | Value Nil -> acc
              (*| Value (Cons (Value (Var (_,_) as case, _), tl)) ->
                  let count = count + 1 in
@@ -182,7 +217,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                  my_fold_list_logic count acc  tl*)
           in
           let count_in_cases =
-            my_fold_list_logic 0 count xs
+            my_fold_list_logic 0 None count xs
           in
           helper ~height ~count:count_in_cases seen on_default
   (*
@@ -210,15 +245,12 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         let verbose = false in
         let verbose_exc = true in
         let verbose_exc = false in
-        (*let debug fmt =
-          Format.ksprintf (fun s -> if _do_debug&&verbose then Format.printf "%s" s else ())
-            fmt
-        in*)
+
         try
-          let n = count_if_constructors ir in
+          let n = count_if_constructors ~chk_too_many_cases:false ~chk_history:false ir in
           assert (n >= 0);
           match n with
-          | x when x > !max_ifs_count ->
+          | x when x >= !max_ifs_count ->
               raise (FilteredOutBySize x)
           | _ ->
               if verbose then
@@ -231,20 +263,25 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
               (IR.show_logic ir) n ;
             false
           | FilteredOutByForm ->
-            if verbose && verbose_exc && debug_filtered_by_size
-            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
-                (IR.show_logic ir) ;
-            false
+              if verbose && verbose_exc && debug_filtered_by_size
+              then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because of form \n%!"
+                  (IR.show_logic ir) ;
+              false
           | FilteredOutByNestedness ->
-            if verbose && verbose_exc && debug_filtered_by_size
-            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
-                (IR.show_logic ir) ;
-            false
+              if verbose && verbose_exc && debug_filtered_by_size
+              then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by nestedness\n%!"
+                  (IR.show_logic ir) ;
+              false
           | FilteredOutByTooManyCases ->
-            if verbose && verbose_exc && debug_filtered_by_size
-            then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by too many cases\n%!"
-                (IR.show_logic ir) ;
-            false
+              if verbose && verbose_exc && debug_filtered_by_size
+              then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by too many cases\n%!"
+                  (IR.show_logic ir) ;
+              false
+          | FilteredOutByTagsOrder ->
+              if verbose && verbose_exc && debug_filtered_by_size
+              then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by tags order\n%!"
+                  (IR.show_logic ir) ;
+              false
 
       )
     in
@@ -406,7 +443,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                   in
                   let verdict =
                     try
-                      let n = count_if_constructors ir in
+                      let n = count_if_constructors ~chk_too_many_cases:true ~chk_history:false ir in
                       assert (n >= 0);
                       match n with
                       | x when x > !max_ifs_count ->  raise (FilteredOutBySize x)
@@ -416,6 +453,11 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                       | FilteredOutByForm ->         false
                       | FilteredOutByNestedness ->   false
                       | FilteredOutByTooManyCases -> false
+                      | FilteredOutByTagsOrder ->
+                          if verbose && verbose_exc && debug_filtered_by_size
+                          then Format.printf "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by tags order\n%!"
+                              (IR.show_logic ir) ;
+                          false
                   in
                   if verdict then success else failure
                 ))

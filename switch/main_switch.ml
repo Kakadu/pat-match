@@ -42,7 +42,7 @@ let algo =
 [%% define PairTrueFalse]
 [%% undef  PairTrueFalse]
 [%% define TripleBool]
-(*[%% undef  TripleBool]*)
+[%% undef  TripleBool]
 [%% define Peano]
 [%% undef  Peano]
 [%% define SimpleList]
@@ -53,10 +53,10 @@ let algo =
 [%% undef  TwoNilLists2]
 
 [%% define ABCD]
-(*[%% undef  ABCD]*)
+[%% undef  ABCD]
 
 [%% define Tuple5]
-(*[%% undef  Tuple5]*)
+[%% undef  Tuple5]
 
 [%% define PCF]
 (*[%% undef  PCF]*)
