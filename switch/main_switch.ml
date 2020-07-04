@@ -46,9 +46,9 @@ let algo =
 [%% define SimpleList]
 [%% undef  SimpleList]
 [%% define Peano]
-[%% undef  Peano]
+(*[%% undef  Peano]*)
 [%% define TwoNilLists1]
-[%% undef  TwoNilLists1]
+(*[%% undef  TwoNilLists1]*)
 [%% define TwoNilLists2]
 [%% undef  TwoNilLists2]
 
@@ -59,7 +59,7 @@ let algo =
 [%% undef  Tuple5]
 
 [%% define PCF]
-[%% undef  PCF]
+(*[%% undef  PCF]*)
 
 
 (*let default_shortcut eta m cases history rez =

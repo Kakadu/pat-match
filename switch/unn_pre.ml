@@ -894,7 +894,8 @@ type bool_inj = OCanren.Std.Bool.groundi
 module type WORK = sig
   val eval_pat : Expr.injected -> Clauses.injected -> (IR.ground, IR.logic) Std.Option.groundi -> goal
   val eval_ir :  Expr.injected -> N.injected -> Typs.injected ->
-    (Matchable.injected -> N.injected -> Cases.injected  -> bool_inj -> goal) ->
+    (Matchable.injected -> N.injected -> Cases.injected  -> (Matchable.ground, Matchable.logic) Std.List.groundi ->
+        bool_inj -> goal) ->
     (Tag.injected -> Matchable.injected -> Cases.injected  -> (Matchable.ground, Matchable.logic) Std.List.groundi ->
         bool_inj -> goal ) ->
     (CNames.injected -> Cases.injected ->  bool_inj -> goal ) ->
@@ -914,7 +915,7 @@ module WorkUnnesting : WORK = Work_unn
 module WorkHO : WORK = struct
   module Wrap = Work_ho
 
-
+(*
   let eval_ir :
     (Expr.injected -> goal) ->
     (N.injected -> goal) ->
@@ -929,11 +930,11 @@ module WorkHO : WORK = struct
     (IR.injected  -> goal) ->
     (int, int OCanren.logic) Std.Option.groundi ->
     goal =
-      Wrap.eval_ir
+      Wrap.eval_ir*)
 
   let eval_ir e depth typs shct1 shct2 shct3 ir rez =
-    eval_ir ((===)e) ((===)depth) ((===)typs)
-      (fun a b c r   -> Fresh.three (fun a2 b2 c2 -> (a a2) &&& (b b2) &&& (c c2) &&& (shct1 a2 b2 c2 r)))
+    Wrap.eval_ir ((===)e) ((===)depth) ((===)typs)
+      (fun a b c d r -> Fresh.four (fun a2 b2 c2 d2 -> (a a2) &&& (b b2) &&& (c c2) &&& (d d2) &&& (shct1 a2 b2 c2 d2 r)))
       (fun a b c d r -> Fresh.four  (fun a2 b2 c2 d2 -> (a a2) &&& (b b2) &&& (c c2) &&& (d d2) &&& (shct2 a2 b2 c2 d2 r)))
       (fun a b r     -> Fresh.two @@ fun x y -> (a x) &&& (b y) &&& (shct3 x y r) )
       ((===)ir)

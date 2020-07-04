@@ -240,7 +240,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
     | Fail -> None
     | Lit n -> Some n
     | Switch (m, cases, on_default) ->
-        match shortcut0 m max_height cases with
+        match shortcut0 m max_height cases history with
         | true ->
             match eval_m s tinfo m with
             | (EConstr (etag, args), cnames) ->

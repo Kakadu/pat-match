@@ -53,7 +53,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
 
   (* ******************** Default synthesis shortucts ************************* *)
-  let default_shortcut0 m max_height cases rez =
+  let default_shortcut0 m max_height cases history rez =
     let open OCanren in
     fresh ()
       (debug_var m (flip Matchable.reify) (fun ms ->
@@ -70,13 +70,13 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                 then success
                 else failure
       ))
+      (W.not_in_history m history !!true)
       (W.matchable_leq_nat m max_height !!true)
       (cases =/= Std.nil())
       (rez === !!true)
 
   let default_shortcut etag m cases history rez =
     let open OCanren in
-    (W.not_in_history m history !!true) &&&
     success
 
   let default_shortcut_tag constr_names cases rez =
@@ -278,9 +278,6 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       )
     in
 
-(*    let (_: Expr.injected -> Nat.injected -> Typs.injected -> _ -> IR.injected -> _ -> goal) = Work.eval_ir in*)
-(*    let (_: IR.injected -> Expr.injected -> Typs.injected -> IR.injected -> _ -> goal) = my_eval_ir in*)
-
     let () =
         trie := Arg.minimal_trie;
         Pats_tree.pp Format.std_formatter !trie
@@ -383,10 +380,10 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
           repr)
     in
 
-    let shortcut0 m maxheight cases rez =
+    let shortcut0 m maxheight cases history rez =
       (Arg.shortcut0 m maxheight cases rez) &&&
       (if with_default_shortcuts
-       then default_shortcut0 m maxheight cases rez
+       then default_shortcut0 m maxheight cases history rez
        else success)
     in
     let shortcut1 etag m cases history rez =
@@ -446,7 +443,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                       let n = count_if_constructors ~chk_order:true ~chk_too_many_cases:true ~chk_history:false ir in
                       assert (n >= 0);
                       match n with
-                      | x when x > !max_ifs_count ->  raise (FilteredOutBySize x)
+                      | x when x >= !max_ifs_count ->  raise (FilteredOutBySize x)
                       | _ ->
                           if verbose then
                             Format.printf "height_hack `%s` = %d\n%!" (IR.show_logic ir) n;
