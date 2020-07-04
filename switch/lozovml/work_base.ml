@@ -2,17 +2,17 @@ type nat = Z | S of nat
 
 type pattern =
   | WildCard
-  | PConstr of nat * pattern list
-type expr = EConstr of nat * expr list
+  | PConstr of int * pattern list
+type expr = EConstr of int * expr list
 
 type typ_info =
   (* list of pairs: tag of constructor and type information for every argument *)
-  | T of (nat * typ_info list) list
+  | T of (int * typ_info list) list
 
 type matchable = Scru | Field of nat * matchable
 type ir =
   | Fail
-  | Switch of matchable * (nat * ir) list * ir
+  | Switch of matchable * (int * ir) list * ir
   | Lit of int
 
 let well_typed_expr_height height default e typs =

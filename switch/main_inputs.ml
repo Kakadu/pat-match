@@ -1075,7 +1075,7 @@ module ArgPCF : ARG0 = struct
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
-    let int = T [ ("int",[]) ] in
+    let int = T [ ("42",[]) ] in
 (*    let pairint = T [ ("pair", [ int; int ]) ] in*)
     let code = T
       [ ("Push", [])
@@ -1102,8 +1102,8 @@ module ArgPCF : ARG0 = struct
     in
     let stack_item = T
       [ ("Val", [ code ])
-      (*; ("Env",  [ int ])
-      ; ("Code", [ int ])*)
+      ; ("Env",  [ int ])
+      ; ("Code", [ int ])
       ]
     in
     let stack  =
@@ -1130,7 +1130,7 @@ module ArgPCF : ARG0 = struct
   let pmkclos x = pconstr "Mkclos" [ x ]
   let pmkclosrec x = pconstr "Mkclosrec" [ x ]
 
-  let pint x = pconstr "Int" [ x ]
+  let pInt x = pconstr "Int" [ x ]
   let pval x = pconstr "Val" [ x ]
   let piop x = pconstr "IOp" [ x ]
   let ptest x y = pconstr "Test" [ x; y ]
@@ -1143,9 +1143,9 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
     ; ptriple __        __  (pcons ppush __), IR.eint 2
-    ; ptriple (pint __) __  (pcons (piop __) __), IR.eint 3
-(*    ; ptriple (pint __) (pcons (pval (pint __)) __)  (pcons (piop __) __), IR.eint 3*)
-
+    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) (pcons (pval (pInt __)) __)  (pcons (piop __) __), IR.eint 3*)
+    ; ptriple (pInt __) (pcons __ __)  (pcons (piop __) __), IR.eint 3
 
 (*    ; ptriple (pint __) __  (pcons __ __), IR.eint 3*)
 

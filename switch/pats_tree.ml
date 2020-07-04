@@ -23,7 +23,7 @@ include (struct
   type path = N.ground list
 
   let empty = Trie.empty
-  let add tr p v = Trie.set tr p v
+  let add (tr: t) p v = Trie.set tr p v
   (*
   let add_full_path tr p =
     List.fold_left (fun (trie, prefix) x ->
@@ -51,7 +51,7 @@ include (struct
       List.iter (fun n -> Format.fprintf fmt "[%a]" (GT.fmt GT.int) (Unn_pre.N.to_int n)) k;
       Format.fprintf fmt " -> %a\n%!"
         (GT.fmt GT.list @@ (fun fmt tag ->
-          let n = N.to_int tag in
+          let n = Tag.to_int tag in
           Format.fprintf fmt "%d=%s" n (Tag.string_of_tag_exn tag)
         ))
         (TagSet.elements set);

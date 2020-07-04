@@ -42,11 +42,11 @@ let algo =
 [%% define PairTrueFalse]
 [%% undef  PairTrueFalse]
 [%% define TripleBool]
-[%% undef  TripleBool]
-[%% define Peano]
-[%% undef  Peano]
+(*[%% undef  TripleBool]*)
 [%% define SimpleList]
 [%% undef  SimpleList]
+[%% define Peano]
+[%% undef  Peano]
 [%% define TwoNilLists1]
 [%% undef  TwoNilLists1]
 [%% define TwoNilLists2]
@@ -59,7 +59,7 @@ let algo =
 [%% undef  Tuple5]
 
 [%% define PCF]
-(*[%% undef  PCF]*)
+[%% undef  PCF]
 
 
 (*let default_shortcut eta m cases history rez =
@@ -593,7 +593,7 @@ let () =
   end)
   in
   M.test (-1)
-    ~prunes_period:(Some 10)
+    ~prunes_period:(Some 777)
 
 [%% endif]
 

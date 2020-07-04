@@ -123,10 +123,10 @@ end
 
 (* ************************************************************************** *)
 module Tag = struct
-  type ground = N.ground
+  type ground = GT.int
     [@@deriving gt ~options:{ foldl; compare }]
-  type logic = N.logic
-    [@@deriving gt ~options:{ foldl }]
+  type logic = GT.int OCanren.logic
+    [@@deriving gt ~options:{ foldl; compare }]
   type injected = (ground, logic) OCanren.injected
 
   let all_tags =
@@ -135,13 +135,17 @@ module Tag = struct
     ; "int"; "triple"; "D"
     ; "Push";  "Search"; "Ldi"; "Pushenv"; "Popenv"
     ; "Extend"; "Apply"; "Mkclos"; "Mkclosrec"
-    ; "Int"; "Val"; "IOp"; "Test"; "Clo"
+    ; "IOp"; "Test"; "Clo"; "Int"
     ; "Val"; "Env"; "Code"
+    ; "42"
     ]
 
+  let of_int x = x
+  let to_int x = x
+
   let string_of_tag_exn tag =
-    let n = N.to_int tag in
-    match List.nth  all_tags n with
+    let n = to_int tag in
+    match List.nth all_tags n with
     | s -> s
     | exception Not_found ->
          failwith (Printf.sprintf "Bad argument %d in tag_of_string_exn" n)
@@ -151,10 +155,12 @@ module Tag = struct
     | Some (n, _) -> n
     | None -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
 
-  let tag_of_string_exn s : ground = N.of_int (inttag_of_string_exn s)
+
+  let tag_of_string_exn s : ground = of_int (inttag_of_string_exn s)
   let of_string_exn = tag_of_string_exn
 
   exception HasFreeVars
+  (*
   let show_logic l =
     let rec helper acc = function
       | Value Z -> acc
@@ -163,6 +169,8 @@ module Tag = struct
     in
     try string_of_tag_exn (N.of_int (helper 0 l))
     with HasFreeVars -> GT.show N.logic l
+  *)
+  let show_logic = GT.show OCanren.logic @@ string_of_tag_exn
 
   let ground =
     { ground with
@@ -181,14 +189,24 @@ module Tag = struct
         method fmt f l = Format.fprintf f "@[%s@]" (show_logic l)
         method gmap x = x
         method foldl = logic.GT.plugins#foldl
-(*        method compare = ground.GT.plugins#compare*)
+        method compare = logic.GT.plugins#compare
     end}
 
-(*  let (_:int) =GT.show logic*)
   let reify = N.reify
   let inject = N.inject
   let prjc  = N.prjc
   let to_ground = N.to_ground
+  let to_ground_exn = function
+    | Value x -> x
+    | Var _ -> failwith "bad argument"
+
+  let reify = OCanren.reify
+  let inject = (!!)
+  let prjc = OCanren.prjc
+  let to_ground = function
+    | Var _ -> None
+    | Value x -> x
+
 end
 
 
@@ -596,12 +614,12 @@ module IR = struct
   | Fail
   | Switch of 'a3 * 'a2 * 'a1
   | Lit of 'a0
-  [@@deriving gt ~options: { show; fmt; gmap} ]
+  [@@deriving gt ~options: { show; fmt; gmap; compare } ]
 
   type ground = (Matchable.ground, (Tag.ground, ground) Std.Pair.ground Std.List.ground, ground, GT.int) t
     [@@deriving gt ~options: { show; fmt; gmap } ]
   type logic = (Matchable.logic, (Tag.logic, logic) Std.Pair.logic Std.List.logic, logic, GT.int OCanren.logic) t OCanren.logic
-    [@@deriving gt ~options: { show; fmt; gmap} ]
+    [@@deriving gt ~options: { show; fmt; gmap; compare} ]
   type injected = (ground, logic) OCanren.injected
 
   let fail = fail
@@ -703,6 +721,7 @@ module IR = struct
         method show = show_logic
         method gmap = logic.GT.plugins#gmap
         method show_ast = logic.GT.plugins#show
+        method compare = logic.GT.plugins#compare
       end
     }
 
@@ -749,7 +768,7 @@ module IR = struct
     in
     helper root
 
-
+  let compare_logic a b = GT.compare logic a b
 end
 
 
@@ -817,7 +836,7 @@ module Typs = struct
 
   let assoc_exn typs key =
     match assoc typs key with
-    | None -> raise Not_found
+    | None -> failwith (Printf.sprintf "Typs.assoc_exn: key '%s' not found in '%s'" (GT.show Tag.ground key) (GT.show ground typs))
     | Some x -> x
 
   type pre_typ = (string * pre_typ list) list t
