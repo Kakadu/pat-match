@@ -1083,14 +1083,14 @@ end
 
 
 
-module ArgPCF : ARG0 = struct
+module ArgPCF = struct
   open OCanren
 
   type g
   type l
   type qtyp_injected = (g, l) OCanren.injected
 
-  let info = "BIG (no cons -- use WCs)"
+  let info = "BIG 2 clauses "
 
   let typs =
     let open Unn_pre in
@@ -1210,6 +1210,66 @@ module ArgPCF : ARG0 = struct
     Printf.printf "<examples>\n%!";
     List.iteri  (fun i e -> Printf.printf "\t%d: %s\n" i (Expr.show_logic e)) xs;
     Printf.printf "</examples>\n%!"
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
+  let optimize = optimize_pair
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = false
+end
+
+module ArgPCF2 = struct
+  open OCanren
+
+  include ArgPCF
+
+  let info = "BIG : 2.5 clauses "
+
+  let clauses =
+    [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
+    ; ptriple __        __  (pcons ppush __), IR.eint 2
+    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3*)
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+(*    Format.printf "patterns max height = %d\n%!" n;*)
+(*    assert (2 = n);*)
+    n
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+
+  let optimize = optimize_pair
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = false
+end
+
+module ArgPCF3 = struct
+  open OCanren
+
+  include ArgPCF
+
+  let info = "BIG : 3 clauses "
+
+  let clauses =
+    [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
+    ; ptriple __        __  (pcons ppush __), IR.eint 2
+    ; ptriple (pInt __) (pcons (pval (pInt __)) __)  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3*)
+    ]
+
+  let max_height =
+    let n = Helper.List.max (List.map (fun (p,_) -> Pattern.height p) clauses) in
+(*    Format.printf "patterns max height = %d\n%!" n;*)
+(*    assert (2 = n);*)
+    n
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie

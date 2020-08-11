@@ -78,6 +78,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     (W.not_in_history m history !!true) &&&
     success
 
+  (* currently is not used *)
   let default_shortcut_tag constr_names cases rez =
     let open OCanren in
     let open OCanren.Std in
