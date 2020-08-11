@@ -9,4 +9,3 @@
  (preprocess
   (action
    (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file}))))
-

@@ -16,6 +16,10 @@ bench:
 	dune build switch/main_switch.exe
 	_build/default/switch/main_switch.exe -bench
 
+.PHONY: solver-demo sd
+sd: solver-demo
+solver-demo:
+	dune exec solver-demo/solver_demo.exe 
 
 run:
 	dune exec ./main2.exe $(DUNEOPTS)
