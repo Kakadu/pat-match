@@ -1,0 +1,10 @@
+(executable
+  (name   solver_demo)
+  (modules
+          demos_list main_input solver_demo
+          )
+  (flags       (-warn-error +20+5))
+  (libraries   alt-ergo-lib alt-ergo-parsers)
+  ;(preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
+)
+
