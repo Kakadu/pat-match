@@ -5,7 +5,7 @@ let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
 
 
-let inhabit_by_trie typs trie =
+let inhabit_by typs cond =
   let open OCanren in
   let open Unn_pre in
   let module W = Unn_pre.WorkHO in
@@ -31,12 +31,19 @@ let inhabit_by_trie typs trie =
         | _::_::_ -> failwith "too many answers"
         | [ms] ->
             match Matchable.to_ground ms with
+            | None ->
+                let _ = assert false in success
+            | Some _ ->
+                let b = cond ms in
+                (ans === !!b)
+
+(*            match Matchable.to_ground ms with
               | None ->
                   let _ = assert false in success
               | Some m ->
                 let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
                 (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
-                (ans === !!b)
+                (ans === !!b)*)
 
       ))
       success
@@ -63,6 +70,19 @@ let inhabit_by_trie typs trie =
         ])
   in
   helper (Matchable.scru ()) typs
+
+
+let inhabit_by_trie typs trie =
+  inhabit_by typs (fun ms ->
+    match Matchable.to_ground ms with
+    | None ->
+        let _ = assert false in true
+    | Some m ->
+      let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
+      (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
+      b
+  )
+
 
 
 module type ARG0 = sig
@@ -1079,18 +1099,22 @@ module ArgPCF : ARG0 = struct
 (*    let pairint = T [ ("pair", [ int; int ]) ] in*)
     let code = T
       [ ("Push", [])
-(*      ; ("Extend", [])*)
-(*      ; ("Pushenv", [])*)
-(*      ; ("Popenv", [])*)
-(*      ; ("Apply", [])*)
+
+(*      ; ("Extend", [])
+      ; ("Pushenv", [])
+      ; ("Popenv", [])
+      ; ("Apply", [])*)
+
       ; ("Ldi", [ int ])
-      (*; ("Search", [ int ])
+
+(*      ; ("Search", [ int ])
       ; ("Mkclos", [ int ])
       ; ("Mkclosrec", [ int ])*)
+
       ; ("IOp", [ int ])
       ; ("Int", [ int ])
-(*      ; ("Test", [ pairint ])*)
-(*      ; ("Clo", [ pairint ])*)
+(*      ; ("Test", [ int; int ])
+      ; ("Clo", [ int; int])*)
       ]
     in
     let prog =
@@ -1144,14 +1168,15 @@ module ArgPCF : ARG0 = struct
     [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
     ; ptriple __        __  (pcons ppush __), IR.eint 2
     ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) (pcons (pval __) __) (pcons (piop __) __), IR.eint 3*)
 (*    ; ptriple (pInt __) (pcons (pval (pInt __)) __)  (pcons (piop __) __), IR.eint 3*)
-    ; ptriple (pInt __) (pcons __ __)  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) (pcons __ __)  (pcons (piop __) __), IR.eint 3*)
 
-(*    ; ptriple (pint __) __  (pcons __ __), IR.eint 3*)
+(*    ; ptriple (pInt __) __  (pcons __ __), IR.eint 3*)
 
-(*    ; ptriple (pint __) __              (pcons (ptest __ __) __), IR.eint 4*)
+(*    ; ptriple (pInt __) __              (pcons (ptest __ __) __), IR.eint 4
 
-(*    ; ptriple __   __ (pcons pextend __), IR.eint 6
+    ; ptriple __   __ (pcons pextend __), IR.eint 6
     ; ptriple __   __ (pcons (psearch __) __), IR.eint 7
     ; ptriple __   __ (pcons ppushenv __), IR.eint 8
     ; ptriple __   (pcons (penv __) __) (pcons ppopenv __), IR.eint 9
@@ -1160,6 +1185,7 @@ module ArgPCF : ARG0 = struct
     ; ptriple (pclo __ __) (pcons (pval __) __) (pcons papply __), IR.eint 12
     ; ptriple __   (pcons (pcode __) (pcons (penv __) __)) pnil, IR.eint 13
     ; ptriple __   pnil pnil, IR.eint 14*)
+
     ]
 
   let max_height =
@@ -1167,6 +1193,24 @@ module ArgPCF : ARG0 = struct
 (*    Format.printf "patterns max height = %d\n%!" n;*)
 (*    assert (2 = n);*)
     n
+
+  let _f () =
+    let open OCanren in
+    let r =
+      inhabit_by (Typs.inject typs) (fun ms ->
+        let h = Matchable.low_height_of_logic  ms in
+        if h > max_height+1
+        then false
+        else true
+      )
+    in
+    let s = run q r (fun rr -> rr#reify Expr.reify) in
+    let xs = Stream.take s in
+    let n = List.length xs in
+    Printf.printf "With default generation there are %d examples for test `%s`\n%!" n info;
+    Printf.printf "<examples>\n%!";
+    List.iteri  (fun i e -> Printf.printf "\t%d: %s\n" i (Expr.show_logic e)) xs;
+    Printf.printf "</examples>\n%!"
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
