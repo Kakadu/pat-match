@@ -45,24 +45,13 @@ module N = struct
     in
     helper 0 n
 
-  let rec compare_ground a b =
-(*    Format.printf "N.ground.plugins#compare %s %d (%s vs %s)\n%!" __FILE__ __LINE__ (GT.show ground a) (GT.show ground b);*)
-    match a,b with
-    | Z,Z -> GT.EQ
-    | Z, S _ -> GT.LT
-    | S _, Z -> GT.GT
-    | S a, S b -> compare_ground a b
-
   let ground =
     { ground with
       GT.plugins = object
         method show  = show
         method fmt   = ground.GT.plugins#fmt
         method foldl = ground.GT.plugins#foldl
-        method compare x y =
-(*          Format.printf "N.ground.plugins#compare %s %d (%s vs %s)\n%!" __FILE__ __LINE__ (show x) (show y);*)
-(*          ground.GT.plugins#compare x y*)
-          compare_ground x y
+        method compare = ground.GT.plugins#compare
         method gmap  = id
       end
     }
@@ -154,7 +143,6 @@ module Tag = struct
     match Base.List.findi all_tags ~f:(fun _ -> String.equal s) with
     | Some (n, _) -> n
     | None -> failwith (Printf.sprintf "Bad argument %S in tag_of_string_exn" s)
-
 
   let tag_of_string_exn s : ground = of_int (inttag_of_string_exn s)
   let of_string_exn = tag_of_string_exn
@@ -403,19 +391,6 @@ module Expr = struct
     in
     helper e
 
-
-  let rec cmp (EConstr (a,xs)) (EConstr (b,ys)) =
-    match GT.compare Tag.ground a b with
-    | GT.LT -> GT.LT
-    | GT -> GT
-    | EQ ->
-        GT.compare Std.List.ground cmp xs ys
-
-  let ground =
-    { ground with
-      GT.plugins = object
-        method compare = cmp
-    end}
 end
 
 
@@ -472,62 +447,6 @@ module Matchable = struct
     in
     helper x
 
-  module  C = struct
-    class ['a1,'a0,'extra_gmatchable] compare_gmatchable_t fa1  fa0
-      fself_gmatchable =
-      object
-        inherit
-          ['a1,'a1,GT.comparison,'a0,'a0,GT.comparison,('a1, 'a0)
-                                                         gmatchable,
-          'extra_gmatchable,GT.comparison] gmatchable_t
-        constraint 'extra_gmatchable = ('a1, 'a0) gmatchable
-        method c_Scru inh___080_ _ =
-(*          Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-          match inh___080_ with
-          | Scru -> GT.EQ
-          | Field (_,_) -> GT.LT
-              (*Format.printf "%s %d\n%!" __FILE__ __LINE__;
-              GT.compare_vari other__081_ Scru*)
-        method c_Field inh___082_ _ _x__083_ _x__084_ =
-(*          Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-          match inh___082_ with
-          | Field (_x__085_, _x__086_) ->
-              GT.chain_compare
-                (GT.chain_compare GT.EQ (fun () ->
-(*                  Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-                  fa1 _x__085_ _x__083_))
-                (fun () ->
-(*                  Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-                  fa0 _x__086_ _x__084_)
-          | Scru ->
-              GT.GT
-              (*Format.printf "HERRR %s %d\n%!" __FILE__ __LINE__;
-              GT.compare_vari other__087_
-                (Field ((Obj.magic ()), (Obj.magic ())))*)
-      end
-    let rec compare_gmatchable fa1 fa0 inh0 subj =
-(*      Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-      GT.transform_gc gcata_gmatchable
-        ((new compare_gmatchable_t) fa1 fa0) inh0 subj
-
-    class ['extra_ground] compare_ground_t fself_ground =
-      object
-        inherit  [ground,'extra_ground,GT.comparison] ground_t
-        constraint 'extra_ground = ground
-        inherit  (([N.ground,ground,'extra_ground] compare_gmatchable_t)
-          (fun inh -> fun subj -> GT.compare N.ground inh subj)
-          fself_ground fself_ground)
-      end
-    let rec compare_ground inh subj =
-(*      Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-      (*GT.compare gmatchable*)
-(*      gmatchable.plugins#compare*)
-      compare_gmatchable
-        (fun inh -> fun subj -> GT.compare N.ground inh subj)
-        compare_ground inh subj
-
-  end
-
   let ground =
     { GT.gcata = gcata_ground
     ; GT.fix = ground.GT.fix
@@ -535,10 +454,7 @@ module Matchable = struct
         method fmt f x = Format.fprintf f "@[%s@]" (show x)
         method show = show
         method gmap = ground.GT.plugins#gmap
-        method compare x y =
-(*          Format.printf "%s %d\n%!" __FILE__ __LINE__;*)
-(*          ground.GT.plugins#compare x y*)
-          C.compare_ground x y
+        method compare = ground.GT.plugins#compare
       end
     }
   let logic =
@@ -554,7 +470,6 @@ module Matchable = struct
 
 
   let rec reify env (x: injected) : logic =
-
     For_gmatchable.reify N.reify reify env x
 
   let inject : ground -> injected = fun root ->

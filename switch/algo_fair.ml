@@ -27,7 +27,6 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   module MatchableMap = Map.Make(struct
     type t = Matchable.ground
     let compare x y =
-(*      Format.printf "\t%a\n\t%a\n%!" (GT.fmt Matchable.ground) x  (GT.fmt Matchable.ground) y;*)
       let ans = Matchable.ground.plugins#compare x y in
       GT.cmp_to_int ans
   end)
