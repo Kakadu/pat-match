@@ -1,57 +1,38 @@
 (env
-  (dev
-    (flags (-strict-sequence -short-paths -strict-formats -short-paths -keep-locs -w -3-9-32))))
+ (dev
+  (flags
+   (-strict-sequence -short-paths -strict-formats -short-paths -keep-locs -w
+     -3-9-32))))
 
 (library
-  (name        helper)
-  (public_name helper)
-  (modules     helper)
-
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-  (flags      (-rectypes))
-  (libraries  OCanren unix)
-)
-
-(library
-  (name        mytester)
-  (modules     mytester)
-
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-  (flags      (-rectypes))
-  (libraries  mtime.clock.os OCanren)
-)
+ (name helper)
+ (public_name helper)
+ (modules helper)
+ (preprocess
+  (action
+   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+ (flags (-rectypes))
+ (libraries OCanren unix))
 
 (library
-  (name        mybench)
-  (modules     mybench)
+ (name mytester)
+ (modules mytester)
+ (preprocess
+  (action
+   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+ (flags (-rectypes))
+ (libraries mtime.clock.os OCanren))
 
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-  ;(flags      ())
-  (libraries  GT mtime.clock.os)
-)
-
-(executable
-  (name main)
-  (modules main)
-  (flags (-rectypes))
-  (libraries ocanren)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
-
+(library
+ (name mybench)
+ (modules mybench)
+ (preprocess
+  (action
+   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+ (libraries GT mtime.clock.os))
 
 (rule
  (targets work.ml)
- (deps    work.ml2mk.ml)
- (action  (run noCanren work.ml2mk.ml -o %{targets})))
-
-(executable
-  (name main2)
-  (modules main2 work)
-  (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
-
-
-
-
+ (deps work.ml2mk.ml)
+ (action
+  (run noCanren work.ml2mk.ml -o %{targets})))

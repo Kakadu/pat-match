@@ -1,4 +1,4 @@
-let iterations_count = 2
+let iterations_count = 10
 
 module Time = struct
   let now () = Unix.(localtime @@ time() )

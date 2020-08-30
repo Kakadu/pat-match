@@ -1,23 +1,12 @@
 (executable
-  (name main_switch)
-  (modules
-          main_switch main_inputs unn_pre
-          pats_tree
-          algo_fair
-          algo_fair_manual
-          )
-  (flags       (-rectypes -warn-error +20+5))
-  (libraries   lazy-trie work_base_common work_ho work_unn OCanren helper mytester mybench)
-  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
-)
+ (name main_switch)
+ (modules main_switch main_inputs unn_pre pats_tree algo_fair
+   algo_fair_manual)
+ (flags
+  (-rectypes -warn-error +20+5))
+ (libraries base lazy-trie work_base_common work_ho work_unn OCanren helper
+   mytester mybench)
+ (preprocess
+  (action
+   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file}))))
 
-
-
-
-
-
-
-;(rule
-;  (targets work2.ml)
-;  (deps    work2.ml2mk.ml)
-;  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
