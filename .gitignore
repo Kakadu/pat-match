@@ -18,3 +18,8 @@
 /pat-match.cxxflags
 /pat-match.files
 /pat-match.includes
+
+
+/bench.csv
+/lst.tex
+

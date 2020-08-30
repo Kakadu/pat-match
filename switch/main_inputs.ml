@@ -955,11 +955,11 @@ module ArgTwoNilLists1 : ARG0 = struct
     grounded
 
   let clauses =
-    [ ppair pnil  __, IR.eint 10
-    ; ppair __  pnil, IR.eint 20
-    ; ppair pnil2 __, IR.eint 30
-    ; ppair __ pnil2, IR.eint 40
-    ; ppair __   __, IR.eint 60
+    [ ppair pnil  __, IR.eint 1
+    ; ppair __  pnil, IR.eint 2
+    ; ppair pnil2 __, IR.eint 3
+    ; ppair __ pnil2, IR.eint 4
+    ; ppair __   __, IR.eint 5
     ]
 
   let initial_trie = Pats_tree.build clauses typs
@@ -1099,22 +1099,21 @@ module ArgPCF : ARG0 = struct
 (*    let pairint = T [ ("pair", [ int; int ]) ] in*)
     let code = T
       [ ("Push", [])
-
-(*      ; ("Extend", [])
+      (*; ("Extend", [])
       ; ("Pushenv", [])
       ; ("Popenv", [])
       ; ("Apply", [])*)
 
-      ; ("Ldi", [ int ])
 
-(*      ; ("Search", [ int ])
+      (*; ("Search", [ int ])
       ; ("Mkclos", [ int ])
-      ; ("Mkclosrec", [ int ])*)
-
+      ; ("Mkclosrec", [ int ])
+      ; ("Test", [ int; int ])
+      ; ("Clo", [ int; int])*)
+      ; ("Ldi", [ int ])
       ; ("IOp", [ int ])
       ; ("Int", [ int ])
-(*      ; ("Test", [ int; int ])
-      ; ("Clo", [ int; int])*)
+
       ]
     in
     let prog =
@@ -1167,7 +1166,7 @@ module ArgPCF : ARG0 = struct
   let clauses =
     [ ptriple __        __  (pcons (pldi __) __), IR.eint 1
     ; ptriple __        __  (pcons ppush __), IR.eint 2
-    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3
+(*    ; ptriple (pInt __) __  (pcons (piop __) __), IR.eint 3*)
 (*    ; ptriple (pInt __) (pcons (pval __) __) (pcons (piop __) __), IR.eint 3*)
 (*    ; ptriple (pInt __) (pcons (pval (pInt __)) __)  (pcons (piop __) __), IR.eint 3*)
 (*    ; ptriple (pInt __) (pcons __ __)  (pcons (piop __) __), IR.eint 3*)

@@ -68,6 +68,14 @@ let build (clauses: Clauses.pre_ground) typs0 : t =
     | PConstr (cname, xs) ->
         let acc = add acc cur_path (Typs.get_names typs) in
         let arg_typs = Typs.assoc_exn typs cname in
+        (*
+        Format.printf "%d typs: %s\n%!"
+          (ground_list_length arg_typs)
+          ((GT.show OCanren.Std.List.ground) (GT.show Typs.ground) arg_typs);
+        Format.printf "%d pats: %s\n%!"
+          (ground_list_length xs)
+          ((GT.show OCanren.Std.List.ground) Pattern.show xs);
+          *)
         ground_list_fold2i_exn (fun acc i arg argtyp ->
           let next_path = cur_path @ [ N.of_int i ] in
           f acc argtyp next_path arg
