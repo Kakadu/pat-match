@@ -1,9 +1,9 @@
 (executable
  (name main_switch)
  (modules main_switch main_inputs unn_pre pats_tree algo_fair
-   algo_fair_manual)
+   algo_fair_manual work_manual)
  (flags
-  (-rectypes -warn-error +20+5))
+  (-rectypes -warn-error +20+5 -g))
  (libraries base lazy-trie work_base_common work_ho work_unn OCanren helper
    mytester mybench)
  (preprocess
