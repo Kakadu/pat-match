@@ -8,4 +8,4 @@
    mytester mybench)
  (preprocess
   (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file}))))
+   (run %{project_root}/pp_ppx/ppx_rewriter.exe --as-pp %{input-file}))))

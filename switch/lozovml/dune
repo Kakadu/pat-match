@@ -36,7 +36,7 @@
  (targets work_base_common.ml)
  (deps work_base.ml)
  (action
-  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -w -8 -o
+  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o
     %{targets}))
  ; we expect that only types there so unesting and high-order will generate the same
  )
@@ -57,8 +57,7 @@
  (targets work_ho.ml)
  (deps work.ml)
  (action
-  (run noCanren %{deps} -open Work_base -I .work_base.objs/byte -w -8 -o
-    work_ho.ml)))
+  (run noCanren %{deps} -open Work_base -I .work_base.objs/byte -o work_ho.ml)))
 
 ; unnesting
 
