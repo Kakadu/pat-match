@@ -1379,8 +1379,10 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
           let injected : Clauses.injected = Clauses.inject clauses in
 
           let first =
-            OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr -> rr#prj)
-            |> OCanren.Stream.hd
+            let stream = OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr -> rr#prj) in
+            if OCanren.Stream.is_empty stream
+            then failwiths "Can't compile naively demo about '%s'" Arg.info
+            else OCanren.Stream.hd stream
           in
           let second = Arg.optimize first in
           second

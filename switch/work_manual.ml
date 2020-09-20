@@ -54,7 +54,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q28 =
           ])
         (conde
           [ ((q10 === (!! true)) &&& (inner next_histo test_list on_default q9))
-          ; fresh (constr_hd constr_tl qtag ontag clauses_tl q14)
+          ; fresh (constr_hd constr_tl qtag ontag clauses_tl)
               (q10 === (!! false))
               (constr_names === (constr_hd % constr_tl))
               (cases === ((pair qtag ontag) % clauses_tl))
@@ -74,21 +74,15 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q28 =
                   failure
               ))
 (*              (FD.domain qtag constr_names)*)
-              (conde
-                [(qtag === constr_hd) &&& (q14 === (!! true))
-                ; (q14 === (!! false)) &&& (FD.neq qtag  constr_hd)])
-              ((fresh (q16)
+
+            (conde
+              [ (qtag === constr_hd) &&&
                 (conde
-                  [ (q14 === (!! true)) &&&
-                    (conde
-                      [ (qtag === etag) &&& (q16 === (!! true))
-                      ; (q16 === (!! false)) &&& (FD.neq qtag etag) ]) &&&
-                    (conde
-                      [ ((q16 === (!! true)) &&& (inner next_histo test_list ontag q9))
-                      ; ((q16 === (!! false)) &&& (helper constr_tl clauses_tl q9))])
-                  ; ((q14 === (!! false)) &&& (helper constr_tl cases q9))
+                  [ (qtag === etag) &&& (inner next_histo test_list ontag q9)
+                  ; (FD.neq qtag etag) &&& (helper constr_tl clauses_tl q9)
                   ])
-                  ))
+              ; (FD.neq qtag constr_hd) &&& (helper constr_tl cases q9)
+              ])
            ])
     in
     helper cnames cases0 q26 in
