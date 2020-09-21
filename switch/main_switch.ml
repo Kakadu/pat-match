@@ -86,6 +86,7 @@ let () =
   let module M = struct
     include ArgMake(ArgPairTrueFalse)
     (* let max_ifs_count = 2 *)
+
   end in
   let module L = Algo.Make(Work)(M) in
   L.test (-1)
