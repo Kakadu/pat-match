@@ -245,8 +245,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
           | x when x >= !max_ifs_count ->
               raise (FilteredOutBySize x)
           | _ ->
-              (*if verbose then
-                Format.printf "height_hack `%s` = %d\n%!" (IR.show_logic ir) n;*)
+              if verbose then
+                Format.printf "height_hack `%s` = %d\n%!" (IR.show_logic ir) n;
               true
         with
           | FilteredOutBySize n ->
@@ -492,5 +492,3 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       ~prunes_period
     else ()
 end
-
-

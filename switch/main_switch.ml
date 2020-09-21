@@ -43,9 +43,9 @@ let algo =
 [%% define TrueFalse]
 [%% undef  TrueFalse]
 [%% define PairTrueFalse]
-[%% undef  PairTrueFalse]
+(* [%% undef  PairTrueFalse] *)
 [%% define TripleBool]
-(*[%% undef  TripleBool]*)
+[%% undef  TripleBool]
 [%% define SimpleList]
 [%% undef  SimpleList]
 [%% define Peano]
@@ -83,7 +83,11 @@ let () =
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module L = Algo.Make(Work)(ArgMake(ArgPairTrueFalse)) in
+  let module M = struct
+    include ArgMake(ArgPairTrueFalse)
+    (* let max_ifs_count = 2 *)
+  end in
+  let module L = Algo.Make(Work)(M) in
   L.test (-1)
 
 [%% endif]
