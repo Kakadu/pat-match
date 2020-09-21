@@ -1400,7 +1400,12 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
   let minimal_trie = Pats_tree.minimize initial_trie
 
 
-  let ir_hint _ = OCanren.success
+(*  let ir_hint _ = OCanren.success*)
+  let ir_hint syn =
+    let open OCanren in
+    let open OCanren.Std in
+    fresh (c b1 ot)
+      (syn === IR.switch c (!< b1) ot)
 
   let max_examples_count = -1
 
