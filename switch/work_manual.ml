@@ -110,25 +110,33 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q28 =
   let rec test_list next_histo etag cnames on_default cases0 q26 =
     let rec helper constr_names cases q9 =
       fresh (q10)
-        (conde [(cases === (Std.nil ())) &&& (q10 === (!! true)); (q10 === (!! false)) &&& (cases =/= (Std.nil ()))])
+        (conde
+          [ (cases === (Std.nil ())) &&& (q10 === (!! true))
+          ; (q10 === (!! false)) &&& (cases =/= (Std.nil ()))
+          ])
         ( ((q10 === (!! true)) &&& (inner next_histo test_list on_default q9)) |||
           (fresh
             (constr_hd constr_tl qtag ontag clauses_tl q14)
             (q10 === (!! false))
             (constr_names === Std.(constr_hd % constr_tl))
             (cases === ((Std.pair qtag ontag) % clauses_tl))
-            (conde [(qtag === constr_hd) &&& (q14 === (!! true)); (q14 === (!! false)) &&& (qtag =/= constr_hd)])
-            ( (fresh (q16)
-                (q14 === (!! true))
-                (conde
-                  [ (qtag === etag) &&& (q16 === (!! true))
-                  ; (q16 === (!! false)) &&& (qtag =/= etag)
-                  ])
-                ( ((q16 === (!! true)) &&& (inner next_histo test_list ontag q9)) |||
-                  ((q16 === (!! false)) &&& (helper constr_tl clauses_tl q9))
-                ))
-              |||
-              ((q14 === (!! false)) &&& (helper constr_tl cases q9))
+            (conde
+              [ (qtag === constr_hd) &&& (q14 === (!! true))
+              ; (q14 === (!! false))  &&&(* (* (qtag =/= constr_hd) *) *) (FD.neq qtag constr_hd)
+              ])
+            (conde
+              [ fresh (q16)
+                  (q14 === (!! true))
+                  (conde
+                    [ (qtag === etag) &&& (q16 === (!! true))
+                    ; (q16 === (!! false))  &&&(* (* (qtag =/= etag) *) *)(FD.neq qtag etag)
+                    ])
+                  (conde
+                    [ ((q16 === (!! true)) &&& (inner next_histo test_list ontag q9))
+                    ; ((q16 === (!! false)) &&& (helper constr_tl clauses_tl q9))
+                    ])
+              ; (q14 === (!! false)) &&& (helper constr_tl cases q9)
+              ]
             )
           )
         )
