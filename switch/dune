@@ -8,7 +8,7 @@
           )
   (flags       (-rectypes -warn-error +20+5))
   (libraries   lazy-trie work_base_common work_ho work_unn OCanren helper mytester mybench)
-  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
+  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.show GT.syntax.fmt GT.syntax.foldl GT.syntax.compare ppx_optcomp))
 )
 
 

@@ -1,3 +1,7 @@
+(env
+  (_
+    (flags (:standard -w -27-8-39))))
+
 ; direct
 (library
   (name        work_base)
@@ -60,11 +64,3 @@
   (action  (run noCanren -unnesting-mode -without-activate-tactics
               %{deps} -open Work_base -I .work_base.objs/byte -o %{targets}))
 )
-
-
-
-
-
-
-
-
