@@ -19,5 +19,6 @@ depends: [
 depexts: []
 
 build: [
-	[ "dune" "build" "switch/main_switch.exe" "--profile" "release" "-j" jobs]
+	[ sh -exc "dune build switch/main_switch.exe --profile release -j jobs || echo 'attempt N2'" ]
+  [ "dune" "build" "switch/main_switch.exe" "--profile" "release" "-j" jobs ]
 ]
