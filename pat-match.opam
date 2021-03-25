@@ -1,0 +1,23 @@
+opam-version: "2.0"
+version: "0.1.0"
+
+synopsis: "Relational pattern matching experiment"
+maintainer: "Kakadu <kakadu@pm.me>"
+authors: "Kakadu"
+homepage:    "https://github.com/Kakadu/pat-match"
+bug-reports: "https://github.com/Kakadu/pat-match"
+
+depends: [
+  "dune"
+  "OCanren"
+  "OCanren-ppx"
+  "noCanren"
+  "lazy-trie"
+  "ppx_optcomp"
+]
+
+depexts: []
+
+build: [
+	[ "dune" "build" "switch/main_switch.exe" "--profile" "release" "-j" jobs]
+]
