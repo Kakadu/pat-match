@@ -4,7 +4,6 @@
 
 (library
   (name        helper)
-  (public_name helper)
   (modules     helper)
 
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
@@ -15,6 +14,7 @@
 (library
   (name        mytester)
   (modules     mytester)
+  (public_name mytester)
 
   (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
   (flags      (-rectypes))
