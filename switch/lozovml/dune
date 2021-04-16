@@ -45,8 +45,8 @@
 
 (rule
   (targets work_ho.ml)
-  (deps    work.ml)
-  (action  (run noCanren %{deps} -open Work_base -I .work_base.objs/byte -o %{targets}))
+  (deps    work_base_common.cma (:main work.ml) )
+  (action  (run noCanren %{main} -open Work_base -I .work_base.objs/byte -o %{targets}))
 )
 
 ; unnesting
@@ -60,7 +60,7 @@
 
 (rule
   (targets work_unn.ml)
-  (deps    work.ml)
+  (deps    work_base_common.cma (:main work.ml) )
   (action  (run noCanren -unnesting-mode -without-activate-tactics
               %{deps} -open Work_base -I .work_base.objs/byte -o %{targets}))
 )
