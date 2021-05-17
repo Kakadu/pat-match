@@ -43,3 +43,25 @@
 (check-sat)
 (get-model)
 (pop)
+
+
+(push)
+;match ... with
+;| pair (nil, _) -> 10
+;| pair (_, nil) -> 20
+;| pair (cons (_, _), cons (_, _)) -> 30
+(declare-datatype list ( (Nil) (Cons (h unit) (tl list))))
+(declare-fun func2 (list list) Int)
+(assert
+  (= 10 (func2 Nil Nil)))
+(assert
+  (forall ((x unit))
+  (= 20 (func2 (Cons x Nil) Nil))) )
+(assert (forall ((x unit) )
+  (= 10 (func2 Nil (Cons x Nil) ))) )
+(assert (forall ((x unit) (y unit))
+  (= 30 (func2 (Cons x Nil) (Cons x Nil) ))) )
+
+(check-sat)
+(get-model)
+(pop)
