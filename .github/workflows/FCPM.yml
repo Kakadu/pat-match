@@ -1,4 +1,4 @@
-name: Build FCPM
+name: Build_FCPM
 
 on:
   push:
