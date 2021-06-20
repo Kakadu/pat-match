@@ -6,7 +6,7 @@
   (name        helper)
   (modules     helper)
 
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
   (flags      (-rectypes))
   (libraries  OCanren unix)
 )
@@ -16,7 +16,7 @@
   (modules     mytester)
   (public_name mytester)
 
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
   (flags      (-rectypes))
   (libraries  mtime.clock.os OCanren)
 )
@@ -25,7 +25,7 @@
   (name        mybench)
   (modules     mybench)
 
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
   ;(flags      ())
   (libraries  GT mtime.clock.os)
 )
@@ -35,7 +35,7 @@
   (modules main)
   (flags (-rectypes))
   (libraries ocanren)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx GT.syntax.map GT.syntax.fmt GT.syntax.compare))
+  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
 )
 
 
