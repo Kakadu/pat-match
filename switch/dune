@@ -1,23 +1,37 @@
+(env
+ (dev
+  (flags
+   (:standard -rectypes -warn-error +20+5 -w -33-37-26)))
+ (release
+  (flags
+   (:standard -rectypes -warn-error +20+5))))
+
+(library
+ (name switches)
+ (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
+ (wrapped false)
+ (libraries
+  lazy-trie
+  work_base_common
+  work_ho
+  work_unn
+  OCanren
+  helper
+  mytester
+  mybench)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp)))
+
 (executable
-  (name main_switch)
-  (modules
-          main_switch main_inputs unn_pre
-          pats_tree
-          algo_fair
-          algo_fair_manual
-          )
-  (flags       (-rectypes -warn-error +20+5))
-  (libraries   lazy-trie work_base_common work_ho work_unn OCanren helper mytester mybench)
-  (preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp))
-)
+ (name main_switch)
+ (modules main_switch)
+ (libraries switches)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp)))
 
-
-
-
-
-
-
-;(rule
-;  (targets work2.ml)
-;  (deps    work2.ml2mk.ml)
-;  (action  (run noCanren -unnesting-mode -without-activate-tactics %{deps} -o %{targets})))
+(executable
+ (name demo)
+ (modules demo)
+ (libraries switches)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp)))

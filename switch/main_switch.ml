@@ -7,91 +7,137 @@ open Main_inputs
 
 let () = Mybench.enable ~on:false
 
+type test_t = string * (module Main_inputs.ARG0)
+
+module EnabledTests = struct
+  type t = {mutable test: test_t list}
+
+  let enabled_tests = {test= []}
+  let possible_tests = {test= []}
+  let addp x = possible_tests.test <- List.append possible_tests.test [x]
+  let disable_all () = enabled_tests.test <- []
+
+  let adde ((key, _) as t) =
+    let es = List.filter (fun (s, _) -> s <> key) enabled_tests.test in
+    enabled_tests.test <- List.append es [t]
+
+  let set_sygus _ = assert false
+
+  let del key =
+    enabled_tests.test <-
+      List.filter (fun (s, _) -> s <> key) enabled_tests.test
+end
+
 let () =
-  Arg.parse
-    [ ("-bench", Unit (fun () -> Mybench.enable ~on:true), "") ]
+  let t = ("truefalse", (module ArgTrueFalse : Main_inputs.ARG0)) in
+  EnabledTests.adde t; EnabledTests.addp t
+
+let () =
+  let t = ("pairtruefalse", (module ArgPairTrueFalse : Main_inputs.ARG0)) in
+  EnabledTests.addp t
+
+let () =
+  let t = ("triplebool", (module ArgTripleBool : Main_inputs.ARG0)) in
+  EnabledTests.adde t; EnabledTests.addp t
+
+let () =
+  let t = ("simplelist", (module ArgSimpleList : Main_inputs.ARG0)) in
+  EnabledTests.addp t
+
+let () =
+  let t = ("peano", (module ArgPeanoSimple : Main_inputs.ARG0)) in
+  EnabledTests.addp t
+
+let () =
+  let t = ("pcf", (module ArgPCF : Main_inputs.ARG0)) in
+  EnabledTests.addp t
+
+let () =
+  let cmds =
+    List.concat_map
+      (fun ((name, m) as t) ->
+        [ ( "-" ^ name
+          , Arg.Unit (fun () -> EnabledTests.adde t)
+          , Format.sprintf "Enable the test %s" name )
+        ; ( "-no-" ^ name
+          , Arg.Unit (fun () -> EnabledTests.del name)
+          , Format.sprintf "Disable the test %s" name ) ] )
+      EnabledTests.possible_tests.EnabledTests.test
+    @ [ ("-bench", Arg.Unit (fun () -> Mybench.enable ~on:true), "")
+      ; ("-nothing", Arg.Unit EnabledTests.disable_all, "Disable all tests")
+      ; ( "-sygus"
+        , Arg.Unit (fun () -> EnabledTests.set_sygus true)
+        , "run cvc4 instead of MK" ) ] in
+  Arg.parse cmds
     (fun _ -> print_endline "WTF")
-    "msg"
+    "Running without options start only the tests enabled by default"
 
 let env_work = "PAT_MATCH_WORK"
 
 let work =
   match Sys.getenv env_work with
   | "unn" -> (module Unn_pre.WorkUnnesting : Unn_pre.WORK)
-  | "ho"  -> (module Unn_pre.WorkHO : Unn_pre.WORK)
-  | _     -> failwith (sprintf "Bad argument of env variable %s" env_work)
+  | "ho" -> (module Unn_pre.WorkHO : Unn_pre.WORK)
+  | _ -> failwith (sprintf "Bad argument of env variable %s" env_work)
   | exception Not_found -> (module Unn_pre.WorkHO : Unn_pre.WORK)
 
 let algo =
   match Sys.getenv "PAT_MATCH_ALGO" with
   | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
-(*  | "unn"    -> (module Algo_fair_manual : Main_inputs.ALGO)*)
   | exception Not_found -> (module Algo_fair : Main_inputs.ALGO)
   | _ -> (module Algo_fair : Main_inputs.ALGO)
 
+[%%define AB]
+[%%undef AB]
+[%%define ABC]
+[%%undef ABC]
+[%%define TrueFalse]
+[%%undef TrueFalse]
+[%%define PairTrueFalse]
+[%%undef PairTrueFalse]
+[%%define TripleBool]
 
-
-[%% define AB]
-[%% undef  AB]
-
-
-[%% define ABC]
-[%% undef  ABC]
-[%% define TrueFalse]
-[%% undef  TrueFalse]
-[%% define PairTrueFalse]
-[%% undef  PairTrueFalse]
-[%% define TripleBool]
 (*[%% undef  TripleBool]*)
-[%% define SimpleList]
-[%% undef  SimpleList]
-[%% define Peano]
-[%% undef  Peano]
-[%% define TwoNilLists1]
-[%% undef  TwoNilLists1]
-[%% define TwoNilLists2]
-[%% undef  TwoNilLists2]
+[%%define SimpleList]
+[%%undef SimpleList]
+[%%define Peano]
+[%%undef Peano]
+[%%define TwoNilLists1]
+[%%undef TwoNilLists1]
+[%%define TwoNilLists2]
+[%%undef TwoNilLists2]
+[%%define ABCD]
+[%%undef ABCD]
+[%%define Tuple5]
+[%%undef Tuple5]
+[%%define PCF]
+[%%undef PCF]
 
-[%% define ABCD]
-[%% undef  ABCD]
+let () =
+  Format.printf "%d\n%!" (List.length EnabledTests.enabled_tests.test);
+  EnabledTests.enabled_tests.test
+  |> List.iter (fun (name, (module M : ARG0)) ->
+         Format.printf "Running the test %s\n" name;
+         let (module Algo) = algo in
+         let (module Work) = work in
+         let module M = Algo.Make (Work) (ArgMake (M)) in
+         M.test (-1) )
 
-[%% define Tuple5]
-[%% undef  Tuple5]
-
-[%% define PCF]
-[%% undef  PCF]
-
-
-(*let default_shortcut eta m cases history rez =
-  (not_in_history m history !!true)
-
-let default_shortcut_tag constr_names cases rez =
-  let open OCanren.Std in
-  (conde
-    [ (constr_names === nil()) &&& failure
-    ; fresh (u)
-        (constr_names === u % (nil()))
-        (cases === nil())
-    ; fresh (u v w)
-        (constr_names === u % (v % w) )
-    ])*)
-
-
-
+let () = exit 0
 (* ************************************************************************** *)
 
-[%% if (defined TrueFalse) ]
+[%%if defined TrueFalse]
+
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module M = Algo.Make(Work)(ArgMake(ArgTrueFalse)) in
+  let module M = Algo.Make (Work) (ArgMake (ArgTrueFalse)) in
   M.test (-1)
 
-
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
-[%% if (defined PairTrueFalse) ]
+[%%if defined PairTrueFalse]
 (*module FPairBool = Algo_fair.Make(Work)(struct
   include ArgMake(ArgPairTrueFalse)
 end)*)
@@ -99,85 +145,86 @@ end)*)
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module L = Algo.Make(Work)(ArgMake(ArgPairTrueFalse)) in
+  let module L = Algo.Make (Work) (ArgMake (ArgPairTrueFalse)) in
   L.test (-1)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
-[%% if (defined AB) ]
-module FAAAAAAAAAAAA = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgAB)
+[%%if defined AB]
 
-  (* in this demo merging cases can be helpful *)
-end)
+module FAAAAAAAAAAAA =
+  Algo_fair.Make
+    (Work)
+    (struct
+      include ArgMake (ArgAB)
+
+      (* in this demo merging cases can be helpful *)
+    end)
 
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module L = Algo.Make(Work)(ArgMake(ArgAB)) in
+  let module L = Algo.Make (Work) (ArgMake (ArgAB)) in
   L.test (-1)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
-[%% if (defined ABC) ]
+[%%if defined ABC]
 (*module FABC = Algo_fair.Make(Work)(struct
   include ArgMake(ArgABC)
 
   (* in this demo merging cases can be helpful *)
 end)*)
 
-let  () =
+let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module L = Algo.Make(Work)(ArgMake(ArgABC)) in
+  let module L = Algo.Make (Work) (ArgMake (ArgABC)) in
   L.test (-1)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
 
-[%% if (defined TripleBool) ]
+[%%if defined TripleBool]
+
 module TripleBoolHack1 = struct
-  include ArgMake(ArgTripleBool)
+  include ArgMake (ArgTripleBool)
 
   (* we default bound (14) it works very long time *)
-(*  let max_ifs_count = 4
-  let info = Printf.sprintf "%s + max_ifs_count=%d" info max_ifs_count*)
+  (* let max_ifs_count = 4
+     let info = Printf.sprintf "%s + max_ifs_count=%d" info max_ifs_count*)
 
-(*  let ir_hint (rez: IR.injected) =
-    let open IR in
-    fresh (t a b c d)
-      (rez === IR.switch  (Matchable.field1()) Std.((Pair.pair !!(tag_of_string_exn "true") c) % d) b)
+  (* let ir_hint (rez: IR.injected) =
+       let open IR in
+       fresh (t a b c d)
+         (rez === IR.switch  (Matchable.field1()) Std.((Pair.pair !!(tag_of_string_exn "true") c) % d) b)
 
-  let info = Printf.sprintf "%s + hint" info*)
+     let info = Printf.sprintf "%s + hint" info*)
 
-(*  let shortcut _tag m _branches history rez =
-    (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
+  (* let shortcut _tag m _branches history rez =
+       (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
 
-  let shortcut_tag constr_names cases rez =
-    (rez === !!true) &&&
-    (default_shortcut_tag constr_names cases rez)*)
-
+     let shortcut_tag constr_names cases rez =
+       (rez === !!true) &&&
+       (default_shortcut_tag constr_names cases rez)*)
 end
-
 
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module L = Algo.Make(Work)(TripleBoolHack1) in
-(*  let _ = assert false in*)
+  let module L = Algo.Make (Work) (TripleBoolHack1) in
+  (*  let _ = assert false in*)
   L.test (-1)
+
 (*    ~prunes_period:(Some 100)*)
 (*    ~prunes_period:None*)
 (*    ~check_repeated_ifs:true*)
 (*    ~debug_filtered_by_size:true*)
 
-
-
-[%% endif]
-
+[%%endif]
 
 (*
 module TripleBoolHack2 = struct
@@ -376,27 +423,22 @@ let __ () =
 *)
 
 (* ************************************************************************** *)
-[%% if (defined Peano) ]
+[%%if defined Peano]
 
 module Peano = struct
-  include ArgMake(ArgPeanoSimple)
-(*  let shortcut _tag m _branches history rez =
-    (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
+  include ArgMake (ArgPeanoSimple)
+  (* let shortcut _tag m _branches history rez =
+       (rez === !!true) &&& (default_shortcut _tag m _branches history rez)
 
-  let shortcut_tag constr_names cases rez =
-    (rez === !!true) &&&
-    (default_shortcut_tag constr_names cases rez)*)
-
+     let shortcut_tag constr_names cases rez =
+       (rez === !!true) &&&
+       (default_shortcut_tag constr_names cases rez)*)
 end
 
 let () =
   let (module Work) = work in
-  let module L = Algo_fair.Make(Work)(Peano) in
-
-  L.test
-(*    ~debug_filtered_by_size:false*)
-    ~prunes_period:None
-    (-1)
+  let module L = Algo_fair.Make (Work) (Peano) in
+  L.test (*    ~debug_filtered_by_size:false*) ~prunes_period:None (-1)
 
 (*[%% if (defined Algo2) ]
 let () =
@@ -412,21 +454,19 @@ let () =
 
 [%% endif]*)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
 
-[%% if (defined SimpleList) ]
+[%%if defined SimpleList]
 (*module FairLists1 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgSimpleList)
 end)*)
 
 let () =
   let (module Work) = work in
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgSimpleList)) in
-  L.test
-(*    ~debug_filtered_by_size:false*)
-    (10)
+  let module L = Algo_fair.Make (Work) (ArgMake (ArgSimpleList)) in
+  L.test (*    ~debug_filtered_by_size:false*) 10
 
 (*[%% if (defined ManualAlgo) ]
 let () =
@@ -435,7 +475,7 @@ let () =
   M.test (10)
 
 [%% endif]*)
-[%% endif]
+[%%endif]
 
 (*
 module FairLists2 = Algo_fair.Make(Work)(struct
@@ -469,12 +509,12 @@ end)*)
 (* There are only 4 answers here*)
 (*let () = F2NilShort.test (4)*)
 
-[%% if (defined TwoNilLists1) ]
+[%%if defined TwoNilLists1]
 
 let () =
   let (module Work) = work in
-  let module L = Algo_fair.Make(Work)(ArgMake(ArgTwoNilLists2Cons)) in
-  L.test (10)
+  let module L = Algo_fair.Make (Work) (ArgMake (ArgTwoNilLists2Cons)) in
+  L.test 10
 
 (*[%% if (defined ManualAlgo) ]
 let () =
@@ -482,33 +522,28 @@ let () =
   M.test (10)
 
 [%% endif]*)
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
-[%% if (defined TwoNilLists2) ]
+[%%if defined TwoNilLists2]
 
 let () =
   let (module Work) = work in
   let (module Algo) = algo in
-  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
-  L.test 10
-    ~prunes_period:(Some 100)
-
+  let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
+  L.test 10 ~prunes_period:(Some 100)
 
 let () =
   let (module Work) = work in
   let (module Algo) = algo in
-  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
-  L.test 10    
-    ~prunes_period:(Some 10)
-
+  let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
+  L.test 10 ~prunes_period:(Some 10)
 
 let () =
   let (module Work) = work in
   let (module Algo) = algo in
-  let module L = Algo.Make(Work)(ArgMake(ArgTwoNilLists2Simplified)) in
-  L.test 10
-    ~prunes_period:None
+  let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
+  L.test 10 ~prunes_period:None
 
 (*
 [%% if (defined ManualAlgo) ]
@@ -519,7 +554,6 @@ let () =
     ~prunes_period:(Some 100)
 [%% endif]*)
 
-
 (*module WWW2 = Algo_fair.Make(Work)(struct
   include ArgMake(ArgTwoNilLists2Simplified)
 
@@ -527,7 +561,7 @@ let () =
 end)*)
 (*let () = WWW2.test ~check_repeated_ifs:true 10*)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
 (*module XXX = Algo_fair.Make(Work)(struct
@@ -570,48 +604,48 @@ end)
 
 (* ************************************************************************** *)
 
-[%% if (defined ABCD) ]
+[%%if defined ABCD]
 
 let () = Algo_fair_manual.is_enabled := true
 
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module M = Algo.Make(Work)(ArgMake(ArgABCD)) in
+  let module M = Algo.Make (Work) (ArgMake (ArgABCD)) in
   M.test (-1)
 
-[%% endif]
+[%%endif]
 
 (* ************************************************************************** *)
-[%% if (defined PCF) ]
+[%%if defined PCF]
+
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module M = Algo_fair.Make(Work)(struct
-    include ArgMake(ArgPCF)
-    let max_examples_count = 10
-  end)
-  in
-  M.test (-1)
-    ~prunes_period:(Some 777)
+  let module M =
+    Algo_fair.Make
+      (Work)
+      (struct
+        include ArgMake (ArgPCF)
 
-[%% endif]
+        let max_examples_count = 10
+      end)
+  in
+  M.test (-1) ~prunes_period:(Some 777)
+
+[%%endif]
 
 (* ************************************************************************** *)
 
-[%% if (defined Tuple5) ]
+[%%if defined Tuple5]
+
 let () =
   let (module Algo) = algo in
   let (module Work) = work in
-  let module M = Algo_fair.Make(Work)(struct
-    include ArgMake(ArgTuple5)
-  end)
-  in
+  let module M = Algo_fair.Make (Work) (ArgMake (ArgTuple5)) in
   M.test (-1)
 
-[%% endif]
+[%%endif]
 (* ************************************************************************** *)
 
-let () =
-  Mybench.finish ()
-
+let () = Mybench.finish ()
