@@ -60,11 +60,16 @@ jobs:
       #  run: opam install odoc pa_ppx --yes
 
       - run: opam pin add . --no-action
+
+      - run: opam pin add https://github.com/JetBrains-Research/GT.git --no-action
+      
       - name: Installing depexts
         run: opam depext pat-match --yes --with-test
 
+      - run: opam install GT-p5 --yes --verbose
+
       - name: Installing dependencies
-        run: opam install . --deps-only --with-test
+        run: opam install . --deps-only --with-test --verbose
       - name: Building
         run: opam exec -- dune build switch/main_switch.exe --profile=release
 
