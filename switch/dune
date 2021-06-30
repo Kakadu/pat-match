@@ -8,7 +8,7 @@
 
 (library
  (name switches)
- (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
+ (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual run_cvc)
  (wrapped false)
  (libraries
   lazy-trie

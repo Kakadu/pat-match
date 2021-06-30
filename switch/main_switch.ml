@@ -12,6 +12,8 @@ type test_t = string * (module Main_inputs.ARG0)
 module EnabledTests = struct
   type t = {mutable test: test_t list}
 
+  let use_cygus = ref false
+  let is_sygus () = !use_cygus
   let enabled_tests = {test= []}
   let possible_tests = {test= []}
   let addp x = possible_tests.test <- List.append possible_tests.test [x]
@@ -21,7 +23,7 @@ module EnabledTests = struct
     let es = List.filter (fun (s, _) -> s <> key) enabled_tests.test in
     enabled_tests.test <- List.append es [t]
 
-  let set_sygus _ = assert false
+  let set_sygus x = use_cygus := x
 
   let del key =
     enabled_tests.test <-
@@ -117,11 +119,12 @@ let () =
   Format.printf "%d\n%!" (List.length EnabledTests.enabled_tests.test);
   EnabledTests.enabled_tests.test
   |> List.iter (fun (name, (module M : ARG0)) ->
-         Format.printf "Running the test %s\n" name;
-         let (module Algo) = algo in
-         let (module Work) = work in
-         let module M = Algo.Make (Work) (ArgMake (M)) in
-         M.test (-1) )
+         if EnabledTests.is_sygus () then Run_cvc.run (module M : ARG0)
+         else
+           let (module Algo) = algo in
+           let (module Work) = work in
+           let module M = Algo.Make (Work) (ArgMake (M)) in
+           M.test (-1) )
 
 let () = exit 0
 (* ************************************************************************** *)

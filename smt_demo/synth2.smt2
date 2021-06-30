@@ -9,12 +9,9 @@
 
 (synth-fun func2 ((x list) (y list)) Int
     ((Start Int) (StartList list) (StartBool Bool))
-    ((Start Int (;(h StartList)
-                 10
+    ((Start Int (10
                  20
                  30
-                 ;(+ Start Start)
-                 ;(- Start Start)
                  (ite StartBool Start Start)))
      (StartList list (x
                       y
@@ -29,8 +26,7 @@
                       ;(=   Start Start)
                       ;(= StartList StartList)
                       ((_ is Nil) StartList)
-                      ((_ is Cons) StartList)
-                      ;(>=  Start Start)
+                      ((_ is Cons) StartList)                    
                       ))))
 
 
