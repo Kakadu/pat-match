@@ -2,7 +2,6 @@ open Unn_pre
 open Main_inputs.TypsHighlevel
 
 let run (module Arg : Main_inputs.ARG0) =
-  (* Format.printf "%s %d\n%!" __FILE__ __LINE__; *)
   let highlevel_typs =
     match Arg.typs_highlevel with
     | Some t -> t

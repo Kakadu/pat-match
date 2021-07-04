@@ -607,7 +607,7 @@ module ArgPeanoSimple : ARG0 = struct
   type qtyp_injected = (g, l) OCanren.injected
 
   let rec all_inhabitants (rez : N.injected) =
-    conde [rez === N.z; fresh (size_tl tl) (N.s tl === rez) (all_inhabitants tl)]
+    conde [rez === N.z; fresh tl (N.s tl === rez) (all_inhabitants tl)]
 
   let make_wildcard_inhabitant : N.ground =
     let open OCanren in
@@ -1071,7 +1071,7 @@ module PCF = struct
       | a, Code c :: Env e :: s, [] -> 13
       | a, [], [] -> 14
   end
-  [@warning "-8"]
+  [@warning "-8-27"]
 end
 
 module ArgPCF : ARG0 = struct
@@ -1340,7 +1340,7 @@ module ArgMake (Arg : ARG0) : ARG_FINAL = struct
         GT.transform Pattern.ground
           (fun fself ->
             object
-              method c_PConstr acc _ name args =
+              method c_PConstr acc _ _name args =
                 GT.foldl OCanren.Std.List.ground fself (1 + acc) args
 
               method c_WildCard acc _ = acc + 1

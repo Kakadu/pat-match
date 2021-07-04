@@ -1,7 +1,7 @@
 (env
  (dev
   (flags
-   (:standard -w -3-9-32-27-39))))
+   (:standard -w -3-9-32-39 -warn-error -27))))
 
 (library
  (name helper)
