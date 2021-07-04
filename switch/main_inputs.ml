@@ -66,6 +66,62 @@ let inhabit_by_trie typs trie =
           (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
           b )
 
+module TypsHighlevel = struct
+  type constr_name = string
+  type accessor_name = string
+  type typ_name = string
+
+  (* type t0 = Nonrec of adt | Mu of string * adt | Named of string *)
+
+  type arg = accessor_name option * typ_name
+  type adt = (constr_name * arg list) list
+  type type_def = Nonrec of adt | Mu of string * adt
+
+  let arg : ?acc:accessor_name -> typ_name -> arg = fun ?acc name -> (acc, name)
+
+  type env = (string * type_def) list
+  type t = env * adt
+
+  let next_name =
+    let last_name = ref 0 in
+    fun () ->
+      incr last_name;
+      (Format.sprintf "typ%d" !last_name : typ_name)
+
+  let list el =
+    let n = next_name () in
+    Mu (n, [("nil", []); ("cons", [(Some "hd", el); (Some "tl", n)])])
+
+  let pair a b = Nonrec [("Pair", [(None, a); (None, b)])]
+  let int = Nonrec [("42", [])]
+
+  let unfold : _ -> t -> Unn_pre.Typs.pre_typ =
+    let open Unn_pre.Typs in
+    let rec helper env depth typname =
+      if depth <= 0 then T []
+      else
+        match List.assoc typname env with
+        | exception Not_found -> assert false
+        | Nonrec rhs -> on_alg env depth rhs
+        | Mu (name, rhs) ->
+            let env = (name, Nonrec rhs) :: env in
+            on_alg env depth rhs
+    (* | Named n -> (
+       match List.assoc n env with
+       | exception Not_found -> assert false
+       | typ -> helper env depth typ ) *)
+    and on_alg env depth (rhs : adt) =
+      T
+        (List.map
+           (fun (name, args) ->
+             ( name
+             , List.map
+                 (fun (_, typname) -> helper env (depth - 1) typname)
+                 args ) )
+           rhs ) in
+    fun depth (env, adt) -> on_alg env depth adt
+end
+
 module type ARG0 = sig
   open OCanren
 
@@ -77,6 +133,7 @@ module type ARG0 = sig
   val inhabit : Expr.injected -> goal
   val clauses : Clauses.pre_ground
   val typs : Typs.ground
+  val typs_highlevel : TypsHighlevel.t option
   val max_height : int
   val optimize : IR.ground -> IR.ground
   val initial_trie : Pats_tree.t
@@ -154,6 +211,7 @@ module ArgTrueFalse : ARG0 = struct
 
   let tt : T.t = [("true", []); ("false", [])]
   let typs = T.unfold 1 tt |> Typs.construct
+  let typs_highlevel = None
   let clauses = [(ptrue, IR.eint 1); (pfalse, IR.eint 0)]
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
@@ -203,6 +261,7 @@ module ArgAB : ARG0 = struct
     let grounded = Typs.construct @@ T [("A", []); ("B", [])] in
     grounded
 
+  let typs_highlevel = None
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
@@ -247,6 +306,7 @@ module ArgABC : ARG0 = struct
   let clauses =
     [(pleaf "A", IR.eint 1); (pleaf "B", IR.eint 1); (pleaf "C", IR.eint 0)]
 
+  let typs_highlevel = None
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
@@ -295,6 +355,7 @@ module ArgABCD : ARG0 = struct
      | D    -> econstr "D" []
      in
      ListLabels.map demo_exprs ~f:helper*)
+  let typs_highlevel = None
 
   let rec inhabit_t (rez : Expr.injected) : goal =
     conde
@@ -449,6 +510,7 @@ module ArgPairTrueFalse : ARG0 = struct
     let bool_t = [("true", []); ("false", [])] in
     [("pair", [`Other bool_t; `Other bool_t])]
 
+  let typs_highlevel = None
   let typs = T.unfold max_height tt |> Typs.construct
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
@@ -496,6 +558,8 @@ module ArgTripleBool : ARG0 = struct
       Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (2 = n);
     n
+
+  let typs_highlevel = None
 
   (* let typs =
      let open Unn_pre.Typs in
@@ -563,6 +627,7 @@ module ArgPeanoSimple : ARG0 = struct
     let pairs = T [("pair", [height; height])] in
     Typs.construct pairs
 
+  let typs_highlevel = None
   let info = "simple nats (a la Maranget2008)"
 
   let clauses =
@@ -632,6 +697,14 @@ module ArgSimpleList : ARG0 = struct
     let grounded = Typs.construct pairs in
     grounded
 
+  let tt0 : TypsHighlevel.t =
+    let open TypsHighlevel in
+    let int = Nonrec [("42", [])] in
+    let int_list = list "int" in
+    let env = [("int", int); ("intlist", int_list)] in
+    (env, [("pair", [arg "intlist"; arg "intlist"])])
+
+  let typs_highlevel = Some tt0
   let info = "simple lists (from Maranget2008)"
 
   let clauses =
@@ -894,6 +967,8 @@ module ArgTwoNilLists1 : ARG0 = struct
     let grounded = Typs.construct pairs in
     grounded
 
+  let typs_highlevel = None
+
   let clauses =
     [ (ppair pnil __, IR.eint 10); (ppair __ pnil, IR.eint 20)
     ; (ppair pnil2 __, IR.eint 30); (ppair __ pnil2, IR.eint 40)
@@ -1099,10 +1174,28 @@ module ArgPCF : ARG0 = struct
     let stack = T.list stack_item in
     [("triple", [`Other code; `Other stack; `Other prog])]
 
-  (*  let () = print_endline @@ GT.show Unn_pre.Typs.ground typs*)
   let typs = Unn_pre.Typs.construct @@ T.unfold (1 + max_height) tts
 
-  (* let () = print_endline @@ GT.show Unn_pre.Typs.ground typs *)
+  let tt0 : TypsHighlevel.t =
+    let open TypsHighlevel in
+    let int = Nonrec [("42", [])] in
+    let code =
+      Nonrec
+        [ ("Push", []); ("Ldi", [arg "int"]); ("IOp", [arg "int"])
+        ; ("Int", [arg "int"]) ] in
+    let prog = list "code" in
+    let stack_item =
+      Nonrec [("Val", [arg "code"]); ("Env", [arg "int"]); ("Code", [arg "int"])]
+    in
+    let stack = list "stack_item" in
+    let env =
+      [ ("code", code); ("prog", prog); ("stack_item", stack_item)
+      ; ("stack", stack); ("int", int) ] in
+    (env, [("triple", [arg "code"; arg "stack"; arg "prog"])])
+
+  let typs = Unn_pre.Typs.construct @@ TypsHighlevel.unfold (1 + max_height) tt0
+  let typs_highlevel = Some tt0
+  let () = print_endline @@ GT.show Unn_pre.Typs.ground typs
 
   let inhabit n e =
     Work_base_common.well_typed_expr_height
@@ -1177,6 +1270,7 @@ module ArgTuple5 : ARG0 = struct
     let pairs = T [("triple", [stack; stack; stack])] in
     Typs.construct pairs
 
+  let typs_highlevel = None
   let pldi x = pconstr "Ldi" [x]
   let psearch x = pconstr "Search" [x]
   let ppush = pconstr "Push" []

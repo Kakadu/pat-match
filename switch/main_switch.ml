@@ -116,7 +116,7 @@ let algo =
 [%%undef PCF]
 
 let () =
-  Format.printf "%d\n%!" (List.length EnabledTests.enabled_tests.test);
+  (* Format.printf "%d\n%!" (List.length EnabledTests.enabled_tests.test); *)
   EnabledTests.enabled_tests.test
   |> List.iter (fun (name, (module M : ARG0)) ->
          if EnabledTests.is_sygus () then Run_cvc.run (module M : ARG0)
