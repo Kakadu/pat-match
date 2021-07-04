@@ -108,8 +108,12 @@ let run (module Arg : Main_inputs.ARG0) =
                     acc cargs in
                 acc )
               acc adt in
-      Format.fprintf ppf "( (Start Int) (RBool Bool) (Rint Int) ";
+      Format.fprintf ppf "( (Start Int) (RBool Bool) ";
       let m = List.fold_left gather_all M.empty env in
+      let m =
+        List.fold_left
+          (fun acc (name, arg) -> M.extend arg name acc)
+          m formal_args in
       let m =
         List.fold_left
           (fun acc (_, rhs) ->
@@ -125,19 +129,56 @@ let run (module Arg : Main_inputs.ARG0) =
              vs )
          m; *)
       Format.fprintf ppf "(@[<v 0>";
-      Format.fprintf ppf "@[(Start Int (Rint))@]@,";
-      m
-      |> M.iter (fun k vs ->
-             Format.fprintf ppf "(R%s %s (%a))@ " k
-               (if k = "int" then "Int" else k)
-               (Format.pp_print_list Format.pp_print_string)
-               vs );
+      Format.fprintf ppf "@[(Start Int (%a (ite RBool Start Start) ))@]@,"
+        (Format.pp_print_list
+           ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+           Format.pp_print_string )
+        (M.find "int" m);
+      M.iter
+        (fun k vs ->
+          if k <> "int" then
+            Format.fprintf ppf "(R%s %s (%a))@ " k
+              (if k = "int" then "Int" else k)
+              (Format.pp_print_list
+                 ~pp_sep:(fun ppf () -> Format.fprintf ppf " ")
+                 Format.pp_print_string )
+              vs )
+        m;
       Format.fprintf ppf "@])";
-      Format.fprintf ppf " @,)@]" in
+      Format.fprintf ppf " @,)@]@," in
     () in
   (* adding constraints. There we need to know all valid examples *)
-  (* Arg.clauses |> List.iter  *)
-
+  let () =
+    for i = 1 to 10 do
+      Format.fprintf ppf "(declare-var x%d Int)\n" i
+    done;
+    let module X = Main_inputs.ArgMake (Arg) in
+    let ans : (Expr.ground * IR.logic OCanren.Std.Option.logic) list =
+      Algo_fair.eval_examples (module WorkHO) (module X) in
+    let pp_ground_list f ppf xs =
+      ground_list_iteri (fun _ x -> Format.fprintf ppf " %a" f x) xs in
+    let last_introduced = ref 0 in
+    let rec pp_expr ppf = function
+      | Expr.EConstr (intn, OCanren.Std.List.Nil)
+        when Tag.string_of_tag_exn intn = "int" ->
+          incr last_introduced;
+          Format.fprintf ppf "x%d" !last_introduced
+      | Expr.EConstr (name, args) ->
+          let lbra, rbra =
+            if OCanren.Std.List.Nil = args then ("", "") else ("(", ")") in
+          Format.fprintf ppf "%s%s %a%s" lbra
+            (Tag.string_of_tag_exn name)
+            (pp_ground_list pp_expr) args rbra in
+    Format.fprintf ppf "@,@[<v>";
+    ans
+    |> List.iter (fun ((expr : Expr.ground), rhs) ->
+           match rhs with
+           | OCanren.Value (Some (OCanren.Value (IR.Lit (OCanren.Value n)))) ->
+               let (Expr.EConstr (_, args)) = expr in
+               Format.fprintf ppf "@[(constraint (= %d (func1 %a)))@]@," n
+                 (pp_ground_list pp_expr) args
+           | _ -> () );
+    Format.fprintf ppf "@]" in
   (* footer *)
   Format.fprintf ppf "\n(check-synth)\n%!";
   let () = close_out ch in
