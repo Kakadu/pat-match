@@ -61,8 +61,9 @@ jobs:
 
       - run: opam pin add . --no-action
 
-      - run: opam pin add https://github.com/JetBrains-Research/GT.git --no-action
-      
+      # Remove explicit installation of GT because it is already in OPAM
+      #- run: opam pin add https://github.com/JetBrains-Research/GT.git --no-action
+
       - name: Installing depexts
         run: opam depext pat-match --yes --with-test
 
