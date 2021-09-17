@@ -1227,6 +1227,59 @@ module ArgPCF : ARG0 = struct
   let try_compile_naively = false
 end
 
+module TestWildcards : ARG0 = struct
+  open OCanren
+
+  type g = (int Std.List.ground, int Std.List.ground) Std.Pair.ground
+  type l = (int logic Std.List.logic, int logic Std.List.logic) Std.Pair.logic
+  type qtyp_injected = (g, l) injected
+
+  let typs =
+    let open Unn_pre.Typs in
+    let ints = T [("int", [])] in
+    let list_empty = T [("nil", [])] in
+    let listints1 = T [("nil", []); ("cons", [ints; list_empty])] in
+    let listints2 = T [("nil", []); ("cons", [ints; listints1])] in
+    let pairs = T [("pair", [listints2; listints2])] in
+    let grounded = Typs.construct pairs in
+    grounded
+
+  let tt0 : TypsHighlevel.t =
+    let open TypsHighlevel in
+    let int = Nonrec [("42", [])] in
+    let int_list = list "int" in
+    let env = [("int", int); ("intlist", int_list)] in
+    (env, [("pair", [arg "intlist"; arg "intlist"])])
+
+  let typs_highlevel = Some tt0
+  let info = "simple lists (from Maranget2008)"
+
+  let clauses =
+    [ (ppair pnil __, IR.eint 10); (ppair __ pnil, IR.eint 20)
+    ; (ppair (pcons __ __) (pcons __ __), IR.eint 30) ]
+
+  let clauses =
+    [ (ppair pnil __, IR.eint 10); (ppair __ pnil, IR.eint 10)
+    ; (ppair pnil2 __, IR.eint 10); (ppair __ pnil2, IR.eint 10)
+    ; (ppair (pcons __ __) (pcons __ __), IR.eint 60) ]
+
+  let max_height =
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    (*    Format.printf "patterns max height = %d\n%!" n;*)
+    assert (2 = n);
+    n
+
+  let optimize = optimize_pair
+  let () = assert (max_height = 2)
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = true
+end
+
 module ArgTuple5 : ARG0 = struct
   open OCanren
 
