@@ -290,7 +290,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       Pats_tree.pp Format.std_formatter !trie in
     let injected_clauses = Clauses.inject Arg.clauses in
     let injected_typs = Typs.inject Arg.typs in
-    let injected_exprs =
+    let examples : (Expr.injected -> goal) list =
       let goal_of_pattern mode : Expr.injected -> Pattern.ground -> goal =
        fun scru pat ->
         let wcn = Pattern.count_wildcards pat in
@@ -332,7 +332,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                        List.fold_left
                          (fun acc diseq -> acc &&& diseq q)
                          (goal_of_pattern `Unif q p)
-                         (List.tl diseqs2) ) ] in
+                         diseqs ) ] in
                (diseqs2, answers2) )
              ([], []) Arg.clauses in
       let () =
@@ -342,10 +342,9 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                  let open Tester in
                  runR Expr.reify Expr.show Expr.show_logic (-1) q qh ("", goal) )
       in
-      (* List.map (fun (e, _) -> Expr.inject e) demo_exprs  *)
-      [] in
+      inputs in
     Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses
-      ~examples:(List.length injected_exprs);
+      ~examples:(List.length examples);
     let () =
       match prunes_period with
       | Some n when n <= 0 -> failwith "bad prunes period"
@@ -407,9 +406,8 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
           ( info
           , fun ideal_IR ->
               let init = Arg.ir_hint ideal_IR in
-              List.fold_left
-                (fun acc (scru : Expr.injected) ->
-                  fresh (res_pat res_ir) acc
+              ListLabels.fold_left ~init examples ~f:(fun acc ex ->
+                  fresh (res_pat res_ir scru) acc (ex scru)
                     (W.eval_pat scru injected_clauses res_pat)
                     (conde
                        [ fresh n
@@ -458,8 +456,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                                     %!"
                                    (IR.show_logic ir);
                                false in
-                         if verdict then success else failure ) ) )
-                init injected_exprs );
+                         if verdict then success else failure ) ) ) );
         let span = Mtime_clock.count start in
         Format.printf "\n";
         Format.printf "Total synthesis time: %s\n%!"

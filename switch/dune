@@ -40,6 +40,11 @@
 (executable
  (name demo)
  (modules demo)
- (libraries switches)
+ (libraries switches OCanren.tester)
  (preprocess
-  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp)))
+  (pps
+   OCanren-ppx.ppx_repr
+   OCanren-ppx.ppx_wildcard
+   OCanren-ppx.ppx_fresh
+   GT.ppx_all
+   ppx_optcomp)))

@@ -490,8 +490,9 @@ module ArgPairTrueFalse : ARG0 = struct
   let info = "bool*bool"
 
   let clauses =
-    [ (ppair ptrue __, IR.eint 1); (ppair __ ptrue, IR.eint 1)
-    ; (ppair pfalse pfalse, IR.eint 0) ]
+    [ (ppair ptrue __, IR.eint 1)
+    ; (ppair __ ptrue, IR.eint 1) (* ; (ppair pfalse pfalse, IR.eint 0) *)
+    ; (__, IR.eint 0) ]
 
   let max_height =
     let n =
@@ -1226,7 +1227,7 @@ module ArgPCF : ARG0 = struct
   let shortcut_tag = simple_shortcut_tag
   let try_compile_naively = false
 end
-
+(*
 module TestWildcards : ARG0 = struct
   open OCanren
 
@@ -1279,6 +1280,7 @@ module TestWildcards : ARG0 = struct
   let shortcut_tag = simple_shortcut_tag
   let try_compile_naively = true
 end
+*)
 
 module ArgTuple5 : ARG0 = struct
   open OCanren
