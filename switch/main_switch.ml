@@ -10,12 +10,12 @@ let () = Mybench.enable ~on:false
 type test_t = string * (module Main_inputs.ARG0)
 
 module EnabledTests = struct
-  type t = {mutable test: test_t list}
+  type t = {mutable test : test_t list}
 
   let use_cygus = ref false
   let is_sygus () = !use_cygus
-  let enabled_tests = {test= []}
-  let possible_tests = {test= []}
+  let enabled_tests = {test = []}
+  let possible_tests = {test = []}
   let addp x = possible_tests.test <- List.append possible_tests.test [x]
   let disable_all () = enabled_tests.test <- []
 
@@ -57,7 +57,7 @@ let () =
 let () =
   let cmds =
     List.concat_map
-      (fun ((name, m) as t) ->
+      (fun ((name, _m) as t) ->
         [ ( "-" ^ name
           , Arg.Unit (fun () -> EnabledTests.adde t)
           , Format.sprintf "Enable the test %s" name )
@@ -86,8 +86,9 @@ let work =
 let algo =
   match Sys.getenv "PAT_MATCH_ALGO" with
   | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
-  | exception Not_found -> (module Algo_fair : Main_inputs.ALGO)
-  | _ -> (module Algo_fair : Main_inputs.ALGO)
+  | "fair" -> (module Algo_fair : Main_inputs.ALGO)
+  | exception Not_found -> (module Algo_wildcard : Main_inputs.ALGO)
+  | _ -> (module Algo_wildcard : Main_inputs.ALGO)
 
 [%%define AB]
 [%%undef AB]
@@ -118,7 +119,7 @@ let algo =
 let () =
   (* Format.printf "%d\n%!" (List.length EnabledTests.enabled_tests.test); *)
   EnabledTests.enabled_tests.test
-  |> List.iter (fun (name, (module M : ARG0)) ->
+  |> List.iter (fun (_name, (module M : ARG0)) ->
          if EnabledTests.is_sygus () then Run_cvc.run (module M : ARG0)
          else
            let (module Algo) = algo in
@@ -142,8 +143,8 @@ let () =
 (* ************************************************************************** *)
 [%%if defined PairTrueFalse]
 (*module FPairBool = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgPairTrueFalse)
-end)*)
+    include ArgMake(ArgPairTrueFalse)
+  end)*)
 
 let () =
   let (module Algo) = algo in
@@ -176,10 +177,10 @@ let () =
 (* ************************************************************************** *)
 [%%if defined ABC]
 (*module FABC = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgABC)
+    include ArgMake(ArgABC)
 
-  (* in this demo merging cases can be helpful *)
-end)*)
+    (* in this demo merging cases can be helpful *)
+  end)*)
 
 let () =
   let (module Algo) = algo in
@@ -444,18 +445,18 @@ let () =
   L.test (*    ~debug_filtered_by_size:false*) ~prunes_period:None (-1)
 
 (*[%% if (defined Algo2) ]
-let () =
-  let module M = Algo_fair2.Make(Peano) in
-  M.test (-1) ~prunes_period:None
+  let () =
+    let module M = Algo_fair2.Make(Peano) in
+    M.test (-1) ~prunes_period:None
 
-[%% endif]*)
+  [%% endif]*)
 
 (*[%% if (defined ManualAlgo) ]
-let () =
-  let module M = Algo_fair_manual.Make(Peano) in
-  M.test (-1) ~prunes_period:None
+  let () =
+    let module M = Algo_fair_manual.Make(Peano) in
+    M.test (-1) ~prunes_period:None
 
-[%% endif]*)
+  [%% endif]*)
 
 [%%endif]
 
@@ -463,8 +464,8 @@ let () =
 
 [%%if defined SimpleList]
 (*module FairLists1 = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgSimpleList)
-end)*)
+    include ArgMake(ArgSimpleList)
+  end)*)
 
 let () =
   let (module Work) = work in
@@ -472,12 +473,12 @@ let () =
   L.test (*    ~debug_filtered_by_size:false*) 10
 
 (*[%% if (defined ManualAlgo) ]
-let () =
-  (* TODO: this call may produce more answers than needed *)
-  let module M = Algo_fair_manual.Make(ArgMake(ArgSimpleList)) in
-  M.test (10)
+  let () =
+    (* TODO: this call may produce more answers than needed *)
+    let module M = Algo_fair_manual.Make(ArgMake(ArgSimpleList)) in
+    M.test (10)
 
-[%% endif]*)
+  [%% endif]*)
 [%%endif]
 
 (*
@@ -486,7 +487,7 @@ module FairLists2 = Algo_fair.Make(Work)(struct
   (* adding non-pair shourtcut optimizes from 1.8 (for all answers) to 1.4 (for all answers) *)
   let shortcut tag _ _ _ rez =
     fresh ()
-      (rez === !!true)      
+      (rez === !!true)
       (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 
   let info = info ^ " + (=/= pair)"
@@ -506,8 +507,8 @@ let __ () =
 *)
 
 (*module F2NilShort = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgTwoNilLists2Cons)
-end)*)
+    include ArgMake(ArgTwoNilLists2Cons)
+  end)*)
 
 (* There are only 4 answers here*)
 (*let () = F2NilShort.test (4)*)
@@ -520,11 +521,11 @@ let () =
   L.test 10
 
 (*[%% if (defined ManualAlgo) ]
-let () =
-  let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Cons)) in
-  M.test (10)
+  let () =
+    let module M = Algo_fair_manual.Make(ArgMake(ArgTwoNilLists2Cons)) in
+    M.test (10)
 
-[%% endif]*)
+  [%% endif]*)
 [%%endif]
 
 (* ************************************************************************** *)
@@ -558,24 +559,24 @@ let () =
 [%% endif]*)
 
 (*module WWW2 = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgTwoNilLists2Simplified)
+    include ArgMake(ArgTwoNilLists2Simplified)
 
-  let info = info ^ "+ max_height=2 + check_repeated_ifs"
-end)*)
+    let info = info ^ "+ max_height=2 + check_repeated_ifs"
+  end)*)
 (*let () = WWW2.test ~check_repeated_ifs:true 10*)
 
 [%%endif]
 
 (* ************************************************************************** *)
 (*module XXX = Algo_fair.Make(Work)(struct
-  include ArgMake(ArgTwoNilLists2Simplified)
-  let shortcut tag _ _ _ rez =
-    fresh ()
-      (rez === !!true)
-      (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
+    include ArgMake(ArgTwoNilLists2Simplified)
+    let shortcut tag _ _ _ rez =
+      fresh ()
+        (rez === !!true)
+        (tag =/= Tag.(inject @@ tag_of_string_exn "pair"))
 
-  let info = info ^ " + tag=/=pair"
-end)*)
+    let info = info ^ " + tag=/=pair"
+  end)*)
 
 (*let () = XXX.test 10*)
 (*

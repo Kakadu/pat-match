@@ -49,7 +49,7 @@ module N = struct
 
   let ground =
     { ground with
-      GT.plugins=
+      GT.plugins =
         object
           method show = show
           method fmt = ground.GT.plugins#fmt
@@ -60,7 +60,7 @@ module N = struct
 
   let logic =
     { logic with
-      GT.plugins=
+      GT.plugins =
         object
           method show = show_logic
           method fmt = logic.GT.plugins#fmt
@@ -146,7 +146,7 @@ module Tag = struct
 
   let ground =
     { ground with
-      GT.plugins=
+      GT.plugins =
         object
           method show = string_of_tag_exn
           method fmt f x = Format.fprintf f "@[%s@]" (string_of_tag_exn x)
@@ -157,7 +157,7 @@ module Tag = struct
 
   let logic =
     { logic with
-      GT.plugins=
+      GT.plugins =
         object
           method show = show_logic
           method fmt f l = Format.fprintf f "@[%s@]" (show_logic l)
@@ -302,6 +302,17 @@ module Pattern = struct
           method c_WildCard acc _ = acc
         end )
       0
+
+  let count_wildcards : ground -> int =
+    GT.transform ground
+      (fun fself ->
+        object
+          method c_PConstr acc _ _ args =
+            GT.foldl OCanren.Std.List.ground fself acc args
+
+          method c_WildCard acc _ = acc + 1
+        end )
+      0
 end
 
 (* ************************************************************************** *)
@@ -421,9 +432,9 @@ module Matchable = struct
     helper x
 
   let ground =
-    { GT.gcata= gcata_ground
-    ; GT.fix= ground.GT.fix
-    ; GT.plugins=
+    { GT.gcata = gcata_ground
+    ; GT.fix = ground.GT.fix
+    ; GT.plugins =
         object
           method fmt f x = Format.fprintf f "@[%s@]" (show x)
           method show = show
@@ -432,9 +443,9 @@ module Matchable = struct
         end }
 
   let logic =
-    { GT.gcata= gcata_logic
-    ; GT.fix= logic.GT.fix
-    ; GT.plugins=
+    { GT.gcata = gcata_logic
+    ; GT.fix = logic.GT.fix
+    ; GT.plugins =
         object
           method fmt f x = Format.fprintf f "@[%s@]" (show_logic x)
           method show = show_logic
@@ -599,9 +610,9 @@ module IR = struct
     Format.flush_str_formatter ()
 
   let ground =
-    { GT.gcata= gcata_ground
-    ; GT.fix= ground.GT.fix
-    ; GT.plugins=
+    { GT.gcata = gcata_ground
+    ; GT.fix = ground.GT.fix
+    ; GT.plugins =
         object
           method fmt = fmt
           method show = show
@@ -609,9 +620,9 @@ module IR = struct
         end }
 
   let logic =
-    { GT.gcata= gcata_logic
-    ; GT.fix= logic.GT.fix
-    ; GT.plugins=
+    { GT.gcata = gcata_logic
+    ; GT.fix = logic.GT.fix
+    ; GT.plugins =
         object
           method fmt = fmt_logic
           method show = show_logic

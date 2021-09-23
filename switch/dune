@@ -8,7 +8,14 @@
 
 (library
  (name switches)
- (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual run_cvc)
+ (modules
+  main_inputs
+  unn_pre
+  pats_tree
+  algo_fair
+  algo_fair_manual
+  algo_wildcard
+  run_cvc)
  (wrapped false)
  (libraries
   lazy-trie
@@ -16,6 +23,7 @@
   work_ho
   work_unn
   OCanren
+  OCanren.tester
   helper
   mytester
   mybench)
