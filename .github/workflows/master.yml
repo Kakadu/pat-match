@@ -53,7 +53,7 @@ jobs:
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
 
-      #- run: opam pin add OCanren.dev . --no-action
+      - run: opam pin add OCanren https://github.com/Kakadu/OCanren\#wildcard --no-action
       #- run: opam depext OCanren.dev --yes --with-test
 
       #- name: Install dependencies for documentation
