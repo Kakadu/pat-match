@@ -136,7 +136,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     let max_ifs_count = ref 0 in
     let set_initial_bound () = max_ifs_count := Arg.max_ifs_count in
     set_initial_bound ();
-    let () =
+    let __ () =
       match Arg.possible_answer with
       | None -> ()
       | Some a ->

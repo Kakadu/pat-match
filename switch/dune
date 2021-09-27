@@ -29,9 +29,9 @@
   mybench)
  (preprocess
   (pps
+   OCanren-ppx.ppx_tester
    OCanren-ppx.ppx_repr
    OCanren-ppx.ppx_fresh
-   OCanren-ppx.ppx_tester
    GT.ppx_all
    ppx_optcomp)))
 

@@ -14,6 +14,23 @@ module E = struct
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
 
+let run_int eta =
+  runR OCanren.reify (GT.show GT.int) (GT.show OCanren.logic @@ GT.show GT.int) eta
+;;
+
+let run_bool eta =
+  runR OCanren.reify (GT.show GT.bool) (GT.show OCanren.logic @@ GT.show GT.bool) eta
+;;
+
+let run_expr eta = runR Expr.reify Expr.show Expr.show_logic eta
+
+let __ _ =
+  let () = () in
+  (* [%tester run_bool (-1) (fun q -> q =/= !!true &&& (q =/= !!false))]; *)
+  run_bool (-1) q qh (REPR (fun q -> q =/= !!true &&& (q =/= !!false)));
+  exit 1
+;;
+
 let default_shortcut0 m max_height cases rez =
   let open OCanren in
   fresh
@@ -68,8 +85,6 @@ let __ _ =
   ()
 ;;
 
-let run_expr eta = runR Expr.reify Expr.show Expr.show_logic eta
-
 let _ =
   run_expr
     (-1)
@@ -113,8 +128,8 @@ let __ _ =
 (*
 
 match ... with
-| pair (true, _) -> 1
 | pair (_, true) -> 1
+| pair (true, _) -> 1
 | pair (false, false) -> 0
 
 *)
@@ -134,33 +149,86 @@ let _ =
       , 3 )
     ]
   in
+  let exampels = List.rev examples in
+  let eval_ir scru ir rez =
+    fresh
+      (max_height tinfo)
+      (max_height === N.(inject @@ of_int 2))
+      (W.eval_ir
+         scru
+         max_height
+         tinfo
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  in
   run_ir
-    3
+    2
     q
     qh
-    (REPR
-       (fun ir ->
-         fresh
-           (max_height tinfo)
-           (max_height === N.(inject @@ of_int 2))
-           (List.fold_left
-              (fun acc (desc, rhs) ->
-                fresh
-                  (scru rez)
-                  (rez === Std.Option.some !!rhs)
-                  acc
-                  (desc scru)
-                  (W.eval_ir
-                     scru
-                     max_height
-                     tinfo
-                     default_shortcut0
-                     default_shortcut
-                     default_shortcut_tag
-                     ir
-                     rez))
-              success
-              examples)))
+    ( "IR"
+    , fun ir ->
+        fresh
+          ()
+          (List.fold_left
+             (fun acc (desc, rhs) ->
+               fresh
+                 (scru rez)
+                 (rez === Std.Option.some !!rhs)
+                 acc
+                 (desc scru)
+                 (eval_ir scru ir rez))
+             success
+             examples) )
+;;
+
+let _ =
+  let make_program (q : IR.injected) =
+    let open Matchable in
+    let open IR in
+    let open Std in
+    fresh
+      (v1 bs b1 b2)
+      (q === switch (field0 ()) bs (int !!3))
+      (b1 === Std.pair v1 (int !!1))
+      (v1 === !!(Tag.of_string_exn "true"))
+      (v1 === !!(Tag.of_string_exn "false"))
+      (b2 === Std.pair (Tag.inject (Tag.of_string_exn "true")) (int !!2))
+      (bs === b1 %< b2)
+    (* (bs === !<b1) *)
+  in
+  (* let make_scru q = q === E.(pair true_ true_) in *)
+  let make_scru q = q === E.(pair __ true_) in
+  let eval_ir scru ir rez =
+    fresh
+      (max_height tinfo)
+      (max_height === N.(inject @@ of_int 2))
+      (make_program ir)
+      (make_scru scru)
+      (W.eval_ir
+         scru
+         max_height
+         tinfo
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  in
+  run_int
+    2
+    q
+    qh
+    ( "???"
+    , fun rhs ->
+        fresh
+          (scru ir rez)
+          (rez === Std.Option.some rhs)
+          (make_program ir)
+          (eval_ir scru ir rez) );
+  exit 1
 ;;
 
 (*

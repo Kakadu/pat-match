@@ -541,8 +541,8 @@ module ArgPairTrueFalse : ARG0 = struct
 
   let clauses =
     [ ppair ptrue __, IR.eint 1
-    ; ppair __ ptrue, IR.eint 1
-    ; ppair pfalse pfalse, IR.eint 0
+    ; ppair __ ptrue, IR.eint 2
+    ; ppair pfalse pfalse, IR.eint 3
       (* ; (__, IR.eint 0)  *)
     ]
   ;;
@@ -1315,7 +1315,7 @@ module ArgPCF : ARG0 = struct
 
   let typs = Unn_pre.Typs.construct @@ TypsHighlevel.unfold (1 + max_height) tt0
   let typs_highlevel = Some tt0
-  let () = print_endline @@ GT.show Unn_pre.Typs.ground typs
+  let __ () = print_endline @@ GT.show Unn_pre.Typs.ground typs
 
   let inhabit n e =
     Work_base_common.well_typed_expr_height
