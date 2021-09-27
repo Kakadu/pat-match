@@ -9,6 +9,7 @@ module E = struct
   open OCanren.Std
 
   let pair a b = Expr.constr !!(Tag.inttag_of_string_exn "pair") (a %< b)
+  let triple a b c = Expr.constr !!(Tag.inttag_of_string_exn "triple") (a % (b %< c))
   let true_ = Expr.constr !!(Tag.inttag_of_string_exn "true") (nil ())
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
@@ -119,15 +120,11 @@ match ... with
 *)
 let _ =
   let examples =
-    [ (fun q -> q === E.(pair true_ __)), 1
-    ; (fun q -> fresh () (q === E.(pair __ true_)) (* (q =/= E.(pair true_ __)) *)), 2
-    ; (fun q -> fresh () (q === E.(pair false_ false_))), 3
-      (* ; (fun q -> q === E.(pair false_ true_)), 1 *)
-    ]
-  in
-  let examples =
-    [ (fun q -> q === E.(pair true_ __)), 1
+    [ (* (fun q -> q === E.(pair true_ __)), 1
     ; (fun q -> fresh () (q === E.(pair __ true_)) (q =/= E.(pair true_ __))), 2
+    ; *)
+      (fun q -> q === E.(pair __ true_)), 1
+    ; (fun q -> fresh () (q === E.(pair true_ __)) (q =/= E.(pair __ true_))), 2
     ; ( (fun q ->
           fresh
             ()
@@ -151,6 +148,67 @@ let _ =
                 fresh
                   (scru rez)
                   (rez === Std.Option.some !!rhs)
+                  acc
+                  (desc scru)
+                  (W.eval_ir
+                     scru
+                     max_height
+                     tinfo
+                     default_shortcut0
+                     default_shortcut
+                     default_shortcut_tag
+                     ir
+                     rez))
+              success
+              examples)))
+;;
+
+(*
+
+match ... with
+| triple (_, false, true) -> 1
+| triple (false, true, _) -> 2
+| triple (_, _, false) -> 3
+| triple (_, _, true) -> 4
+
+*)
+let __ _ =
+  let examples =
+    let open E in
+    [ (fun q -> q === triple __ false_ true_), 1
+    ; (fun q -> fresh () (q === triple false_ true_ __) (q =/= triple __ false_ true_)), 2
+    ; ( (fun q ->
+          fresh
+            ()
+            (q === triple __ __ false_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 3 )
+    ; ( (fun q ->
+          fresh
+            ()
+            (q === triple __ __ true_)
+            (q =/= triple __ __ false_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 4 )
+    ]
+  in
+  run_ir
+    3
+    q
+    qh
+    (REPR
+       (fun ir ->
+         fresh
+           (max_height tinfo)
+           (max_height === N.(inject @@ of_int 2))
+           (List.fold_left
+              (fun acc (desc, rhs) ->
+                fresh
+                  (scru rez)
+                  (rez === Std.Option.some !!rhs)
+                  (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
                   acc
                   (desc scru)
                   (W.eval_ir
