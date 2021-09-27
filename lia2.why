@@ -1,0 +1,19 @@
+
+logic to_int : real -> int
+
+logic to_real : int -> real
+
+logic is_int : real -> bool
+
+logic x : int
+
+logic y : int
+
+axiom unamed__assert__1 :
+  x() - y() = x() + - y() + 1
+
+goal g :
+  false
+
+
+
