@@ -85,7 +85,7 @@ let __ _ =
   ()
 ;;
 
-let _ =
+let __ _ =
   run_expr
     (-1)
     q
@@ -93,7 +93,7 @@ let _ =
     (REPR (fun e -> fresh () (e =/= E.pair E.true_ __) (e =/= E.pair __ E.true_)))
 ;;
 
-let _ =
+let __ _ =
   run_expr
     (-1)
     q
@@ -133,7 +133,7 @@ match ... with
 | pair (false, false) -> 0
 
 *)
-let _ =
+let __ _ =
   let examples =
     [ (* (fun q -> q === E.(pair true_ __)), 1
     ; (fun q -> fresh () (q === E.(pair __ true_)) (q =/= E.(pair true_ __))), 2
@@ -184,7 +184,7 @@ let _ =
              examples) )
 ;;
 
-let _ =
+let __ _ =
   let make_program (q : IR.injected) =
     let open Matchable in
     let open IR in
@@ -291,3 +291,194 @@ let __ _ =
               success
               examples)))
 ;;
+
+(* *********************************************************** *)
+
+(*
+match ... with
+| triple (_, false, true) -> 1
+| triple (false, true, _) -> 2
+| triple (_, _, false) -> 3
+| triple (_, _, true) -> 4
+
+1st branch is going to have exponentional examples,
+other branches will be describe by =/= with wildcards
+*)
+let __ _ =
+  let examples =
+    let open E in
+    [ (fun q -> q === triple true_ false_ true_), 1
+    ; (fun q -> q === triple false_ false_ true_), 1 (* Wildcards go below *)
+    ; (fun q -> fresh () (q =/= triple __ false_ true_)), 2
+    ; ( (fun q ->
+          fresh
+            ()
+            (* (q === triple __ __ false_) *)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 3 )
+    ; ( (fun q ->
+          fresh
+            ()
+            (* (q === triple __ __ true_) *)
+            (q =/= triple __ __ false_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 4 )
+    ]
+  in
+  let eval_ir scru ir rez =
+    fresh
+      (max_height tinfo)
+      (max_height === N.(inject @@ of_int 2))
+      (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
+      (W.eval_ir
+         scru
+         max_height
+         tinfo
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  in
+  run_ir
+    3
+    q
+    qh
+    (REPR
+       (fun ir ->
+         fresh
+           ()
+           (List.fold_left
+              (fun acc (desc, rhs) ->
+                fresh
+                  (scru rez)
+                  (rez === Std.Option.some !!rhs)
+                  acc
+                  (desc scru)
+                  (eval_ir scru ir rez))
+              success
+              examples)))
+;;
+
+(* *********************************************************** *)
+
+(*
+match ... with
+| pair (true, _) -> 1
+| pair (false, _) -> 2
+
+
+*)
+let _ =
+  let examples =
+    let open E in
+    [ (fun q -> q === pair true_ __), 1; (fun q -> q === pair false_ __), 2 ]
+  in
+  let eval_ir scru ir rez =
+    fresh
+      (max_height tinfo)
+      (max_height === N.(inject @@ of_int 2))
+      (tinfo === Typs.inject Main_inputs.ArgPairTrueFalse.typs)
+      (W.eval_ir
+         scru
+         max_height
+         tinfo
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  in
+  run_ir
+    10
+    q
+    qh
+    (REPR
+       (fun ir ->
+         fresh
+           ()
+           (List.fold_left
+              (fun acc (desc, rhs) ->
+                fresh
+                  (scru rez)
+                  (rez === Std.Option.some !!rhs)
+                  acc
+                  (desc scru)
+                  (eval_ir scru ir rez))
+              success
+              examples)))
+;;
+
+let _ =
+  let make_program (q : IR.injected) =
+    let open Matchable in
+    let open IR in
+    let open Std in
+    fresh
+      (v1 bs b1)
+      (q === switch (field1 ()) bs (int !!2))
+      (b1 === Std.pair v1 (int !!1))
+      (v1 === !!(Tag.of_string_exn "true"))
+      (bs === !<b1)
+  in
+  (* let make_scru q = q === E.(pair true_ true_) in *)
+  let make_scru q = q === E.(pair false_ __) in
+  let eval_ir scru ir rez =
+    fresh
+      (max_height tinfo)
+      (max_height === N.(inject @@ of_int 2))
+      (make_program ir)
+      (make_scru scru)
+      (W.eval_ir
+         scru
+         max_height
+         tinfo
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  in
+  let injected_clauses =
+    let ppair l r =
+      Pattern.PConstr (Tag.of_string_exn "pair", Std.List.of_list Fun.id [ l; r ])
+    in
+    let ptrue = Pattern.PConstr (Tag.of_string_exn "true", Std.List.Nil) in
+    let pfalse = Pattern.PConstr (Tag.of_string_exn "false", Std.List.Nil) in
+    Clauses.inject
+    @@ [ ppair ptrue Pattern.WildCard, IR.Lit 1; ppair pfalse Pattern.WildCard, IR.Lit 2 ]
+  in
+  let run_interpreter_1 scru rhs =
+    W.eval_pat scru injected_clauses (Std.Option.some rhs)
+  in
+  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.false_) q)];
+  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.true_) q)];
+  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.false_) q)];
+  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
+  [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))];
+  run_int
+    2
+    q
+    qh
+    ( "???"
+    , fun rhs ->
+        fresh
+          (scru ir rez)
+          (rez === Std.Option.some rhs)
+          (make_program ir)
+          (eval_ir scru ir rez) );
+  exit 1
+;;
+
+(*
+
+conde
+  [ (q === pair true  __) &&& (res=/=1) &&& failure
+  ; (q === pair true  __) &&& (res===1)
+  ; (q === pair __ false) &&& (res=/=2) &&& failure
+  ; (q === pair __ false) &&& (res===2)
+  ;
+  ]
+*)

@@ -358,6 +358,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         helper [] wcn
       in
       let inputs : (Expr.injected -> goal) list =
+        let clauses = List.append Arg.clauses [ Pattern.WildCard, IR.Lit 42 ] in
         snd
         @@ List.fold_left
              (fun (diseqs, answers) (p, _) ->
@@ -367,14 +368,16 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                  @ [ (fun q ->
                        List.fold_left
                          (fun acc diseq -> acc &&& diseq q)
-                         (goal_of_pattern `Unif q p)
+                         (* (goal_of_pattern `Unif q p) *)
+                         success
                          diseqs)
                    ]
                in
                diseqs2, answers2)
              ([], [])
-             Arg.clauses
+             clauses
       in
+      let inputs = List.rev inputs in
       (* let inputs = (fun q -> q === Expr.(pair false_ false_)) :: inputs in
       let inputs =
         [ (fun q -> q === Expr.(pair false_ false_))
@@ -522,7 +525,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                           (* Format.printf "testing on scrutinee: %s\n%!"
                              (Expr.show_logic scru); *)
                           success
-                        | _ -> assert false))
+                        | _ -> success))
                     (debug_var ideal_IR (flip IR.reify) (fun irs ->
                          let verbose = false in
                          (*                  let verbose = true in*)
