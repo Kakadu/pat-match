@@ -47,7 +47,7 @@ let default_shortcut0 m max_height cases rez =
            | Some _m -> success)))
     (W.matchable_leq_nat m max_height !!true)
     (cases =/= Std.nil ())
-    (rez === !!true)
+    (rez === MatchableKind.good)
 ;;
 
 let default_shortcut _etag m _cases history _rez =

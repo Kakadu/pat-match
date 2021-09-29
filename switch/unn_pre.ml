@@ -302,6 +302,14 @@ let logic_list_len_lo =
   helper 0
 ;;
 
+module MatchableKind = struct
+  type injected = (matchable_kind, matchable_kind OCanren.logic) OCanren.injected
+
+  let good : injected = goodSubTree ()
+  let miss_example : injected = missExample ()
+  let miss_totally : injected = missTotally ()
+end
+
 module Pattern = struct
   type ('a, 'b) t = ('a, 'b) W.gpattern =
     | WildCard
@@ -525,6 +533,7 @@ module Matchable = struct
   let field = field
   let field0 () = field (z ()) @@ scru ()
   let field1 () = field (s (z ())) @@ scru ()
+  let field2 () = field (s (s (z ()))) @@ scru ()
   let field00 () = field (z ()) @@ field0 ()
   let field01 () = field (s (z ())) @@ field0 ()
   let field10 () = field (z ()) @@ field1 ()
@@ -992,7 +1001,11 @@ module type WORK = sig
     :  Expr.injected
     -> N.injected
     -> Typs.injected
-    -> (Matchable.injected -> N.injected -> Cases.injected -> bool_inj -> goal)
+    -> (Matchable.injected
+        -> N.injected
+        -> Cases.injected
+        -> MatchableKind.injected
+        -> goal)
     -> (Tag.injected
         -> Matchable.injected
         -> Cases.injected
@@ -1031,7 +1044,7 @@ module WorkHO : WORK = struct
       -> ((Matchable.injected -> goal)
           -> (N.injected -> goal)
           -> ((Tag.ground * IR.ground, _) Std.List.groundi -> goal)
-          -> bool_inj
+          -> MatchableKind.injected
           -> goal)
       -> (_ -> _ -> _ -> _ -> bool_inj -> goal) -> (_ -> _ -> _ -> goal)
       -> (IR.injected -> goal) -> (int, int OCanren.logic) Std.Option.groundi -> goal

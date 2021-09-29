@@ -98,7 +98,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                else failure)))
       (W.matchable_leq_nat m max_height !!true)
       (cases =/= Std.nil ())
-      (rez === !!true)
+      (rez === MatchableKind.good)
   ;;
 
   let default_shortcut _etag m _cases history _rez =
@@ -335,7 +335,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                  let stream =
                    OCanren.(run one)
                      (fun rez ->
-                       fresh n (W.eval_pat scru_demo injected_clauses rez)
+                       fresh () (W.eval_pat scru_demo injected_clauses rez)
                        (*                    (rez === Std.Option.some ir)*)
                        (*                    (ir === IR.int n)*)
                        (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))
@@ -419,7 +419,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     let my_eval_ir ideal (s : Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success)
       &&& (* There we use shortcuts optimized for search.
-           * These shortcuts canptentially broke execution in default direction
+           * These shortcuts can potentially broke execution in default direction
            *)
       W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez
     in

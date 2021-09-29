@@ -98,7 +98,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                else failure)))
       (W.matchable_leq_nat m max_height !!true)
       (cases =/= Std.nil ())
-      (rez === !!true)
+      (rez === MatchableKind.good)
   ;;
 
   let default_shortcut _etag m _cases history _rez =
@@ -414,8 +414,8 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                      (-1)
                      q
                      qh
-                     ("test example", goal_interpret1);
-                   [%tester runR IR.reify IR.show IR.show_logic (-1) (fun q -> success)]
+                     ("test example", goal_interpret1)
+                   (* [%tester runR IR.reify IR.show IR.show_logic (-1) (fun q -> success)] *)
                  in
                  ())
       in
