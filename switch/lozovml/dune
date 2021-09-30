@@ -34,13 +34,8 @@
  (targets work_base_common.ml)
  (deps work_base.ml)
  (action
-  (run
-   noCanren
-   -unnesting-mode
-   -without-activate-tactics
-   %{deps}
-   -o
-   %{targets}))
+  (system
+   "noCanren -unnesting-mode -without-activate-tactics %{deps} -show-result | ocamlformat --impl - > %{targets}"))
  ; we expect that only types there so unesting and high-order will generate the same
  )
 
@@ -61,16 +56,8 @@
   work_base_common.cma
   (:main work.ml))
  (action
-  (run
-   noCanren
-   %{main}
-   ;-rectypes
-   -open
-   Work_base
-   -I
-   .work_base.objs/byte
-   -o
-   %{targets})))
+  (system
+   "noCanren %{main} -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))
 
 ; unnesting
 
@@ -89,14 +76,5 @@
   work_base_common.cma
   (:main work.ml))
  (action
-  (run
-   noCanren
-   -unnesting-mode
-   -without-activate-tactics
-   %{deps}
-   -open
-   Work_base
-   -I
-   .work_base.objs/byte
-   -o
-   %{targets})))
+  (system
+   "noCanren %{main} -unnesting-mode -without-activate-tactics -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))

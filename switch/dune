@@ -15,6 +15,7 @@
   algo_fair
   algo_fair_manual
   algo_wildcard
+  work_manual
   run_cvc)
  (wrapped false)
  (libraries

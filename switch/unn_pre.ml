@@ -1036,9 +1036,7 @@ end
 
 module WorkUnnesting : WORK = Work_unn
 
-module WorkHO : WORK = struct
-  module Wrap = Work_ho
-
+module NormalizeHO (Wrap : module type of Work_ho) : WORK = struct
   let eval_ir
       :  (Expr.injected -> goal) -> (N.injected -> goal) -> (Typs.injected -> goal)
       -> ((Matchable.injected -> goal)
@@ -1102,6 +1100,7 @@ module WorkHO : WORK = struct
   let info_assoc typs name rez = Wrap.info_assoc (( === ) typs) (( === ) name) rez
 end
 
+module WorkHO : WORK = NormalizeHO (Work_ho)
 (*
 let _f ()  =
   run_exn (GT.show Std.Option.ground @@ GT.show GT.int) 1 q qh ("test eval_ir", fun q ->

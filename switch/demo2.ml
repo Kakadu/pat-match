@@ -133,6 +133,38 @@ module TripleBool = struct
  ;;
 
   let _ =
+    let desc, _rhs, good_matchables =
+      let open E in
+      (* (fun q -> q === triple __ false_ true_), 1, GroundField.[ field1; field2 ] *)
+      List.nth examples 2
+    in
+    run_int
+      3
+      q
+      qh
+      (REPR
+         (fun rhs ->
+           fresh
+             (scru tinfo max_height rez ir)
+             (max_height === N.(inject @@ of_int 2))
+             (rez === Std.Option.some rhs)
+             (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
+             (desc scru)
+             (answer ir)
+             (W.eval_ir
+                scru
+                max_height
+                tinfo
+                (default_shortcut0 good_matchables)
+                default_shortcut
+                default_shortcut_tag
+                ir
+                rez)))
+  ;;
+
+  let _ =
+    (* let examples = [ List.nth examples 0; List.nth examples 1; List.nth examples 2 ] in *)
+    let examples = List.map (List.nth examples) [ 2 ] in
     run_ir
       3
       q
@@ -141,7 +173,8 @@ module TripleBool = struct
          (fun ir ->
            fresh
              (max_height tinfo)
-             (max_height === N.(inject @@ of_int 2))
+             (max_height === N.inject @@ N.of_int 3)
+             (answer ir)
              (List.fold_left
                 (fun acc (desc, rhs, good_matchables) ->
                   fresh
