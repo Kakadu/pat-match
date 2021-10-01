@@ -26,6 +26,14 @@ let run_bool eta =
 
 let run_expr eta = runR Expr.reify Expr.show Expr.show_logic eta
 
+let run_option_int eta =
+  runR
+    (Std.Option.reify OCanren.reify)
+    (GT.show GT.option @@ GT.show GT.int)
+    (GT.show Std.Option.logic @@ GT.show OCanren.logic (GT.show GT.int))
+    eta
+;;
+
 let run_pair eta =
   let show_int = GT.show GT.bool in
   let sl = GT.show OCanren.logic show_int in
@@ -38,8 +46,14 @@ let run_pair eta =
 
 let run_ir eta =
   let show_int = GT.show GT.bool in
-  let sl = GT.show OCanren.logic show_int in
+  (* let sl = GT.show OCanren.logic show_int in *)
   runR IR.reify IR.show IR.show_logic eta
+;;
+
+let run_pattern eta =
+  let show_int = GT.show GT.bool in
+  (* let sl = GT.show OCanren.logic show_int in *)
+  runR Pattern.reify Pattern.show Pattern.show_logic eta
 ;;
 
 let default_shortcut0 good_matchables m max_height cases rez =
@@ -58,7 +72,9 @@ let default_shortcut0 good_matchables m max_height cases rez =
            | None -> success
            | Some Matchable.Scru -> failure
            | Some m when List.mem m good_matchables -> rez === MatchableKind.good
-           | Some _m -> rez === MatchableKind.miss_example)))
+           | Some _m ->
+             rez === MatchableKind.miss_example
+             (* | Some _ -> rez === MatchableKind.good *))))
 ;;
 
 let default_shortcut _etag m _cases history _rez =
@@ -132,26 +148,40 @@ module TripleBool = struct
             (ite field2 ttrue _1 _3))
  ;;
 
+  let _ = [%tester run_ir 1 (fun q -> answer q)]
+
+  let line_num line num =
+    fresh
+      q
+      (debug_var q (flip OCanren.reify) (function _ ->
+           Format.printf "%s %d\n%!" line num;
+           success))
+  ;;
+
   let _ =
     let desc, _rhs, good_matchables =
       let open E in
       (* (fun q -> q === triple __ false_ true_), 1, GroundField.[ field1; field2 ] *)
       List.nth examples 2
     in
-    run_int
-      3
+    let desc q =
+      let open E in
+      fresh () (desc q) (q =/= triple false_ true_ __) (q =/= triple __ false_ true_)
+    in
+    [%tester run_expr 2 (fun p -> desc p)];
+    run_option_int
+      2
       q
       qh
       (REPR
-         (fun rhs ->
+         (fun rez ->
            fresh
-             (scru tinfo max_height rez ir)
+             (scru tinfo max_height ir)
              (max_height === N.(inject @@ of_int 2))
-             (rez === Std.Option.some rhs)
              (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
              (desc scru)
              (answer ir)
-             (W.eval_ir
+             (Work_manual.eval_ir
                 scru
                 max_height
                 tinfo
@@ -162,7 +192,7 @@ module TripleBool = struct
                 rez)))
   ;;
 
-  let _ =
+  let __ _ =
     (* let examples = [ List.nth examples 0; List.nth examples 1; List.nth examples 2 ] in *)
     let examples = List.map (List.nth examples) [ 2 ] in
     run_ir
@@ -183,7 +213,8 @@ module TripleBool = struct
                     (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
                     acc
                     (desc scru)
-                    (W.eval_ir
+                    (line_num __FILE__ __LINE__)
+                    (Work_manual.eval_ir
                        scru
                        max_height
                        tinfo

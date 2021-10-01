@@ -322,6 +322,10 @@ module Pattern = struct
   type logic = (Tag.logic, logic Std.List.logic) t OCanren.logic
   type injected = (ground, logic) OCanren.injected
 
+  let rec reify eta : injected -> logic =
+    W.For_gpattern.reify Tag.reify (Std.List.reify reify) eta
+  ;;
+
   let constr = W.pConstr
   let wc = W.wildCard
 

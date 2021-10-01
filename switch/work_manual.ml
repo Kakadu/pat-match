@@ -326,6 +326,7 @@ let rec not_in_history x xs q40 =
 ;;
 
 let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q39 =
+  let open Unn_pre in
   let rec inner history test_list irrr q0 =
     conde
       [ irrr === fail () &&& (q0 === none ())
@@ -333,13 +334,43 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q39 =
       ; fresh
           (m cases on_default q4)
           (irrr === switch m cases on_default)
+          (debug_var m (Unn_pre.flip Unn_pre.Matchable.reify) (fun xs ->
+               Format.printf
+                 "Going to eval matchable: %a\n%!"
+                 Matchable.fmt_logic
+                 (Caml.List.hd xs);
+               success))
           (shortcut0 m max_height cases q4)
           (fresh
              (correct_rez q7)
              (q4 === missExample ())
              (q7 === !!true)
              (correct_rez === q0)
+             (debug_var on_default (Unn_pre.flip Unn_pre.IR.reify) (fun xs ->
+                  Format.printf
+                    "Going to eval default branch: %a\n%!"
+                    IR.fmt_logic
+                    (Caml.List.hd xs);
+                  success))
              (inner history test_list on_default correct_rez)
+             (debug_var
+                (Std.pair on_default correct_rez)
+                (Unn_pre.flip @@ Std.Pair.reify IR.reify (Std.Option.reify OCanren.reify))
+                (function
+                  | [ Value (ir, Value (Some (Value n))) ] ->
+                    Format.printf "\t%a ~~~> %d\n%!" IR.fmt_logic ir n;
+                    success
+                  | [ Value (_, v) ] ->
+                    Format.printf
+                      "The answer in the default branch is %s\n%!"
+                      (GT.show
+                         OCanren.logic
+                         (GT.show GT.option (GT.show OCanren.logic @@ GT.show GT.int))
+                         v);
+                    success
+                  | _ ->
+                    let _ = assert false in
+                    success))
              (list_all
                 (fun br q10 ->
                   fresh
@@ -397,5 +428,12 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q39 =
     in
     helper cnames cases0 q37
   in
-  inner (nil ()) test_list ir q39
+  fresh
+    ()
+    (debug_var ir (Unn_pre.flip Unn_pre.IR.reify) (function
+        | [ p ] ->
+          Format.printf "Going to eval program\n@[%a@]\n%!" IR.fmt_logic p;
+          success
+        | _ -> assert false))
+    (inner (nil ()) test_list ir q39)
 ;;
