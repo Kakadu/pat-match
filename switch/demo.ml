@@ -371,7 +371,7 @@ match ... with
 
 
 *)
-let _ =
+let __ _ =
   let examples =
     let open E in
     [ (fun q -> q === pair true_ __), 1; (fun q -> q === pair false_ __), 2 ]
@@ -411,7 +411,7 @@ let _ =
               examples)))
 ;;
 
-let _ =
+let __ _ =
   let make_program (q : IR.injected) =
     let open Matchable in
     let open IR in
@@ -468,17 +468,110 @@ let _ =
           (scru ir rez)
           (rez === Std.Option.some rhs)
           (make_program ir)
-          (eval_ir scru ir rez) );
+          (eval_ir scru ir rez)
+          (debug_var scru (flip Expr.reify) (function
+              | [ q ] ->
+                Format.printf "%s\n%!" (Expr.show_logic q);
+                success
+              | _ -> assert false)) );
   exit 1
 ;;
 
-(*
+module _ = struct
+  (*
+  match ... with
+  | triple (_, false, true) -> 1
+  | triple (false, true, _) -> 2
+  | triple (_, _, false) -> 3
+  | triple (_, _, true) -> 4
+  *)
 
-conde
-  [ (q === pair true  __) &&& (res=/=1) &&& failure
-  ; (q === pair true  __) &&& (res===1)
-  ; (q === pair __ false) &&& (res=/=2) &&& failure
-  ; (q === pair __ false) &&& (res===2)
-  ;
-  ]
-*)
+  let program : IR.injected -> _ =
+   fun q ->
+    let open OCanren.Std in
+    let field0 = Matchable.field0 () in
+    let field1 = Matchable.field1 () in
+    let field2 = Matchable.field2 () in
+    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
+    let ttrue = !!(Tag.of_string_exn "true") in
+    let _1 = IR.int !!1 in
+    let _2 = IR.int !!2 in
+    let _3 = IR.int !!3 in
+    let _4 = IR.int !!4 in
+    fresh
+      ()
+      (q
+      === ite
+            field1
+            ttrue
+            (ite field0 ttrue (ite field2 ttrue _4 _3) _2)
+            (ite field2 ttrue _1 _3))
+ ;;
+
+  let examples =
+    let open E in
+    [ (fun q -> q === triple __ false_ true_), 1
+    ; (fun q -> fresh () (q === triple false_ true_ __) (q =/= triple __ false_ true_)), 2
+    ; ( (fun q ->
+          fresh
+            ()
+            (q === triple __ __ false_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 3 )
+    ; ( (fun q ->
+          fresh
+            ()
+            (q === triple __ __ true_)
+            (q =/= triple __ __ false_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ false_ true_))
+      , 4 )
+    ]
+  ;;
+
+  let _ =
+    let make_scru q = fst (List.nth examples 2) q in
+    let eval_ir scru ir rez =
+      fresh
+        (max_height tinfo)
+        (max_height === N.(inject @@ of_int 2))
+        (program ir)
+        (make_scru scru)
+        (W.eval_ir
+           scru
+           max_height
+           tinfo
+           default_shortcut0
+           default_shortcut
+           default_shortcut_tag
+           ir
+           rez)
+    in
+    (* let run_interpreter_1 scru rhs =
+      W.eval_pat scru injected_clauses (Std.Option.some rhs)
+    in *)
+    (* [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.false_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.true_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.false_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
+    [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))]; *)
+    run_int
+      2
+      q
+      qh
+      ( "???"
+      , fun rhs ->
+          fresh
+            (scru ir rez)
+            (rez === Std.Option.some rhs)
+            (program ir)
+            (eval_ir scru ir rez)
+            (debug_var scru (flip Expr.reify) (function xs ->
+                 List.iteri
+                   (fun n q -> Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
+                   xs;
+                 success)) );
+    exit 1
+  ;;
+end
