@@ -89,14 +89,5 @@
   work_base_common.cma
   (:main work.ml))
  (action
-  (run
-   noCanren
-   -unnesting-mode
-   -without-activate-tactics
-   %{deps}
-   -open
-   Work_base
-   -I
-   .work_base.objs/byte
-   -o
-   %{targets})))
+  (system
+   "noCanren %{main} -unnesting-mode -without-activate-tactics -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))

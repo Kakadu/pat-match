@@ -525,6 +525,7 @@ module Matchable = struct
   let field = field
   let field0 () = field (z ()) @@ scru ()
   let field1 () = field (s (z ())) @@ scru ()
+  let field2 () = field (s (s (z ()))) @@ scru ()
   let field00 () = field (z ()) @@ field0 ()
   let field01 () = field (s (z ())) @@ field0 ()
   let field10 () = field (z ()) @@ field1 ()
