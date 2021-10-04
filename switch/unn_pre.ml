@@ -491,6 +491,7 @@ module Expr = struct
     GT.show OCanren.logic helper x
   ;;
 
+  let pp_logic ppf e = Format.fprintf ppf "%s" (show_logic e)
   let rec reify env x = For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
 
   let inject (e : ground) : injected =
@@ -954,6 +955,7 @@ module Triple = struct
   end)
 
   type nonrec ('a, 'b, 'c) logic = ('a, 'b, 'c) ground OCanren.logic
+  [@@deriving gt ~options:{ fmt }]
 
   let reify fa fb fc = F.reify fa fb fc
   let prjc = F.prjc

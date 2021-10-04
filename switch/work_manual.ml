@@ -371,6 +371,13 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir q39 =
                   | _ ->
                     let _ = assert false in
                     success))
+             (debug_var s (Unn_pre.flip Expr.reify) (function
+                 | [] -> assert false
+                 | scrus ->
+                   Caml.List.iteri
+                     (fun i s -> Format.printf "\t  scru_%d = %a \n%!" i Expr.pp_logic s)
+                     scrus;
+                   success))
              (list_all
                 (fun br q10 ->
                   fresh
