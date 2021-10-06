@@ -8,7 +8,7 @@
 
 (executable
  (name main2)
- (modules main2 work)
+ (modules main2)
  (flags (-rectypes))
  (libraries OCanren OCanren.tester helper)
  (preprocess

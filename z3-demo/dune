@@ -1,0 +1,9 @@
+(executable
+ (name main)
+ ;(public_name z3_demo)
+ (modules main)
+ (flags
+  (-warn-error +20+5))
+ (libraries z3)
+ ;(preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx ppx_optcomp))
+ )
