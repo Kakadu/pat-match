@@ -13,8 +13,8 @@ endif
 all: switch #nonlin unn #guards
 
 bench:
-	dune build switch/main_switch.exe
-	_build/default/switch/main_switch.exe -bench
+	dune build switch/main.exe
+	_build/default/switch/main.exe -bench
 
 
 run:
@@ -33,7 +33,7 @@ unn:
 	dune exec unn/main_unnested.exe $(DUNEOPTS)
 
 switch:
-	dune exec switch/main_switch.exe $(DUNEOPTS)
+	dune exec switch/main.exe $(DUNEOPTS)
 
 nonlin:
 	dune exec nonlinear/main_nonlinear.exe $(DUNEOPTS)
@@ -49,5 +49,3 @@ gcw:
 celan: clean
 clean:
 	$(RM) -r _build
-
-

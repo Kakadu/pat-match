@@ -37,8 +37,8 @@
    ppx_optcomp)))
 
 (executable
- (name main_switch)
- (modules main_switch)
+ (name main)
+ (modules main)
  (libraries switches)
  (preprocess
   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_optcomp)))
