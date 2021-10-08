@@ -2,7 +2,7 @@ open Main_inputs
 open Unn_pre
 open OCanren
 open Tester
-module W = Unn_pre.WorkHO
+module W = Work_manual
 module Arg = Main_inputs.ArgMake (Main_inputs.ArgPairTrueFalse)
 
 module E = struct
@@ -50,19 +50,37 @@ let default_shortcut0 m max_height cases rez =
     (rez === !!true)
 ;;
 
-let default_shortcut _etag m _cases history _typs  _rez =
+let default_shortcut _etag m _cases history _typs _rez =
   let open OCanren in
   W.not_in_history m history !!true &&& success
 ;;
 
-let default_shortcut_tag constr_names cases _rez =
+let default_shortcut_tag etag constr_names rez =
   let open OCanren in
   let open OCanren.Std in
-  conde
-    [ constr_names === nil () &&& failure
-    ; fresh u (constr_names === u % nil ()) (cases === nil ())
-    ; fresh (u v w) (constr_names === u % (v % w))
-    ]
+  fresh
+    ()
+    (rez === !!true)
+    (debug_var
+       constr_names
+       (flip @@ Std.List.reify OCanren.reify)
+       (function
+         | [ lst ] ->
+           (try
+              let ground_list =
+                Std.List.prj_exn
+                  (function
+                    | Value x -> x
+                    | _ -> raise OCanren.Not_a_value)
+                  lst
+                |> Std.List.to_list Fun.id
+              in
+              OCanren.FD.domain etag ground_list
+            with
+           | OCanren.Not_a_value ->
+             Format.eprintf "Not_a_value when reifying type names. Skip\n%!";
+             success)
+         | _ -> assert false))
 ;;
 
 let __ _ =
@@ -368,8 +386,6 @@ let __ _ =
 match ... with
 | pair (true, _) -> 1
 | pair (false, _) -> 2
-
-
 *)
 let __ _ =
   let examples =
@@ -515,6 +531,9 @@ module _ = struct
  ;;
 
   let examples =
+    let add_domain q =
+      FD.domain q [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ]
+    in
     let open E in
     [ (fun q -> q === triple __ false_ true_), 1
     ; (fun q -> fresh () (q === triple false_ true_ __) (q =/= triple __ false_ true_)), 2
@@ -536,24 +555,23 @@ module _ = struct
     ]
   ;;
 
+  let eval_ir_triple_bool scru ir rez =
+    fresh
+      max_height
+      (max_height === N.(inject @@ of_int 2))
+      (W.eval_ir
+         scru
+         max_height
+         (Typs.inject ArgTripleBool.typs)
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         ir
+         rez)
+  ;;
+
   let _ =
     let make_scru q = fst (List.nth examples 2) q in
-    let eval_ir scru ir rez =
-      fresh
-        (max_height tinfo)
-        (max_height === N.(inject @@ of_int 2))
-        (program ir)
-        (make_scru scru)
-        (W.eval_ir
-           scru
-           max_height
-           tinfo
-           default_shortcut0
-           default_shortcut
-           default_shortcut_tag
-           ir
-           rez)
-    in
     (* let run_interpreter_1 scru rhs =
       W.eval_pat scru injected_clauses (Std.Option.some rhs)
     in *)
@@ -566,19 +584,37 @@ module _ = struct
       2
       q
       qh
-      ( "???"
+      ( "Running forward 2nd example in TripleBool test"
       , fun rhs ->
           fresh
             (scru ir rez)
             (rez === Std.Option.some rhs)
             (program ir)
-            (eval_ir scru ir rez)
+            (make_scru scru)
+            (eval_ir_triple_bool scru ir rez)
             (debug_var scru (flip Expr.reify) (function xs ->
-                 (* print_endline "HERR"; *)
                  List.iteri
                    (fun n q -> Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
                    xs;
-                 success)) );
-    exit 1
+                 success)) )
+  ;;
+
+  let _ =
+    run_ir
+      3
+      q
+      qh
+      (REPR
+         (fun ir ->
+           List.fold_left
+             (fun acc (desc, rhs) ->
+               fresh
+                 (scru rez)
+                 (rez === Std.Option.some !!rhs)
+                 acc
+                 (desc scru)
+                 (eval_ir_triple_bool scru ir rez))
+             success
+             [ List.nth examples 0; List.nth examples 1; List.nth examples 2 ]))
   ;;
 end
