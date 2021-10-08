@@ -75,8 +75,6 @@ build: [
 ]
 pin-depends: [
   ["OCanren.0.2.0" "git+https://github.com/Kakadu/OCanren.git#wildcard+fd"]
-  [
-    "OCanren-ppx.0.2.0"
-    "https://github.com/JetBrains-Research/OCanren/releases/download/0.2.0/OCanren-ppx-0.2.0.tbz"
-  ]
+  ["OCanren-ppx.0.2.0" "git+https://github.com/Kakadu/OCanren.git#wildcard+fd"]
 ]
+
