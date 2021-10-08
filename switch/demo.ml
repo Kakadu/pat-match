@@ -50,7 +50,7 @@ let default_shortcut0 m max_height cases rez =
     (rez === !!true)
 ;;
 
-let default_shortcut _etag m _cases history _rez =
+let default_shortcut _etag m _cases history _typs  _rez =
   let open OCanren in
   W.not_in_history m history !!true &&& success
 ;;

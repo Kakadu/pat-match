@@ -998,6 +998,7 @@ module type WORK = sig
         -> Matchable.injected
         -> Cases.injected
         -> (Matchable.ground, Matchable.logic) Std.List.groundi
+        -> Typs.injected
         -> bool_inj
         -> goal)
     -> (CNames.injected -> Cases.injected -> bool_inj -> goal)
@@ -1032,9 +1033,10 @@ module WorkHO : WORK = struct
       -> ((Matchable.injected -> goal)
           -> (N.injected -> goal)
           -> ((Tag.ground * IR.ground, _) Std.List.groundi -> goal)
+
           -> bool_inj
           -> goal)
-      -> (_ -> _ -> _ -> _ -> bool_inj -> goal) -> (_ -> _ -> _ -> goal)
+      -> (_ -> _ -> _ -> _-> (Typs.injected -> goal) -> bool_inj -> goal) -> (_ -> _ -> _ -> goal)
       -> (IR.injected -> goal) -> (int, int OCanren.logic) Std.Option.groundi -> goal
     =
     Wrap.eval_ir
@@ -1047,9 +1049,9 @@ module WorkHO : WORK = struct
       (( === ) typs)
       (fun a b c r ->
         Fresh.three (fun a2 b2 c2 -> a a2 &&& b b2 &&& c c2 &&& shct1 a2 b2 c2 r))
-      (fun a b c d r ->
-        Fresh.four (fun a2 b2 c2 d2 ->
-            a a2 &&& b b2 &&& c c2 &&& d d2 &&& shct2 a2 b2 c2 d2 r))
+      (fun a b c d e r ->
+        Fresh.five (fun a2 b2 c2 d2 e2 ->
+            a a2 &&& b b2 &&& c c2 &&& d d2 &&& e e2 &&& shct2 a2 b2 c2 d2 e2 r))
       (fun a b r -> Fresh.two @@ fun x y -> a x &&& b y &&& shct3 x y r)
       (( === ) ir)
       rez

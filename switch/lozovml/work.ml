@@ -300,7 +300,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
              * Может быть, конечно, можно подобрать дургую реализацию shortcut0 для
              * синтеза, но я не думаю, что это стоит делать до 15 мая.
              *)
-            (match shortcut1 etag m cases history with
+            (match shortcut1 etag m cases history tinfo with
             | true -> test_list (m :: history) etag (list_map fst cnames) on_default cases))))
     (* TODO: try to make Fail branch last *)
   in

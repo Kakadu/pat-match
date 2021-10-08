@@ -101,7 +101,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       (rez === !!true)
   ;;
 
-  let default_shortcut _etag m _cases history _rez =
+  let default_shortcut _etag m _cases history _typs _rez =
     let open OCanren in
     W.not_in_history m history !!true &&& success
   ;;
@@ -466,11 +466,11 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       &&&
       if with_default_shortcuts then default_shortcut0 m maxheight cases rez else success
     in
-    let shortcut1 etag m cases history rez =
+    let shortcut1 etag m cases history typs rez =
       Arg.shortcut etag m cases history rez
       &&&
       if with_default_shortcuts
-      then default_shortcut etag m cases history rez
+      then default_shortcut etag m cases history typs rez
       else success
     in
     let shortcut_tag1 constr_names cases rez =
