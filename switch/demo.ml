@@ -535,22 +535,22 @@ module _ = struct
       FD.domain q [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ]
     in
     let open E in
-    [ (fun q -> q === triple __ false_ true_), 1
-    ; (fun q -> fresh () (q === triple false_ true_ __) (q =/= triple __ false_ true_)), 2
+    [ (fun q -> fresh () (q === triple __ false_ true_)), 1
+    ; (fun q -> fresh () (q =/= triple __ false_ true_) (q === triple false_ true_ __)), 2
     ; ( (fun q ->
           fresh
             ()
-            (q === triple __ __ false_)
+            (q =/= triple __ false_ true_)
             (q =/= triple false_ true_ __)
-            (q =/= triple __ false_ true_))
+            (q === triple __ __ false_))
       , 3 )
     ; ( (fun q ->
           fresh
             ()
-            (q === triple __ __ true_)
-            (q =/= triple __ __ false_)
+            (q =/= triple __ false_ true_)
             (q =/= triple false_ true_ __)
-            (q =/= triple __ false_ true_))
+            (q =/= triple __ __ false_)
+            (q === triple __ __ true_))
       , 4 )
     ]
   ;;
@@ -559,7 +559,7 @@ module _ = struct
     fresh
       max_height
       (max_height === N.(inject @@ of_int 2))
-      (W.eval_ir
+      (Work_manual.eval_ir
          scru
          max_height
          (Typs.inject ArgTripleBool.typs)
@@ -570,8 +570,8 @@ module _ = struct
          rez)
   ;;
 
-  let _ =
-    let make_scru q = fst (List.nth examples 2) q in
+  let test_example n =
+    let make_scru q = fst (List.nth examples n) q in
     (* let run_interpreter_1 scru rhs =
       W.eval_pat scru injected_clauses (Std.Option.some rhs)
     in *)
@@ -584,7 +584,7 @@ module _ = struct
       2
       q
       qh
-      ( "Running forward 2nd example in TripleBool test"
+      ( Format.sprintf "Running forward %dnd example in TripleBool test" n
       , fun rhs ->
           fresh
             (scru ir rez)
@@ -598,6 +598,9 @@ module _ = struct
                    xs;
                  success)) )
   ;;
+
+  (* let _ = test_example 2 *)
+  let _ = test_example 3
 
   let _ =
     run_ir
@@ -615,6 +618,10 @@ module _ = struct
                  (desc scru)
                  (eval_ir_triple_bool scru ir rez))
              success
-             [ List.nth examples 0; List.nth examples 1; List.nth examples 2 ]))
+             [ List.nth examples 0
+             ; List.nth examples 1
+             ; List.nth examples 2
+             ; List.nth examples 3
+             ]))
   ;;
 end

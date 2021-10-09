@@ -4,6 +4,14 @@ open OCanren.Std
 open Work_base_common
 open Unn_pre
 
+let debug_lino line num =
+  fresh
+    q
+    (debug_var q (flip OCanren.reify) (function _ ->
+         (* Format.printf "%s %d\n%!" line num; *)
+         success))
+;;
+
 let nat_lt a b q235 =
   let rec helper root q230 =
     conde
@@ -20,7 +28,11 @@ let nat_leq a b q229 =
     conde
       [ fresh q225 (root === pair (z ()) q225) (q224 === !!true)
       ; fresh q227 (root === pair (s q227) (z ())) (q224 === !!false)
-      ; fresh (x y) (root === pair (s x) (s y)) (helper (pair x y) q224)
+      ; fresh
+          (x y)
+          (root === pair (s x) (s y))
+          (debug_lino __FILE__ __LINE__)
+          (helper (pair x y) q224)
       ]
   in
   helper (pair a b) q229
@@ -30,17 +42,14 @@ let fst z q221 = fresh (a q222) (z === pair a q222) (a === q221)
 let snd z q218 = fresh (q219 a) (z === pair q219 a) (a === q218)
 
 let rec list_mem x xs q210 =
-  xs
-  === nil ()
-  &&& (q210 === !!false)
-  ||| fresh
-        (h tl q213)
+  conde
+    [ xs === nil () &&& (q210 === !!false)
+    ; fresh
+        (h tl)
+        (debug_lino __FILE__ __LINE__)
         (xs === h % tl)
-        (conde [ x === h &&& (q213 === !!true); q213 === !!false &&& (x =/= h) ])
-        (conde
-           [ q213 === !!true &&& (q210 === !!true)
-           ; q213 === !!false &&& list_mem x tl q210
-           ])
+        (conde [ x === h &&& (q210 === !!true); x =/= h &&& list_mem x tl q210 ])
+    ]
 ;;
 
 let rec list_assoc name ys q203 =
@@ -54,61 +63,69 @@ let rec list_assoc name ys q203 =
 
 let list_map_all f =
   let rec helper xs q197 =
-    xs
-    === nil ()
-    &&& (q197 === !!true)
-    ||| fresh
+    conde
+      [ xs === nil () &&& (q197 === !!true)
+      ; fresh
           (y ys q200)
           (xs === y % ys)
           (f y q200)
-          (fresh q201 (q200 === some q201) (helper xs q197)
-          ||| (q200 === none () &&& (q197 === !!false)))
+          (conde
+             [ fresh
+                 q201
+                 (q200 === some q201)
+                 (debug_lino __FILE__ __LINE__)
+                 (helper xs q197)
+             ; q200 === none () &&& (q197 === !!false)
+             ])
+      ]
   in
   helper
 ;;
 
 let list_map f xs q196 =
   let rec helper xs q190 =
-    xs
-    === nil ()
-    &&& (q190 === nil ())
-    ||| fresh
+    conde
+      [ xs === nil () &&& (q190 === nil ())
+      ; fresh
           (x q192 q193 q194)
           (xs === x % q192)
           (q190 === q193 % q194)
           (f x q193)
+          (debug_lino __FILE__ __LINE__)
           (helper q192 q194)
+      ]
   in
   helper xs q196
 ;;
 
 let list_mapi f xs q189 =
   let rec helper i xs q183 =
-    xs
-    === nil ()
-    &&& (q183 === nil ())
-    ||| fresh
+    conde
+      [ xs === nil () &&& (q183 === nil ())
+      ; fresh
           (x q185 q186 q187)
           (xs === x % q185)
           (q183 === q186 % q187)
           (f i x q186)
+          (debug_lino __FILE__ __LINE__)
           (helper (s i) q185 q187)
+      ]
   in
   helper (z ()) xs q189
 ;;
 
 let rec list_all f xs q177 =
-  xs
-  === nil ()
-  &&& (q177 === !!true)
-  ||| fresh
+  conde
+    [ xs === nil () &&& (q177 === !!true)
+    ; fresh
         (x q179 q181)
         (xs === x % q179)
         (f x q181)
         (conde
-           [ q181 === !!true &&& list_all f q179 q177
+           [ q181 === !!true &&& debug_lino __FILE__ __LINE__ &&& list_all f q179 q177
            ; q181 === !!false &&& (q177 === !!false)
            ])
+    ]
 ;;
 
 let rec list_all2 f xs0 ys0 q164 =
@@ -121,7 +138,10 @@ let rec list_all2 f xs0 ys0 q164 =
            (q165 === pair (x % xs) (y % ys))
            (f x y q167)
            (conde
-              [ q167 === !!true &&& list_all2 f xs ys q164
+              [ q167
+                === !!true
+                &&& debug_lino __FILE__ __LINE__
+                &&& list_all2 f xs ys q164
               ; q167 === !!false &&& (q164 === !!false)
               ])
        ; q165 === pair (nil ()) (nil ()) &&& (q164 === !!true)
@@ -138,6 +158,7 @@ let rec same_length xs ys q152 =
        [ fresh
            (q154 xs q155 ys)
            (q153 === pair (q154 % xs) (q155 % ys))
+           (debug_lino __FILE__ __LINE__)
            (same_length xs ys q152)
        ; fresh (q156 q157) (q153 === pair (nil ()) (q156 % q157)) (q152 === !!false)
        ; fresh (q159 q160) (q153 === pair (q159 % q160) (nil ())) (q152 === !!false)
@@ -149,21 +170,27 @@ let rec list_combine xs ys q146 =
   fresh
     q147
     (q147 === pair xs ys)
-    (q147
-    === pair (nil ()) (nil ())
-    &&& (q146 === nil ())
-    ||| fresh
-          (x xs y ys q149)
-          (q147 === pair (x % xs) (y % ys))
-          (q146 === pair x y % q149)
-          (list_combine xs ys q149))
+    (conde
+       [ q147 === pair (nil ()) (nil ()) &&& (q146 === nil ())
+       ; fresh
+           (x xs y ys q149)
+           (q147 === pair (x % xs) (y % ys))
+           (q146 === pair x y % q149)
+           (debug_lino __FILE__ __LINE__)
+           (list_combine xs ys q149)
+       ])
 ;;
 
 let rec list_foldl f acc ys q142 =
-  ys
-  === nil ()
-  &&& (acc === q142)
-  ||| fresh (x xs q144) (ys === x % xs) (f acc x q144) (list_foldl f q144 xs q142)
+  conde
+    [ ys === nil () &&& (acc === q142)
+    ; fresh
+        (x xs q144)
+        (ys === x % xs)
+        (f acc x q144)
+        (debug_lino __FILE__ __LINE__)
+        (list_foldl f q144 xs q142)
+    ]
 ;;
 
 let list_decorate_nat xs q140 =
@@ -174,15 +201,31 @@ let rec list_nth_nat idx xs q133 =
   fresh
     q134
     (q134 === pair idx xs)
-    (fresh (x q135) (q134 === pair (z ()) (x % q135)) (x === q133)
-    ||| fresh (n q137 xs) (q134 === pair (s n) (q137 % xs)) (list_nth_nat n xs q133))
+    (conde
+       [ fresh (x q135) (q134 === pair (z ()) (x % q135)) (x === q133)
+       ; fresh
+           (n q137 xs)
+           (q134 === pair (s n) (q137 % xs))
+           (debug_lino __FILE__ __LINE__)
+           (list_nth_nat n xs q133)
+       ])
 ;;
 
-let rec list_length xs q128 =
-  xs
-  === nil ()
-  &&& (q128 === z ())
-  ||| fresh (q130 tl q131) (xs === q130 % tl) (q128 === s q131) (list_length tl q131)
+let rec list_length xs rez =
+  conde
+    [ xs === nil () &&& (rez === z ())
+    ; fresh
+        (q130 tl q131)
+        (xs === q130 % tl)
+        (rez === s q131)
+        (* (debug_var rez (flip N.reify) (function
+            | [ n ] ->
+              Format.printf "%s\n%!" (N.show_logic n);
+              success
+            | _ -> assert false)) *)
+        (* (debug_lino __FILE__ __LINE__) *)
+        (list_length tl q131)
+    ]
 ;;
 
 let rec match1pat s p q109 =
@@ -214,10 +257,9 @@ let rec match1pat s p q109 =
 ;;
 
 let rec eval_pat s pats q104 =
-  pats
-  === nil ()
-  &&& (q104 === none ())
-  ||| fresh
+  conde
+    [ pats === nil () &&& (q104 === none ())
+    ; fresh
         (p rhs ps q107)
         (pats === pair p rhs % ps)
         (match1pat s p q107)
@@ -225,14 +267,14 @@ let rec eval_pat s pats q104 =
            [ q107 === !!true &&& (q104 === some rhs)
            ; q107 === !!false &&& eval_pat s ps q104
            ])
+    ]
 ;;
 
 let rec eval_pat_hacky s on_fail pats q103 =
   let rec helper acc pats q92 =
-    pats
-    === nil ()
-    &&& (on_fail === q92)
-    ||| fresh
+    conde
+      [ pats === nil () &&& (on_fail === q92)
+      ; fresh
           (p rhs ps q95)
           (pats === pair p rhs % ps)
           (match1pat s p q95)
@@ -255,6 +297,7 @@ let rec eval_pat_hacky s on_fail pats q103 =
                     q97)
              ; q95 === !!false &&& helper (p % acc) ps q92
              ])
+      ]
   in
   helper (nil ()) pats q103
 ;;
@@ -287,6 +330,7 @@ let rec well_typed_expr e0 typs0 q78 =
     (q79 === pair e0 typs0)
     (q79 === pair (eConstr tag es) ts)
     (info_assoc typs0 tag arg_infos)
+    (debug_lino __FILE__ __LINE__)
     (list_all2 well_typed_expr es arg_infos q78)
 ;;
 
@@ -298,6 +342,7 @@ let rec height_of_matchable root q73 =
         (q75 ss q76)
         (root === field q75 ss)
         (q73 === s q76)
+        (debug_lino __FILE__ __LINE__)
         (height_of_matchable ss q76)
 ;;
 
@@ -306,7 +351,11 @@ let matchable_leq_nat m n q72 =
     conde
       [ root === pair (scru ()) (z ()) &&& (q64 === !!false)
       ; fresh q66 (root === pair (scru ()) (s q66)) (q64 === !!true)
-      ; fresh (q68 m1 n1) (root === pair (field q68 m1) (s n1)) (helper (pair m1 n1) q64)
+      ; fresh
+          (q68 m1 n1)
+          (root === pair (field q68 m1) (s n1))
+          (debug_lino __FILE__ __LINE__)
+          (helper (pair m1 n1) q64)
       ; fresh (q69 q70) (root === pair (field q69 q70) (z ())) (q64 === !!false)
       ]
   in
@@ -322,6 +371,7 @@ let rec eval_m s typinfo0 path0 q63 =
           (path === field nth scru)
           (q54 === pair (eConstr cname es) next_tinfos)
           (q51 === pair q56 q57)
+          (debug_lino __FILE__ __LINE__)
           (helper scru q54)
           (info_assoc next_tinfos cname arg_info)
           (list_nth_nat nth es q56)
@@ -357,63 +407,69 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain ir 
       (q2 === !!true)
       (q0 === !!true)
       (list_assoc etag tinfo sz)
-      (list_length eargs q4)
       (conde [ q4 === sz &&& (q2 === !!true); q2 === !!false &&& (q4 =/= sz) ])
+      (list_length eargs q4)
   in
   let rec inner history test_list irrr q9 =
-    conde
-      [ irrr === fail () &&& (q9 === none ())
-      ; fresh n (irrr === lit n) (q9 === some n)
-      ; fresh
-          (m cases on_default q13 q15 etag eargs cnames q17 q19 q20)
-          (irrr === switch m cases on_default)
-          (q13 === !!true)
-          (q15 === pair (eConstr etag eargs) cnames)
-          (q17 === !!true)
-          (q19 === !!true)
-          (shortcut0 m max_height cases q13)
-          (eval_m s tinfo m q15)
-          (indeed_good_arity cnames etag eargs q17)
-          (shortcut1 etag m cases history tinfo q19)
-          (* (fresh (a b) (tinfo === Std.pair a b) (shortcut_apply_typinfo etag tinfo !!true)) *)
-          (list_map fst cnames q20)
-          (test_list (m % history) etag q20 on_default cases q9)
-      ]
+    fresh
+      ()
+      (* (debug_var irrr (flip IR.reify) (function
+          | [ ir ] ->
+            Format.printf "inside inner: %s\n%!" (IR.show_logic ir);
+            success
+          | _ -> assert false)) *)
+      (conde
+         [ irrr === fail () &&& (q9 === none ())
+         ; fresh n (irrr === lit n) (q9 === some n)
+         ; fresh
+             (m cases on_default q13 q15 etag eargs cnames q17 q19 q20)
+             (irrr === switch m cases on_default)
+             (q13 === !!true)
+             (q15 === pair (eConstr etag eargs) cnames)
+             (q17 === !!true)
+             (q19 === !!true)
+             (shortcut0 m max_height cases q13)
+             (eval_m s tinfo m q15)
+             (indeed_good_arity cnames etag eargs q17)
+             (shortcut1 etag m cases history tinfo q19)
+             (list_map fst cnames q20)
+             (test_list (m % history) etag q20 on_default cases q9)
+         ])
   in
   let rec test_list next_histo etag cnames on_default cases0 q39 =
     let rec helper constr_names cases q22 =
       fresh
-        q23
+        ()
+        (* (debug_var
+           constr_names
+           (flip @@ Std.List.reify OCanren.reify)
+           (function
+             | _ ->
+               Format.printf "%s %d\n%!" __FILE__ __LINE__;
+               success)) *)
         (shortcut_apply_domain etag cnames !!true)
         (conde
-           [ cases === nil () &&& (q23 === !!true)
-           ; q23 === !!false &&& (cases =/= nil ())
-           ])
-        (conde
-           [ q23 === !!true &&& inner next_histo test_list on_default q22
+           [ cases === nil () &&& inner next_histo test_list on_default q22
            ; fresh
                (constr_hd constr_tl qtag ontag clauses_tl q27)
-               (q23 === !!false)
+               (cases =/= nil ())
                (constr_names === constr_hd % constr_tl)
                (cases === pair qtag ontag % clauses_tl)
                (conde
-                  [ qtag === constr_hd &&& (q27 === !!true)
-                  ; q27 === !!false &&& (qtag =/= constr_hd)
-                  ])
-               (conde
                   [ fresh
-                      q29
-                      (q27 === !!true)
+                      ()
+                      (qtag === constr_hd)
                       (conde
-                         [ qtag === etag &&& (q29 === !!true)
-                         ; q29 === !!false &&& (qtag =/= etag)
-                           (* &&& FD.neq qtag etag *)
+                         [ qtag === etag &&& inner next_histo test_list ontag q22
+                         ; qtag
+                           =/= etag
+                           &&& FD.neq qtag etag
+                           &&& helper constr_tl clauses_tl q22
                          ])
-                      (conde
-                         [ q29 === !!true &&& inner next_histo test_list ontag q22
-                         ; q29 === !!false &&& helper constr_tl clauses_tl q22
-                         ])
-                  ; q27 === !!false &&& helper constr_tl cases q22
+                  ; qtag
+                    =/= constr_hd
+                    &&& (q27 === !!false)
+                    &&& helper constr_tl cases q22
                   ])
            ])
     in
