@@ -5,6 +5,14 @@ open Tester
 module W = Work_manual
 module Arg = Main_inputs.ArgMake (Main_inputs.ArgPairTrueFalse)
 
+let debug_lino line num =
+  fresh
+    q
+    (debug_var q (flip OCanren.reify) (function _ ->
+         Format.printf "%s %d\n%!" line num;
+         success))
+;;
+
 module E = struct
   open OCanren.Std
 
@@ -75,7 +83,8 @@ let default_shortcut_tag etag constr_names rez =
                   lst
                 |> Std.List.to_list Fun.id
               in
-              OCanren.FD.domain etag ground_list
+              fresh () (OCanren.FD.domain etag ground_list)
+              (* (debug_lino __FILE__ __LINE__) *)
             with
            | OCanren.Not_a_value ->
              Format.eprintf "Not_a_value when reifying type names. Skip\n%!";
@@ -387,126 +396,153 @@ match ... with
 | pair (true, _) -> 1
 | pair (false, _) -> 2
 *)
-let __ _ =
+module _ = struct
   let examples =
     let open E in
     [ (fun q -> q === pair true_ __), 1; (fun q -> q === pair false_ __), 2 ]
-  in
-  let eval_ir scru ir rez =
-    fresh
-      (max_height tinfo)
-      (max_height === N.(inject @@ of_int 2))
-      (tinfo === Typs.inject Main_inputs.ArgPairTrueFalse.typs)
-      (W.eval_ir
-         scru
-         max_height
-         tinfo
-         default_shortcut0
-         default_shortcut
-         default_shortcut_tag
-         ir
-         rez)
-  in
-  run_ir
-    10
-    q
-    qh
-    (REPR
-       (fun ir ->
-         fresh
-           ()
-           (List.fold_left
-              (fun acc (desc, rhs) ->
-                fresh
-                  (scru rez)
-                  (rez === Std.Option.some !!rhs)
-                  acc
-                  (desc scru)
-                  (eval_ir scru ir rez))
-              success
-              examples)))
-;;
+  ;;
 
-let __ _ =
-  let make_program (q : IR.injected) =
-    let open Matchable in
-    let open IR in
-    let open Std in
+  let eval_ir_pair_bool scru ir rez =
     fresh
-      (v1 bs b1)
-      (q === switch (field1 ()) bs (int !!2))
-      (b1 === Std.pair v1 (int !!1))
-      (v1 === !!(Tag.of_string_exn "true"))
-      (bs === !<b1)
-  in
-  (* let make_scru q = q === E.(pair true_ true_) in *)
-  let make_scru q = q === E.(pair false_ __) in
-  let eval_ir scru ir rez =
-    fresh
-      (max_height tinfo)
+      max_height
       (max_height === N.(inject @@ of_int 2))
-      (make_program ir)
-      (make_scru scru)
-      (W.eval_ir
+      (Work_manual.eval_ir
          scru
          max_height
-         tinfo
+         (Typs.inject Main_inputs.ArgPairTrueFalse.typs)
          default_shortcut0
          default_shortcut
          default_shortcut_tag
          ir
          rez)
-  in
-  let injected_clauses =
-    let ppair l r =
-      Pattern.PConstr (Tag.of_string_exn "pair", Std.List.of_list Fun.id [ l; r ])
+  ;;
+
+  let __ _ =
+    run_ir
+      10
+      q
+      qh
+      (REPR
+         (fun ir ->
+           fresh
+             ()
+             (List.fold_left
+                (fun acc (desc, rhs) ->
+                  fresh
+                    (scru rez)
+                    (rez === Std.Option.some !!rhs)
+                    acc
+                    (desc scru)
+                    (eval_ir_pair_bool scru ir rez))
+                success
+                examples)))
+  ;;
+
+  let _ =
+    run_ir
+      10
+      q
+      qh
+      ( "synthesis for pair of bools "
+      , fun ir ->
+          List.fold_left
+            (fun acc (desc, rhs) ->
+              fresh
+                (scru rez)
+                (rez === Std.Option.some !!rhs)
+                acc
+                (desc scru)
+                (eval_ir_pair_bool scru ir rez))
+            success
+            [ List.nth examples 0; List.nth examples 1 ] )
+  ;;
+
+  let __ _ =
+    let make_program (q : IR.injected) =
+      let open Matchable in
+      let open IR in
+      let open Std in
+      fresh
+        (v1 bs b1)
+        (q === switch (field1 ()) bs (int !!2))
+        (b1 === Std.pair v1 (int !!1))
+        (v1 === !!(Tag.of_string_exn "true"))
+        (bs === !<b1)
     in
-    let ptrue = Pattern.PConstr (Tag.of_string_exn "true", Std.List.Nil) in
-    let pfalse = Pattern.PConstr (Tag.of_string_exn "false", Std.List.Nil) in
-    Clauses.inject
-    @@ [ ppair ptrue Pattern.WildCard, IR.Lit 1; ppair pfalse Pattern.WildCard, IR.Lit 2 ]
-  in
-  let run_interpreter_1 scru rhs =
-    W.eval_pat scru injected_clauses (Std.Option.some rhs)
-  in
-  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.false_) q)];
-  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.true_) q)];
-  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.false_) q)];
-  [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
-  [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))];
-  run_int
-    2
-    q
-    qh
-    ( "???"
-    , fun rhs ->
-        fresh
-          (scru ir rez)
-          (rez === Std.Option.some rhs)
-          (make_program ir)
-          (eval_ir scru ir rez) );
-  exit 1
-;;
+    (* let make_scru q = q === E.(pair true_ true_) in *)
+    let make_scru q = q === E.(pair false_ __) in
+    let eval_ir scru ir rez =
+      fresh
+        (max_height tinfo)
+        (max_height === N.(inject @@ of_int 2))
+        (make_program ir)
+        (make_scru scru)
+        (W.eval_ir
+           scru
+           max_height
+           tinfo
+           default_shortcut0
+           default_shortcut
+           default_shortcut_tag
+           ir
+           rez)
+    in
+    let injected_clauses =
+      let ppair l r =
+        Pattern.PConstr (Tag.of_string_exn "pair", Std.List.of_list Fun.id [ l; r ])
+      in
+      let ptrue = Pattern.PConstr (Tag.of_string_exn "true", Std.List.Nil) in
+      let pfalse = Pattern.PConstr (Tag.of_string_exn "false", Std.List.Nil) in
+      Clauses.inject
+      @@ [ ppair ptrue Pattern.WildCard, IR.Lit 1
+         ; ppair pfalse Pattern.WildCard, IR.Lit 2
+         ]
+    in
+    let run_interpreter_1 scru rhs =
+      W.eval_pat scru injected_clauses (Std.Option.some rhs)
+    in
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.false_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.false_ E.true_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.false_) q)];
+    [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
+    [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))];
+    run_int
+      2
+      q
+      qh
+      ( "???"
+      , fun rhs ->
+          fresh
+            (scru ir rez)
+            (rez === Std.Option.some rhs)
+            (make_program ir)
+            (eval_ir scru ir rez) )
+  ;;
+  (* exit 1 *)
+end
 
-(*
-
-conde
-  [ (q === pair true  __) &&& (res=/=1) &&& failure
-  ; (q === pair true  __) &&& (res===1)
-  ; (q === pair __ false) &&& (res=/=2) &&& failure
-  ; (q === pair __ false) &&& (res===2)
-  ;
-  ]
-*)
-
-module _ = struct
+module _ () = struct
   (*
   match ... with
   | triple (_, false, true) -> 1
   | triple (false, true, _) -> 2
   | triple (_, _, false) -> 3
   | triple (_, _, true) -> 4
+
+  q=(switch S[1] with
+    | true -> (switch S[0] with
+              | true -> (switch S[2] with
+                        | true -> 4
+                        | _ -> 3 )
+              | _ -> 2 )
+    | _ -> 1 );
+
   *)
+
+  let _1 = IR.int !!1
+  let _2 = IR.int !!2
+  let _3 = IR.int !!3
+  let _4 = IR.int !!4
 
   let program : IR.injected -> _ =
    fun q ->
@@ -516,10 +552,6 @@ module _ = struct
     let field2 = Matchable.field2 () in
     let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
     let ttrue = !!(Tag.of_string_exn "true") in
-    let _1 = IR.int !!1 in
-    let _2 = IR.int !!2 in
-    let _3 = IR.int !!3 in
-    let _4 = IR.int !!4 in
     fresh
       ()
       (q
@@ -570,8 +602,8 @@ module _ = struct
          rez)
   ;;
 
-  let test_example n =
-    let make_scru q = fst (List.nth examples n) q in
+  let test_example n make_scru =
+    (* let make_scru q = fst (List.nth examples n) q in *)
     (* let run_interpreter_1 scru rhs =
       W.eval_pat scru injected_clauses (Std.Option.some rhs)
     in *)
@@ -581,7 +613,7 @@ module _ = struct
     [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
     [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))]; *)
     run_int
-      2
+      3
       q
       qh
       ( Format.sprintf "Running forward %dnd example in TripleBool test" n
@@ -599,8 +631,11 @@ module _ = struct
                  success)) )
   ;;
 
-  (* let _ = test_example 2 *)
-  let _ = test_example 3
+  let _ = test_example 0 (fst (List.nth examples 0))
+  let _ = test_example 1 (fst (List.nth examples 1))
+  let _ = test_example 2 (fst (List.nth examples 2))
+  let _ = test_example 3 (fst (List.nth examples 3))
+  (* let _ = test_example (fun q -> q === E.(triple __ true_ )) *)
 
   let _ =
     run_ir
