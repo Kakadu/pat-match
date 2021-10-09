@@ -1,7 +1,7 @@
 (executable
-  (name main_gadt)
-  (modules main_gadt)
-  (flags (-rectypes))
-  (libraries OCanren OCanren.tester helper)
-  (preprocess (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
-)
+ (name main_gadt)
+ (modules main_gadt)
+ (flags (-rectypes))
+ (libraries OCanren OCanren.tester helper)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all)))
