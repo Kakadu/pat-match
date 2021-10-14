@@ -1,6 +1,6 @@
 open Unn_pre
 
-let simple_shortcut0 _ _ _ ans = OCanren.(ans === !!true)
+let simple_shortcut0 _ _ _ ans = OCanren.(ans === MatchableKind.good)
 let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
 
@@ -166,7 +166,7 @@ module type ARG0 = sig
     :  Matchable.injected
     -> N.injected
     -> Cases.injected
-    -> (bool, bool logic) injected
+    -> MatchableKind.injected
     -> goal
 
   val shortcut

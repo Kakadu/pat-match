@@ -277,7 +277,7 @@ let rec not_in_history x xs =
  *     that in default direction do nothing. Implementation of these shortcuts
  *     is in the beginning of module Algo_fair
  *)
-let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
+let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag shortcut_branch ir =
   let indeed_good_arity tinfo etag eargs =
     let sz = list_assoc etag tinfo in
     match list_length eargs = sz with
@@ -290,7 +290,20 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag ir =
     | Lit n -> Some n
     | Switch (m, cases, on_default) ->
       (match shortcut0 m max_height cases with
-      | true ->
+      | MissExample ->
+        let correct_rez = inner history test_list on_default in
+        (match eval_m s tinfo m with
+        | EConstr (etag, eargs), cnames ->
+          (match
+             list_all
+               (fun br ->
+                 match shortcut_branch (fst br) etag with
+                 | true -> correct_rez = inner history test_list (snd br)
+                 | false -> true)
+               cases
+           with
+          | true -> correct_rez))
+      | GoodSubTree ->
         (match eval_m s tinfo m with
         | EConstr (etag, eargs), cnames ->
           (match indeed_good_arity cnames etag eargs with

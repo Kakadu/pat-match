@@ -302,6 +302,14 @@ let logic_list_len_lo =
   helper 0
 ;;
 
+module MatchableKind = struct
+  type injected = (matchable_kind, matchable_kind OCanren.logic) OCanren.injected
+
+  let good : injected = goodSubTree ()
+  let miss_example : injected = missExample ()
+  let miss_totally : injected = missTotally ()
+end
+
 module Pattern = struct
   type ('a, 'b) t = ('a, 'b) W.gpattern =
     | WildCard
@@ -434,6 +442,7 @@ module Expr = struct
   ;;
 
   let constr : Tag.injected -> _ -> injected = eConstr
+  let leaf t = constr t (OCanren.Std.nil ())
   let econstr s xs = EConstr (Tag.tag_of_string_exn s, Std.List.of_list id xs)
   let eleaf s = econstr s []
   let pair a b = constr !!(Tag.inttag_of_string_exn "pair") Std.(a %< b)
@@ -479,6 +488,7 @@ module Expr = struct
     GT.show OCanren.logic helper x
   ;;
 
+  let pp_logic ppf x = Format.fprintf ppf "%s" (show_logic x)
   let rec reify env x = For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
 
   let inject (e : ground) : injected =
@@ -993,7 +1003,11 @@ module type WORK = sig
     :  Expr.injected
     -> N.injected
     -> Typs.injected
-    -> (Matchable.injected -> N.injected -> Cases.injected -> bool_inj -> goal)
+    -> (Matchable.injected
+        -> N.injected
+        -> Cases.injected
+        -> MatchableKind.injected
+        -> goal)
     -> (Tag.injected
         -> Matchable.injected
         -> Cases.injected
@@ -1002,6 +1016,7 @@ module type WORK = sig
         -> bool_inj
         -> goal)
     -> (CNames.injected -> Cases.injected -> bool_inj -> goal)
+    -> (Tag.injected -> Tag.injected -> bool_inj -> goal)
     -> IR.injected
     -> (int, int OCanren.logic) Std.Option.groundi
     -> goal
@@ -1023,8 +1038,6 @@ module type WORK = sig
   val well_typed_expr : Expr.injected -> Typs.injected -> bool_inj -> goal
 end
 
-module WorkUnnesting : WORK = Work_unn
-
 module WorkHO : WORK = struct
   module Wrap = Work_ho
 
@@ -1033,16 +1046,16 @@ module WorkHO : WORK = struct
       -> ((Matchable.injected -> goal)
           -> (N.injected -> goal)
           -> ((Tag.ground * IR.ground, _) Std.List.groundi -> goal)
-
-          -> bool_inj
+          -> MatchableKind.injected
           -> goal)
-      -> (_ -> _ -> _ -> _-> (Typs.injected -> goal) -> bool_inj -> goal) -> (_ -> _ -> _ -> goal)
-      -> (IR.injected -> goal) -> (int, int OCanren.logic) Std.Option.groundi -> goal
+      -> (_ -> _ -> _ -> _ -> (Typs.injected -> goal) -> bool_inj -> goal)
+      -> (_ -> _ -> _ -> goal) -> (_ -> _ -> _ -> goal) -> (IR.injected -> goal)
+      -> (int, int OCanren.logic) Std.Option.groundi -> goal
     =
     Wrap.eval_ir
   ;;
 
-  let eval_ir e depth typs shct1 shct2 shct3 ir rez =
+  let eval_ir e depth typs shct1 shct2 shct3 shct4 ir rez =
     eval_ir
       (( === ) e)
       (( === ) depth)
@@ -1053,6 +1066,7 @@ module WorkHO : WORK = struct
         Fresh.five (fun a2 b2 c2 d2 e2 ->
             a a2 &&& b b2 &&& c c2 &&& d d2 &&& e e2 &&& shct2 a2 b2 c2 d2 e2 r))
       (fun a b r -> Fresh.two @@ fun x y -> a x &&& b y &&& shct3 x y r)
+      (fun a b r -> Fresh.two @@ fun x y -> a x &&& b y &&& shct4 x y r)
       (( === ) ir)
       rez
   ;;
@@ -1091,6 +1105,8 @@ module WorkHO : WORK = struct
   let not_in_history x xs r = Wrap.not_in_history (( === ) x) (( === ) xs) r
   let info_assoc typs name rez = Wrap.info_assoc (( === ) typs) (( === ) name) rez
 end
+
+module WorkUnnesting : WORK = Work_unn
 
 (*
 let _f ()  =

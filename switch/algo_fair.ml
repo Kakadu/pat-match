@@ -98,7 +98,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                else failure)))
       (W.matchable_leq_nat m max_height !!true)
       (cases =/= Std.nil ())
-      (rez === !!true)
+      (rez === MatchableKind.good)
   ;;
 
   let default_shortcut _etag m _cases history _typs _rez =
@@ -114,6 +114,12 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       ; fresh u (constr_names === u % nil ()) (cases === nil ())
       ; fresh (u v w) (constr_names === u % (v % w))
       ]
+  ;;
+
+  let default_shortcut4 _tag _tag rez =
+    let open OCanren in
+    let open OCanren.Std in
+    rez === !!false
   ;;
 
   (* ************************************************************************ *)
@@ -416,12 +422,13 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       then default_shortcut_tag constr_names cases rez
       else success
     in
+    let shortcut4 tag1 tag2 rez = default_shortcut4 tag1 tag2 rez in
     let my_eval_ir ideal (s : Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success)
       &&& (* There we use shortcuts optimized for search.
            * These shortcuts canptentially broke execution in default direction
            *)
-      W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez
+      W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 shortcut4 ir rez
     in
     Mybench.repeat (fun () ->
         set_initial_bound ();

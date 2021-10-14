@@ -396,7 +396,7 @@ match ... with
 | pair (true, _) -> 1
 | pair (false, _) -> 2
 *)
-module _ = struct
+module _ () = struct
   let examples =
     let open E in
     [ (fun q -> q === pair true_ __), 1; (fun q -> q === pair false_ __), 2 ]
@@ -612,6 +612,162 @@ module _ () = struct
     [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.false_) q)];
     [%tester run_ir 2 (fun q -> run_interpreter_1 (E.pair E.true_ E.true_) q)];
     [%tester run_ir 2 (fun q -> fresh w (run_interpreter_1 (E.pair E.false_ w) q))]; *)
+    run_int
+      3
+      q
+      qh
+      ( Format.sprintf "Running forward %dnd example in TripleBool test" n
+      , fun rhs ->
+          fresh
+            (scru ir rez)
+            (rez === Std.Option.some rhs)
+            (program ir)
+            (make_scru scru)
+            (eval_ir_triple_bool scru ir rez)
+            (debug_var scru (flip Expr.reify) (function xs ->
+                 List.iteri
+                   (fun n q -> Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
+                   xs;
+                 success)) )
+  ;;
+
+  let _ = test_example 0 (fst (List.nth examples 0))
+  let _ = test_example 1 (fst (List.nth examples 1))
+  let _ = test_example 2 (fst (List.nth examples 2))
+  let _ = test_example 3 (fst (List.nth examples 3))
+  (* let _ = test_example (fun q -> q === E.(triple __ true_ )) *)
+
+  let _ =
+    run_ir
+      3
+      q
+      qh
+      (REPR
+         (fun ir ->
+           List.fold_left
+             (fun acc (desc, rhs) ->
+               fresh
+                 (scru rez)
+                 (rez === Std.Option.some !!rhs)
+                 acc
+                 (desc scru)
+                 (eval_ir_triple_bool scru ir rez))
+             success
+             [ List.nth examples 0
+             ; List.nth examples 1
+             ; List.nth examples 2
+             ; List.nth examples 3
+             ]))
+  ;;
+end
+
+module TripleBoolAndDirtyHack = struct
+  (*
+  match ... with
+  | triple (_, false, true) -> 1
+  | triple (false, true, _) -> 2
+  | triple (_, _, false) -> 3
+  | triple (_, _, true) -> 4
+
+  q=(switch S[1] with
+    | true -> (switch S[0] with
+              | true -> (switch S[2] with
+                        | true -> 4
+                        | _ -> 3 )
+              | _ -> 2 )
+    | _ -> 1 );
+
+  *)
+
+  let _1 = IR.int !!1
+  let _2 = IR.int !!2
+  let _3 = IR.int !!3
+  let _4 = IR.int !!4
+
+  let program : IR.injected -> _ =
+   fun q ->
+    let open OCanren.Std in
+    let field0 = Matchable.field0 () in
+    let field1 = Matchable.field1 () in
+    let field2 = Matchable.field2 () in
+    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
+    let ttrue = !!(Tag.of_string_exn "true") in
+    fresh
+      ()
+      (q
+      === ite
+            field1
+            ttrue
+            (ite field0 ttrue (ite field2 ttrue _4 _3) _2)
+            (ite field2 ttrue _1 _3))
+ ;;
+
+  let examples =
+    let add_domain q =
+      FD.domain q [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ]
+    in
+    let open E in
+    [ (fun q -> fresh () (q === triple __ false_ true_)), 1
+    ; (fun q -> fresh () (q =/= triple __ false_ true_) (q === triple false_ true_ __)), 2
+    ; ( (fun q ->
+          fresh
+            ()
+            (q =/= triple __ false_ true_)
+            (q =/= triple false_ true_ __)
+            (q === triple __ __ false_))
+      , 3 )
+    ; ( (fun q ->
+          fresh
+            ()
+            (q =/= triple __ false_ true_)
+            (q =/= triple false_ true_ __)
+            (q =/= triple __ __ false_)
+            (q === triple __ __ true_))
+      , 4 )
+    ]
+  ;;
+
+  let default_shortcut0 m max_height cases rez =
+    let open OCanren in
+    fresh
+      ()
+      (debug_var m (flip Matchable.reify) (fun ms ->
+           (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
+           match ms with
+           | [] -> failure
+           | _ :: _ :: _ -> failwith "too many answers"
+           | [ ms ] ->
+             (match Matchable.to_ground ms with
+             | None -> success
+             | Some Matchable.Scru -> failure
+             | Some _m -> success)))
+      (W.matchable_leq_nat m max_height !!true)
+      (cases =/= Std.nil ())
+      (rez === MatchableKind.good)
+  ;;
+
+  let default_shortcut4 t1 t2 rez =
+    let open OCanren in
+    fresh () (rez === !!false)
+  ;;
+
+  let eval_ir_triple_bool scru ir rez =
+    fresh
+      max_height
+      (max_height === N.(inject @@ of_int 2))
+      (Work_unn.eval_ir
+         scru
+         max_height
+         (Typs.inject ArgTripleBool.typs)
+         default_shortcut0
+         default_shortcut
+         default_shortcut_tag
+         default_shortcut4
+         ir
+         rez)
+  ;;
+
+  let test_example n make_scru =
     run_int
       3
       q

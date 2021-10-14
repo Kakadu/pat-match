@@ -14,6 +14,7 @@
   pats_tree
   algo_fair
   work_manual
+  work_matchable_kind
   algo_fair_manual
   algo_wildcard
   run_cvc)
@@ -46,6 +47,19 @@
 (executable
  (name demo)
  (modules demo)
+ (libraries switches OCanren.tester)
+ (preprocess
+  (pps
+   OCanren-ppx.ppx_repr
+   OCanren-ppx.ppx_wildcard
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_tester
+   GT.ppx_all
+   ppx_optcomp)))
+
+(executable
+ (name demo3)
+ (modules demo3)
  (libraries switches OCanren.tester)
  (preprocess
   (pps
