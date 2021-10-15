@@ -552,6 +552,8 @@ module Matchable = struct
     GT.show OCanren.logic helper x
   ;;
 
+  (*  let fmt_logic ppf x = Format.fprintf ppf "%s" (show_logic x) *)
+
   let show x =
     let rec helper = function
       | Scru -> "S"

@@ -7,6 +7,14 @@ open Tester
 module W = Unn_pre.WorkHO
 module Arg = Main_inputs.ArgMake (Main_inputs.ArgPairTrueFalse)
 
+let line_num line num =
+  fresh
+    q
+    (debug_var q (flip OCanren.reify) (function _ ->
+         Format.printf "%s %d\n%!" line num;
+         success))
+;;
+
 module E = struct
   open OCanren.Std
 
@@ -102,11 +110,20 @@ let __ _ =
 
 module TripleBool = struct
   (*
-  match ... with
-  | triple (_, false, true) -> 1
-  | triple (false, true, _) -> 2
-  | triple (_, _, false) -> 3
-  | triple (_, _, true) -> 4
+      match ... with
+      | triple (_, false, true) -> 1
+      | triple (false, true, _) -> 2
+      | triple (_, _, false) -> 3
+      | triple (_, _, true) -> 4
+
+  Right answer:
+      (switch S[1] with
+      | true -> (switch S[0] with
+                | true -> (switch S[2] with
+                          | true -> 4
+                          | _ -> 3 )
+                | _ -> 2 )
+      | _ -> (switch S[2] with | true -> 1  | _ -> 3 ))
   *)
 
   module GroundField = struct
@@ -120,8 +137,17 @@ module TripleBool = struct
   let examples =
     let open E in
     [ ((fun q -> q === triple __ false_ true_), 1, GroundField.[ field1; field2 ])
-    ; ((fun q -> q === triple false_ true_ __), 2, GroundField.[ field0; field1 ])
-    ; ((fun q -> q === triple __ __ false_), 3, GroundField.[ field2 ])
+    ; ( (fun q -> fresh () (q =/= triple __ false_ true_) (q === triple false_ true_ __))
+      , 2
+      , GroundField.[ field0; field1 ] )
+    ; ( (fun q ->
+          fresh
+            ()
+            (q =/= triple __ false_ true_)
+            (q =/= triple false_ true_ __)
+            (q === triple __ __ false_))
+      , 3
+      , GroundField.[ field2 ] )
     ; ((fun q -> q === triple __ __ true_), 4, GroundField.[ field2 ])
     ]
   ;;
@@ -140,22 +166,26 @@ module TripleBool = struct
     let _4 = IR.int !!4 in
     fresh
       ()
-      (q
-      === ite
-            field1
-            ttrue
-            (ite field0 ttrue (ite field2 ttrue _4 _3) _2)
-            (ite field2 ttrue _1 _3))
+      (ite
+         field1
+         ttrue
+         (ite field0 ttrue (ite field2 ttrue _4 _3) _2)
+         (ite field2 ttrue _1 _3)
+      === q)
  ;;
 
   let _ = [%tester run_ir 1 (fun q -> answer q)]
 
-  let line_num line num =
-    fresh
-      q
-      (debug_var q (flip OCanren.reify) (function _ ->
-           Format.printf "%s %d\n%!" line num;
-           success))
+  let eval_ir_triple_bool good_matchables scru ir rez =
+    Work_manual.eval_ir
+      scru
+      (N.inject @@ N.of_int 3)
+      (Typs.inject Main_inputs.ArgTripleBool.typs)
+      (default_shortcut0 good_matchables)
+      default_shortcut
+      default_shortcut_tag
+      ir
+      rez
   ;;
 
   let _ =
@@ -164,11 +194,7 @@ module TripleBool = struct
       (* (fun q -> q === triple __ false_ true_), 1, GroundField.[ field1; field2 ] *)
       List.nth examples 2
     in
-    let desc q =
-      let open E in
-      fresh () (desc q) (q =/= triple false_ true_ __) (q =/= triple __ false_ true_)
-    in
-    [%tester run_expr 2 (fun p -> desc p)];
+    [%tester run_expr 4 (fun p -> desc p)];
     run_option_int
       2
       q
@@ -176,20 +202,10 @@ module TripleBool = struct
       (REPR
          (fun rez ->
            fresh
-             (scru tinfo max_height ir)
-             (max_height === N.(inject @@ of_int 2))
-             (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
+             (scru ir)
              (desc scru)
              (answer ir)
-             (Work_manual.eval_ir
-                scru
-                max_height
-                tinfo
-                (default_shortcut0 good_matchables)
-                default_shortcut
-                default_shortcut_tag
-                ir
-                rez)))
+             (eval_ir_triple_bool good_matchables scru ir rez)))
   ;;
 
   let __ _ =
@@ -199,32 +215,22 @@ module TripleBool = struct
       3
       q
       qh
-      (REPR
-         (fun ir ->
-           fresh
-             (max_height tinfo)
-             (max_height === N.inject @@ N.of_int 3)
-             (answer ir)
-             (List.fold_left
-                (fun acc (desc, rhs, good_matchables) ->
-                  fresh
-                    (scru rez)
-                    (rez === Std.Option.some !!rhs)
-                    (tinfo === Typs.inject Main_inputs.ArgTripleBool.typs)
-                    acc
-                    (desc scru)
-                    (line_num __FILE__ __LINE__)
-                    (Work_manual.eval_ir
-                       scru
-                       max_height
-                       tinfo
-                       (default_shortcut0 good_matchables)
-                       default_shortcut
-                       default_shortcut_tag
-                       ir
-                       rez))
-                success
-                examples)))
+      ( "synthsizing for triple bools "
+      , fun ir ->
+          fresh
+            ()
+            (answer ir)
+            (List.fold_left
+               (fun acc (desc, rhs, good_matchables) ->
+                 fresh
+                   (scru rez)
+                   (rez === Std.Option.some !!rhs)
+                   acc
+                   (desc scru)
+                   (line_num __FILE__ __LINE__)
+                   (eval_ir_triple_bool good_matchables scru ir rez))
+               success
+               examples) )
   ;;
 
   (* *********************************************************** *)
