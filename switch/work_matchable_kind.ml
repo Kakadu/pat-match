@@ -457,11 +457,11 @@ let rec eval_ir
           (shortcut0 m max_height cases q13)
           (conde
              [ fresh
-                 (correct_rez q16 etag eargs cnames q18 fuck)
+                 (correct_rez q16 etag eargs cnames q18 fuck only_names)
                  (q13 === missExample ())
                  (fuck === eConstr etag eargs)
                  (fresh
-                    (cnames0 only_names heck)
+                    (cnames0 heck)
                     (eval_m s tinfo m (pair heck cnames0))
                     (list_map fst cnames0 only_names)
                     (shortcut_apply_domain etag only_names !!true))
@@ -488,6 +488,7 @@ let rec eval_ir
                        (fun tag rhs rrrr ->
                          fresh
                            ()
+                           (shortcut_apply_domain tag only_names !!true)
                            (debug_var
                               (Std.pair tag etag)
                               (Pair.reify reify reify)

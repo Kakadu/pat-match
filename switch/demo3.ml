@@ -139,8 +139,20 @@ let run_ir eta =
 ;;
 
 (* *********************************************************** *)
+module GroundField = struct
+  open Matchable
 
-module TripleBoolAndDirtyHack = struct
+  let field0 : ground = Field (N.Z, Scru)
+  let field1 : ground = Field (N.(S Z), Scru)
+  let field2 : ground = Field (N.(S (S Z)), Scru)
+end
+
+let _0 : IR.injected = IR.int !!0
+let _1 : IR.injected = IR.int !!1
+let _2 : IR.injected = IR.int !!2
+let _3 : IR.injected = IR.int !!3
+
+module TripleBoolAndDirtyHack () = struct
   (*
   match ... with
   | triple (_, false, true) -> 0
@@ -159,18 +171,6 @@ module TripleBoolAndDirtyHack = struct
             | _    -> 2 )
 
   *)
-  module GroundField = struct
-    open Matchable
-
-    let field0 : ground = Field (N.Z, Scru)
-    let field1 : ground = Field (N.(S Z), Scru)
-    let field2 : ground = Field (N.(S (S Z)), Scru)
-  end
-
-  let _0 : IR.injected = IR.int !!0
-  let _1 : IR.injected = IR.int !!1
-  let _2 : IR.injected = IR.int !!2
-  let _3 : IR.injected = IR.int !!3
 
   let program : IR.injected -> _ =
    fun q ->
@@ -314,5 +314,124 @@ module TripleBoolAndDirtyHack = struct
              ; List.nth examples 2
              ; List.nth examples 3
              ]))
+  ;;
+end
+
+module PairsDirtyHack = struct
+  (*
+  match ... with
+  | triple (true, _) -> 0
+  | triple (_, true) -> 1
+  | triple (_, _) -> 2
+
+  q=(switch S[0] with
+    | true -> 0
+    | _ -> (switch S[1] with
+              | true -> 1
+              | _ -> 2 )
+
+  *)
+
+  let program : IR.injected -> _ =
+   fun q ->
+    let open OCanren.Std in
+    let field0 = Matchable.field0 () in
+    let field1 = Matchable.field1 () in
+    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
+    let ttrue = !!(Tag.of_string_exn "true") in
+    let tfalse = !!(Tag.of_string_exn "false") in
+    (* fresh () (q === ite field0 ttrue (ite field1 ttrue _0 _1) (ite field1 tfalse _2 _3)) *)
+    fresh () (q === ite field0 ttrue _0 (ite field1 ttrue _1 _2))
+ ;;
+
+  let examples =
+    let open E in
+    [ (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ])
+    ; ( 1
+      , (fun q ->
+          fresh ta (q =/= pair true_ __) (q === pair __ true_)
+          (* (ta =/= !!(Tag.of_string_exn "true")) *))
+      , GroundField.[ field1 ] )
+    ; ( 2
+      , (fun q ->
+          fresh
+            (ta tb)
+            (q =/= pair true_ __)
+            (q =/= pair __ true_)
+            (q === pair (Expr.leaf ta) (Expr.leaf tb))
+            (ta =/= !!(Tag.of_string_exn "true"))
+            (tb =/= !!(Tag.of_string_exn "true")))
+      , GroundField.[] )
+    ]
+  ;;
+
+  let eval_ir_pairs ~fields scru ir rez =
+    fresh
+      max_height
+      (max_height === N.(inject @@ of_int 2))
+      (Work_matchable_kind.eval_ir
+         scru
+         max_height
+         (Typs.inject ArgPairTrueFalse.typs)
+         (default_shortcut0 fields)
+         default_shortcut
+         default_shortcut_tag
+         default_shortcut4
+         ir
+         rez)
+  ;;
+
+  let test_example ~fields n make_scru =
+    run_int
+      3
+      q
+      qh
+      ( Format.sprintf "===== Running forward example %d in TripleBool test" n
+      , fun rhs ->
+          fresh
+            (scru ir rez)
+            (rez === Std.Option.some rhs)
+            (program ir)
+            (make_scru scru)
+            (eval_ir_pairs ~fields scru ir rez)
+            (debug_var scru Expr.reify (function xs ->
+                 List.iteri
+                   (fun n q -> Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
+                   xs;
+                 success)) )
+  ;;
+
+  let _ =
+    let _, x, fields = List.nth examples 0 in
+    test_example ~fields 0 x
+  ;;
+
+  let _ =
+    let _, x, fields = List.nth examples 1 in
+    test_example ~fields 1 x
+  ;;
+
+  let __ _ =
+    let _, x, fields = List.nth examples 2 in
+    test_example ~fields 2 x
+  ;;
+
+  let __ _ =
+    run_ir
+      3
+      q
+      qh
+      (REPR
+         (fun ir ->
+           List.fold_left
+             (fun acc (rhs, desc, fields) ->
+               fresh
+                 (scru rez)
+                 (rez === Std.Option.some !!rhs)
+                 acc
+                 (desc scru)
+                 (eval_ir_pairs ~fields scru ir rez))
+             success
+             [ List.nth examples 0; List.nth examples 1; List.nth examples 2 ]))
   ;;
 end
