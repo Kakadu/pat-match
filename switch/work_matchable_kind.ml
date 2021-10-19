@@ -4,6 +4,16 @@ open OCanren.Std
 open Work_base_common
 open Unn_pre
 
+let debug_int v text =
+  debug_var v OCanren.reify (fun xs ->
+      Format.printf "%s " text;
+      Stdlib.List.iter
+        (fun x -> Format.printf "%s " (GT.show OCanren.logic (GT.show GT.int) x))
+        xs;
+      Format.printf "\n%!";
+      success)
+;;
+
 let nat_lt a b q235 =
   let rec helper root q230 =
     conde
@@ -222,7 +232,9 @@ let rec match1pat s p q127 =
           (tag1 es tag2 ps q132 q136 q137)
           (q128 === pair (eConstr tag1 es) (pConstr tag2 ps))
           (conde
-             [ tag1 === tag2 &&& (q136 === !!true); q136 === !!false &&& (tag1 =/= tag2) ])
+             [ tag1 === tag2 &&& (q136 === !!true)
+             ; q136 === !!false &&& (tag1 =/= tag2) &&& FD.neq tag1 tag2
+             ])
           (same_length ps es q137)
           (conde
              [ q136 === !!false &&& (q132 === !!false)
@@ -319,14 +331,14 @@ let rec well_typed_expr e0 typs0 q96 =
 ;;
 
 let rec height_of_matchable root q91 =
-  root
-  === scru ()
-  &&& (q91 === s (z ()))
-  ||| fresh
+  conde
+    [ root === scru () &&& (q91 === s (z ()))
+    ; fresh
         (q93 ss q94)
         (root === field q93 ss)
         (q91 === s q94)
         (height_of_matchable ss q94)
+    ]
 ;;
 
 let matchable_leq_nat m n q90 =
@@ -343,10 +355,9 @@ let matchable_leq_nat m n q90 =
 
 let rec eval_m s typinfo0 path0 q81 =
   let rec helper path q69 =
-    path
-    === scru ()
-    &&& (q69 === pair s typinfo0)
-    ||| fresh
+    conde
+      [ path === scru () &&& (q69 === pair s typinfo0)
+      ; fresh
           (nth scru q72 cname es next_tinfos arg_info q74 q75)
           (path === field nth scru)
           (q72 === pair (eConstr cname es) next_tinfos)
@@ -355,6 +366,7 @@ let rec eval_m s typinfo0 path0 q81 =
           (info_assoc next_tinfos cname arg_info)
           (list_nth_nat nth es q74)
           (list_nth_nat nth arg_info q75)
+      ]
   in
   fresh
     (q78 ans info q79)
@@ -365,17 +377,17 @@ let rec eval_m s typinfo0 path0 q81 =
 ;;
 
 let rec not_in_history x xs q61 =
-  xs
-  === nil ()
-  &&& (q61 === !!true)
-  ||| fresh
+  conde
+    [ xs === nil () &&& (q61 === !!true)
+    ; fresh
         (h tl q64)
         (xs === h % tl)
         (conde [ x === h &&& (q64 === !!true); q64 === !!false &&& (x =/= h) ])
-        (q64
-        === !!false
-        &&& not_in_history x tl q61
-        ||| (q64 === !!true &&& (q61 === !!false)))
+        (conde
+           [ q64 === !!false &&& not_in_history x tl q61
+           ; q64 === !!true &&& (q61 === !!false)
+           ])
+    ]
 ;;
 
 let rec eval_ir
@@ -413,6 +425,7 @@ let rec eval_ir
                    ()
                    (ans === Unique.unique rez)
                    (debug_lino __FILE__ __LINE__)
+                   (debug_int rez "unique: ")
                    (helper btl)
                ; fresh
                    ()
@@ -447,6 +460,11 @@ let rec eval_ir
                  (correct_rez q16 etag eargs cnames q18 fuck)
                  (q13 === missExample ())
                  (fuck === eConstr etag eargs)
+                 (fresh
+                    (cnames0 only_names heck)
+                    (eval_m s tinfo m (pair heck cnames0))
+                    (list_map fst cnames0 only_names)
+                    (shortcut_apply_domain etag only_names !!true))
                  (debug_var fuck Expr.reify (function
                      | [ e ] ->
                        Format.printf "expr = %a\n%!" Expr.pp_logic e;
@@ -458,16 +476,33 @@ let rec eval_ir
                  (fresh
                     (new_cases default_tag final_int)
                     (list_itero
-                       (fun br -> fresh c (fst br c) (FD.neq default_tag c))
+                       (fun br ->
+                         fresh c (fst br c) (default_tag =/= c) (FD.neq default_tag c))
                        cases)
-                    (new_cases === Std.pair default_tag on_default % cases)
+                    (Std.List.appendo cases !<(Std.pair default_tag on_default) new_cases)
                     (eval_m s tinfo m q16)
                     (q16 === pair (eConstr etag eargs) cnames)
                     (q9 === Std.some final_int)
                     (pizda
                        new_cases
                        (fun tag rhs rrrr ->
-                         tag === etag &&& inner history test_list rhs (Std.some rrrr)
+                         fresh
+                           ()
+                           (debug_var
+                              (Std.pair tag etag)
+                              (Pair.reify reify reify)
+                              (function
+                               | [ Value (l, r) ] ->
+                                 Format.printf
+                                   "tag and etag are :  %a and %a\n%!"
+                                   (GT.fmt Tag.logic)
+                                   l
+                                   (GT.fmt Tag.logic)
+                                   r;
+                                 success
+                               | _ -> assert false))
+                           (tag === etag)
+                           (inner history test_list rhs (Std.some rrrr))
                          (* ; tag =/= etag &&& FD.neq tag etag *))
                        final_int))
              ; fresh
@@ -514,6 +549,19 @@ let rec eval_ir
                          ; fresh
                              ()
                              (qtag =/= etag)
+                             (debug_var
+                                (Std.pair qtag etag)
+                                (Pair.reify reify reify)
+                                (function
+                                 | [ Value (l, r) ] ->
+                                   Format.printf
+                                     "qtag =/= etag:  %a =/= %a\n%!"
+                                     (GT.fmt Tag.logic)
+                                     l
+                                     (GT.fmt Tag.logic)
+                                     r;
+                                   success
+                                 | _ -> assert false))
                              (FD.neq qtag etag)
                              (helper constr_tl clauses_tl q22)
                          ])
@@ -521,6 +569,19 @@ let rec eval_ir
                       ()
                       (qtag =/= constr_hd)
                       (FD.neq qtag constr_hd)
+                      (debug_var
+                         (Std.pair qtag constr_hd)
+                         (Pair.reify reify reify)
+                         (function
+                          | [ Value (l, r) ] ->
+                            Format.printf
+                              "qtag =/= constr_hd:  %a =/= %a\n%!"
+                              (GT.fmt Tag.logic)
+                              l
+                              (GT.fmt Tag.logic)
+                              r;
+                            success
+                          | _ -> assert false))
                       (q27 === !!false)
                       (helper constr_tl cases q22)
                   ])

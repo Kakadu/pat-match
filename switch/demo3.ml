@@ -227,8 +227,12 @@ module TripleBoolAndDirtyHack = struct
             (q =/= triple false_ true_ __)
             (q =/= triple __ __ false_)
             (q === triple (Expr.leaf ta) (Expr.leaf tb) true_)
+            (FD.domain ta [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
+            (FD.domain tb [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
             (FD.neq tb !!(Tag.of_string_exn "false"))
-            (FD.neq ta !!(Tag.of_string_exn "false")))
+            (FD.neq ta !!(Tag.of_string_exn "false"))
+            (ta =/= !!(Tag.of_string_exn "false"))
+            (tb =/= !!(Tag.of_string_exn "false")))
       , GroundField.[ field2 ] )
     ]
   ;;
