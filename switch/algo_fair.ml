@@ -81,7 +81,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     let open OCanren in
     fresh
       ()
-      (debug_var m (flip Matchable.reify) (fun ms ->
+      (debug_var m Matchable.reify (fun ms ->
            (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
            match ms with
            | [] -> failure
@@ -463,7 +463,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                            (res_ir === Std.Option.none ())
                        ])
                     (my_eval_ir ideal_IR scru injected_typs ideal_IR res_ir)
-                    (debug_var ideal_IR (flip IR.reify) (fun irs ->
+                    (debug_var ideal_IR IR.reify (fun irs ->
                          let verbose = false in
                          (*                  let verbose = true in*)
                          let ir =

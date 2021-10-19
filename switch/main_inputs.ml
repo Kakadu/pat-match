@@ -25,7 +25,7 @@ let inhabit_by typs cond =
   let is_good_m m ans =
     fresh
       ()
-      (debug_var m (flip Matchable.reify) (fun ms ->
+      (debug_var m Matchable.reify (fun ms ->
            (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
            match ms with
            | [] -> failure
@@ -61,7 +61,7 @@ let inhabit_by typs cond =
          ; fresh
              ()
              (is_ok === !!false)
-             (debug_var is_ok (flip OCanren.reify) (fun ok ->
+             (debug_var is_ok OCanren.reify (fun ok ->
                   let () =
                     match ok with
                     | [ Value false ] -> ()

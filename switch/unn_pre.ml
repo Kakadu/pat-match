@@ -686,14 +686,14 @@ module IR = struct
         object
           inherit [_] fmt_ground_t fself
           method! c_Fail fmt _ = Format.fprintf fmt "fail"
-          method! c_Lit fmt _ n = Format.fprintf fmt "%d " n
+          method! c_Lit fmt _ n = Format.fprintf fmt "%d" n
 
           method! c_Switch fmt _ m xs on_default =
             Format.fprintf fmt "@[(@[switch %a with @]" (GT.fmt Matchable.ground) m;
             GT.foldl
               Std.List.ground
               (fun () (t, code) ->
-                Format.fprintf fmt "@[ | %a -> %a@]@;" (GT.fmt Tag.ground) t fself code)
+                Format.fprintf fmt "@[ | %a -> %a@]" (GT.fmt Tag.ground) t fself code)
               ()
               xs;
             Format.fprintf fmt "@[ | _ -> %a@]" fself on_default;
@@ -1155,3 +1155,11 @@ let _f () =
 
   ()
 *)
+
+let debug_lino line num =
+  fresh
+    q
+    (debug_var q OCanren.reify (function _ ->
+         Format.printf "%s %d\n%!" line num;
+         success))
+;;

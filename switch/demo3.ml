@@ -5,14 +5,6 @@ open Tester
 module W = Work_matchable_kind
 module Arg = Main_inputs.ArgMake (Main_inputs.ArgPairTrueFalse)
 
-let debug_lino line num =
-  fresh
-    q
-    (debug_var q (flip OCanren.reify) (function _ ->
-         Format.printf "%s %d\n%!" line num;
-         success))
-;;
-
 module E = struct
   open OCanren.Std
 
@@ -45,7 +37,7 @@ let default_shortcut0 good_matchables m max_height cases rez =
     ()
     (W.matchable_leq_nat m max_height !!true)
     (cases =/= Std.nil ())
-    (debug_var m (flip Matchable.reify) (fun ms ->
+    (debug_var m Matchable.reify (fun ms ->
          (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
          match ms with
          | [] -> failure
@@ -69,26 +61,23 @@ let default_shortcut_tag etag constr_names rez =
   fresh
     ()
     (rez === !!true)
-    (debug_var
-       constr_names
-       (flip @@ Std.List.reify OCanren.reify)
-       (function
-         | [ lst ] ->
-           (try
-              let ground_list =
-                Std.List.prj_exn
-                  (function
-                    | Value x -> x
-                    | _ -> raise OCanren.Not_a_value)
-                  lst
-                |> Std.List.to_list Fun.id
-              in
-              fresh () (OCanren.FD.domain etag ground_list)
-            with
-           | OCanren.Not_a_value ->
-             Format.eprintf "Not_a_value when reifying type names. Skip\n%!";
-             success)
-         | _ -> assert false))
+    (debug_var constr_names (Std.List.reify OCanren.reify) (function
+        | [ lst ] ->
+          (try
+             let ground_list =
+               Std.List.prj_exn
+                 (function
+                   | Value x -> x
+                   | _ -> raise OCanren.Not_a_value)
+                 lst
+               |> Std.List.to_list Fun.id
+             in
+             fresh () (OCanren.FD.domain etag ground_list)
+           with
+          | OCanren.Not_a_value ->
+            Format.eprintf "Not_a_value when reifying type names. Skip\n%!";
+            success)
+        | _ -> assert false))
 ;;
 
 let default_shortcut4 (t1 : Tag.injected) t2 rez =
@@ -96,18 +85,18 @@ let default_shortcut4 (t1 : Tag.injected) t2 rez =
     flag
     (debug_var
        (Triple.make t1 t2 rez)
-       (flip @@ Triple.reify Tag.reify Tag.reify OCanren.reify)
+       (Triple.reify Tag.reify Tag.reify OCanren.reify)
        (function
-         | [ Value (t1, t2, Var (n, _)) ] ->
-           let __ _ =
-             Format.printf
-               "default_shortcut4 of (%s, %s, _.%d)\n%!"
-               (Tag.show_logic t1)
-               (Tag.show_logic t2)
-               n
-           in
-           success
-         | _ -> assert false))
+        | [ Value (t1, t2, Var (n, _)) ] ->
+          let __ _ =
+            Format.printf
+              "default_shortcut4 of (%s, %s, _.%d)\n%!"
+              (Tag.show_logic t1)
+              (Tag.show_logic t2)
+              n
+          in
+          success
+        | _ -> assert false))
     (OCanren.unif_hack t1 t2 flag)
     (conde
        [ flag =/= !!true &&& (rez === !!true); flag =/= !!false &&& (rez === !!false) ])
@@ -239,8 +228,7 @@ module TripleBoolAndDirtyHack = struct
             (q =/= triple __ __ false_)
             (q === triple (Expr.leaf ta) (Expr.leaf tb) true_)
             (FD.neq tb !!(Tag.of_string_exn "false"))
-            (FD.neq ta !!(Tag.of_string_exn "false"))
-            )
+            (FD.neq ta !!(Tag.of_string_exn "false")))
       , GroundField.[ field2 ] )
     ]
   ;;
@@ -266,7 +254,7 @@ module TripleBoolAndDirtyHack = struct
       3
       q
       qh
-      ( Format.sprintf "Running forward %dnd example in TripleBool test" n
+      ( Format.sprintf "===== Running forward example %d in TripleBool test" n
       , fun rhs ->
           fresh
             (scru ir rez)
@@ -274,7 +262,7 @@ module TripleBoolAndDirtyHack = struct
             (program ir)
             (make_scru scru)
             (eval_ir_triple_bool ~fields scru ir rez)
-            (debug_var scru (flip Expr.reify) (function xs ->
+            (debug_var scru Expr.reify (function xs ->
                  List.iteri
                    (fun n q -> Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
                    xs;

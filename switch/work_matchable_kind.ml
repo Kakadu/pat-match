@@ -4,14 +4,6 @@ open OCanren.Std
 open Work_base_common
 open Unn_pre
 
-let debug_lino line num =
-  fresh
-    q
-    (debug_var q (flip OCanren.reify) (function _ ->
-         Format.printf "%s %d\n%!" line num;
-         success))
-;;
-
 let nat_lt a b q235 =
   let rec helper root q230 =
     conde
@@ -393,7 +385,7 @@ let rec eval_ir
     shortcut0
     shortcut1
     shortcut_apply_domain
-    shortcut_branch
+    _shortcut_branch
     ir
     q60
   =
@@ -408,28 +400,34 @@ let rec eval_ir
       (list_length eargs q4)
   in
   let gives_single_answer _ = assert false in
-  let rec pizda branches myeval rrr =
-    let rec helper acc branches hrez =
+  let rec pizda branches myeval (rez : (int, _) OCanren.injected) =
+    let rec helper branches =
       conde
-        [ fresh () (acc === Std.none ()) (branches === Std.nil ()) failure
-        ; fresh ans (acc === Std.some ans) (branches === Std.nil ()) (hrez === acc)
+        [ fresh () (branches === Std.nil ())
         ; fresh
-            (ans bh btl btag brhs rez )
-            (acc === Std.some ans)
-            (branches === bh % btl)
-            (bh === Std.pair btag brhs)
-            (OCanren.unique_answers  (myeval btag brhs rez) rez  (Std.some ans))
-            (helper acc btl hrez)
-        ; fresh
-            (ans bh btl btag brhs rez)
-            (acc === Std.none ())
-            (branches === bh % btl)
-            (bh === Std.pair btag brhs)
-            (OCanren.unique_answers (myeval btag brhs rez) rez  (Std.some ans))
-            (helper (Std.some ans) btl hrez)
+            (btl btag brhs ans)
+            (branches === Std.pair btag brhs % btl)
+            (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+            (conde
+               [ fresh
+                   ()
+                   (ans === Unique.unique rez)
+                   (debug_lino __FILE__ __LINE__)
+                   (helper btl)
+               ; fresh
+                   ()
+                   (ans === Unique.noanswer)
+                   (debug_lino __FILE__ __LINE__)
+                   (helper btl)
+               ; fresh
+                   ()
+                   (ans === Unique.different)
+                   (debug_lino __FILE__ __LINE__)
+                   failure
+               ])
         ]
     in
-    (helper (Std.none ()) branches rrr)
+    fresh () (debug_lino __FILE__ __LINE__) (helper branches)
   in
   let rec inner history test_list irrr q9 =
     conde
@@ -438,7 +436,7 @@ let rec eval_ir
       ; fresh
           (m cases on_default q13)
           (irrr === switch m cases on_default)
-          (debug_var irrr (flip IR.reify) (function
+          (debug_var irrr IR.reify (function
               | [ ir ] ->
                 Format.printf "ir = @[%a@]\n%!" IR.fmt_logic ir;
                 success
@@ -449,7 +447,7 @@ let rec eval_ir
                  (correct_rez q16 etag eargs cnames q18 fuck)
                  (q13 === missExample ())
                  (fuck === eConstr etag eargs)
-                 (debug_var fuck (flip Expr.reify) (function
+                 (debug_var fuck Expr.reify (function
                      | [ e ] ->
                        Format.printf "expr = %a\n%!" Expr.pp_logic e;
                        success
@@ -458,18 +456,20 @@ let rec eval_ir
                  (q18 === !!true)
                  (correct_rez === q9)
                  (fresh
-                    (new_cases default_tag)
+                    (new_cases default_tag final_int)
                     (list_itero
                        (fun br -> fresh c (fst br c) (FD.neq default_tag c))
                        cases)
                     (new_cases === Std.pair default_tag on_default % cases)
                     (eval_m s tinfo m q16)
                     (q16 === pair (eConstr etag eargs) cnames)
-                    (pizda new_cases (fun tag rhs rrrr ->
-                         conde
-                           [ tag === etag &&& inner history test_list rhs (Std.some rrrr)
-                           ; tag =/= etag
-                           ]) q9))
+                    (q9 === Std.some final_int)
+                    (pizda
+                       new_cases
+                       (fun tag rhs rrrr ->
+                         tag === etag &&& inner history test_list rhs (Std.some rrrr)
+                         (* ; tag =/= etag &&& FD.neq tag etag *))
+                       final_int))
              ; fresh
                  (q33 etag eargs cnames q38)
                  (q13 === goodSubTree ())

@@ -7,7 +7,7 @@ open Unn_pre
 let debug_lino line num =
   fresh
     q
-    (debug_var q (flip OCanren.reify) (function _ ->
+    (debug_var q OCanren.reify (function _ ->
          (* Format.printf "%s %d\n%!" line num; *)
          success))
 ;;
