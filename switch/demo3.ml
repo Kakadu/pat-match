@@ -359,8 +359,11 @@ module PairsDirtyHack = struct
             (q =/= pair true_ __)
             (q =/= pair __ true_)
             (q === pair (Expr.leaf ta) (Expr.leaf tb))
-            (ta =/= !!(Tag.of_string_exn "true"))
-            (tb =/= !!(Tag.of_string_exn "true")))
+            (FD.domain ta [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
+            (FD.domain tb [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
+            (* (ta =/= !!(Tag.of_string_exn "true")) *)
+            (* (tb =/= !!(Tag.of_string_exn "true")) *)
+            success)
       , GroundField.[] )
     ]
   ;;
@@ -411,7 +414,7 @@ module PairsDirtyHack = struct
     test_example ~fields 1 x
   ;;
 
-  let __ _ =
+  let _ =
     let _, x, fields = List.nth examples 2 in
     test_example ~fields 2 x
   ;;

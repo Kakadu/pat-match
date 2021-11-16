@@ -303,7 +303,7 @@ let logic_list_len_lo =
 ;;
 
 module MatchableKind = struct
-  type injected = (matchable_kind, matchable_kind OCanren.logic) OCanren.injected
+  type injected = (gmatchable_kind, gmatchable_kind OCanren.logic) OCanren.injected
 
   let good : injected = goodSubTree ()
   let miss_example : injected = missExample ()
@@ -1052,7 +1052,7 @@ module WorkHO : WORK = struct
       -> (_ -> _ -> _ -> goal) -> (_ -> _ -> _ -> goal) -> (IR.injected -> goal)
       -> (int, int OCanren.logic) Std.Option.groundi -> goal
     =
-    Wrap.eval_ir
+    Wrap.eval_ir_o
   ;;
 
   let eval_ir e depth typs shct1 shct2 shct3 shct4 ir rez =
@@ -1090,20 +1090,17 @@ module WorkHO : WORK = struct
   let well_typed_expr
       : (Expr.injected -> goal) -> (Typs.injected -> goal) -> bool_inj -> goal
     =
-    Wrap.well_typed_expr
+    Wrap.well_typed_expr_o
   ;;
 
   let well_typed_expr : Expr.injected -> Typs.injected -> bool_inj -> goal =
-   fun e t r -> Wrap.well_typed_expr (( === ) e) (( === ) t) r
+   fun e t r -> Wrap.well_typed_expr_o (( === ) e) (( === ) t) r
  ;;
 
-  (*let compile_naively p ir =
-    Wrap.compile_naively ((===)p) ir*)
-
-  let eval_pat s p r = Wrap.eval_pat (( === ) s) (( === ) p) r
-  let matchable_leq_nat m n r = Wrap.matchable_leq_nat (( === ) m) (( === ) n) r
-  let not_in_history x xs r = Wrap.not_in_history (( === ) x) (( === ) xs) r
-  let info_assoc typs name rez = Wrap.info_assoc (( === ) typs) (( === ) name) rez
+  let eval_pat s p r = Wrap.eval_pat_o (( === ) s) (( === ) p) r
+  let matchable_leq_nat m n r = Wrap.matchable_leq_nat_o (( === ) m) (( === ) n) r
+  let not_in_history x xs r = Wrap.not_in_history_o (( === ) x) (( === ) xs) r
+  let info_assoc typs name rez = Wrap.info_assoc_o (( === ) typs) (( === ) name) rez
 end
 
 module WorkUnnesting : WORK = Work_unn

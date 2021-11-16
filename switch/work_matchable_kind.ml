@@ -475,6 +475,7 @@ let rec eval_ir
                  (correct_rez === q9)
                  (fresh
                     (new_cases default_tag final_int)
+                    (shortcut_apply_domain default_tag only_names !!true)
                     (list_itero
                        (fun br ->
                          fresh c (fst br c) (default_tag =/= c) (FD.neq default_tag c))
