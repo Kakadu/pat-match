@@ -349,7 +349,7 @@ module PairsDirtyHack = struct
     [ (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ])
     ; ( 1
       , (fun q ->
-          fresh ta (q =/= pair true_ __) (q === pair __ true_)
+          fresh () (q =/= pair true_ __) (q === pair __ true_)
           (* (ta =/= !!(Tag.of_string_exn "true")) *))
       , GroundField.[ field1 ] )
     ; ( 2
