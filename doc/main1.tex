@@ -1,3 +1,5 @@
+% !TeX spellcheck = ru_RU
+
 \documentclass[a5paper,12pt]{article}
 \usepackage[cache=true]{minted}
 \usepackage{polyglossia}
@@ -209,4 +211,50 @@ let rec inhabit_expr = fun inh_arg arg_desc r ->
         (inhabit_expr inh_arg arg_desc el)
     ]
 \end{minted}
+
+
+\section{Неведомая херня, которую я пытаюсь запилить}
+Входной пример
+\begin{minted}{ocaml}
+match (... : bool * bool) with
+| pair (true, _) -> 0
+| pair (_, true) -> 1
+| pair (_, _) -> 2
+\end{minted}
+Правильный ответ
+\begin{minted}{ocaml}
+switch S[0] with
+| true -> 0
+| _ -> (switch S[1] with
+        | true -> 1
+        | _ -> 2)
+\end{minted}
+Примеры с вайлдкардами: номер + описание адекватного скрутини + список полей, куда можно заглядывать
+\begin{minted}{ocaml}
+[ (0, (fun q -> (q === pair true_ __))
+    , GroundField.[ field0 ])
+; (1, (fun q ->
+         fresh () 
+           (q =/= pair true_ __) 
+           (q === pair __ true_))
+    , GroundField.[ field1 ] )
+; (2, ...)
+]
+\end{minted}
+Будем пытаться запустить программу-правильный-ответ на примере №1.
+\begin{itemize}
+\item Теперь нам надо проверить, 
+\begin{itemize}
+\item Эта ветка подходит нашему скрутини
+\item Этот кусок скрутини можно мэтчить
+\end{itemize}
+\item Имеем варианты
+\begin{enumerate}
+\item (да, да) -- рекурсивно исполняем rhs 
+\item (да, нет) -- все правые части должны давать одинаковый ответ
+\item (нет, да) -- разбираем следующую ветку
+\item (нет, нет) -- разбираем следующую ветку
+\end{enumerate}
+\item пытаемся смэтчить \verb=S[0]=, оно нам не подходит и вообще запрещено. Поэтому 4й случай.
+\end{itemize}
 \end{document}
