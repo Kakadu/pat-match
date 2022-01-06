@@ -320,9 +320,9 @@ end
 module PairsDirtyHack = struct
   (*
   match ... with
-  | triple (true, _) -> 0
-  | triple (_, true) -> 1
-  | triple (_, _) -> 2
+  | pair (true, _) -> 0
+  | pair (_, true) -> 1
+  | pair (_, _) -> 2
 
   q=(switch S[0] with
     | true -> 0

@@ -1160,3 +1160,10 @@ let debug_lino line num =
          Format.printf "%s %d\n%!" line num;
          success))
 ;;
+
+let debug text =
+  fresh
+    ()
+    (Format.printf "%s\n%!" text;
+     success)
+;;

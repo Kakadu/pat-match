@@ -390,6 +390,8 @@ let rec not_in_history x xs q61 =
     ]
 ;;
 
+open Format
+
 let rec eval_ir
     s
     max_height
@@ -412,14 +414,36 @@ let rec eval_ir
       (list_length eargs q4)
   in
   let gives_single_answer _ = assert false in
-  let rec pizda branches myeval (rez : (int, _) OCanren.injected) =
+  let debug_tag_list text xs =
+    debug_var xs (Std.List.reify OCanren.reify) (fun xs ->
+        let open Format in
+        Format.printf
+          "%s: %a \n%!"
+          text
+          (pp_print_list (GT.fmt Std.List.logic @@ GT.fmt OCanren.logic @@ GT.fmt GT.int))
+          xs;
+        success)
+  in
+  let debug_tag_pair text xs =
+    debug_var xs (Std.Pair.reify Tag.reify Tag.reify) (fun xs ->
+        let open Format in
+        Format.printf
+          "%s: %a \n%!"
+          text
+          (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
+          xs;
+        success)
+  in
+  let dirty_hack branches myeval (rez : (int, _) OCanren.injected) =
     let rec helper branches =
       conde
         [ fresh () (branches === Std.nil ())
         ; fresh
             (btl btag brhs ans)
             (branches === Std.pair btag brhs % btl)
+            (debug "  Testing a branch")
             (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+            (debug "  After unique_answers call")
             (conde
                [ fresh
                    ()
@@ -447,44 +471,144 @@ let rec eval_ir
       [ irrr === fail () &&& (q9 === none ())
       ; fresh n (irrr === lit n) (q9 === some n)
       ; fresh
-          (m cases on_default q13)
+          (m cases on_default is_forbidden sub_scru subtypes etag eargs only_names)
           (irrr === switch m cases on_default)
           (debug_var irrr IR.reify (function
               | [ ir ] ->
                 Format.printf "ir = @[%a@]\n%!" IR.fmt_logic ir;
                 success
               | _ -> assert false))
-          (shortcut0 m max_height cases q13)
+          (shortcut0 m max_height cases is_forbidden)
+          (eval_m s tinfo m (pair sub_scru subtypes))
+          (list_map fst subtypes only_names)
+          (sub_scru === eConstr etag eargs)
+          (conde
+             [ cases === Std.nil () &&& inner (m % history) test_list on_default q9
+             ; fresh
+                 (brtl tag rhs)
+                 (cases === Std.pair tag rhs % brtl)
+                 (conde
+                    [ fresh
+                        ()
+                        (etag === tag)
+                        (is_forbidden === goodSubTree ())
+                        (inner (m % history) test_list rhs q9)
+                    ; fresh
+                        new_cases
+                        (etag === tag)
+                        (is_forbidden === missExample ())
+                        (fresh
+                           default_tag
+                           (list_itero
+                              (fun br ->
+                                fresh
+                                  c
+                                  (fst br c)
+                                  (debug "Trying to add disequality")
+                                  (debug_tag_pair
+                                     "between tags: "
+                                     (Std.pair default_tag c))
+                                  (default_tag =/= c)
+                                  (FD.neq default_tag c)
+                                  (debug "Disequality added"))
+                              cases)
+                           (Std.List.appendo
+                              cases
+                              !<(Std.pair default_tag on_default)
+                              new_cases))
+                        (* (q9 === Std.some final_int) *)
+                        (debug (sprintf "  calling iteration over branches: %s" __FILE__))
+                        (dirty_hack
+                           new_cases
+                           (fun tag rhs rrrr ->
+                             fresh
+                               ()
+                               (shortcut_apply_domain tag only_names !!true)
+                               (debug_tag_pair "too many tags could be there" (Std.pair tag etag))
+                               (debug_var
+                                  (Std.pair tag etag)
+                                  (Pair.reify Tag.reify Tag.reify)
+                                  (function
+                                   | [ Value (l, r) ] ->
+                                     Format.printf
+                                       "tag and etag are :  %a and %a\n%!"
+                                       (GT.fmt Tag.logic)
+                                       l
+                                       (GT.fmt Tag.logic)
+                                       r;
+                                     success
+                                   | [] -> assert false
+                                   | xs ->
+                                     let open Format in
+                                     Format.printf
+                                       "\tToo many tags %a\n%!"
+                                       (pp_print_list
+                                          ~pp_sep:pp_print_space
+                                          (GT.fmt
+                                             Pair.logic
+                                             (GT.fmt Tag.logic)
+                                             (GT.fmt Tag.logic)))
+                                       xs;
+                                     success))
+                               (tag === etag)
+                               (inner history test_list rhs (Std.some rrrr))
+                             (* ; tag =/= etag &&& FD.neq tag etag *))
+                           final_int)
+                    ; fresh () (etag =/= tag) (is_forbidden === goodSubTree ())
+                    ; fresh () (etag =/= tag) (is_forbidden === missExample ())
+                    ])
+             ])
+        (*
           (conde
              [ fresh
-                 (correct_rez q16 etag eargs cnames q18 fuck only_names)
-                 (q13 === missExample ())
+                 (correct_rez q16 etag eargs cnames fuck only_names)
+                 (is_forbidden === missExample ())
+                 (debug_var m Matchable.reify (fun xs ->
+                      let open Format in
+                      Format.printf
+                        "Missed matchables (%d): [ %a ]\n%!"
+                        (Stdlib.List.length xs)
+                        (pp_print_list (GT.fmt Matchable.logic))
+                        xs;
+                      success))
                  (fuck === eConstr etag eargs)
                  (fresh
                     (cnames0 heck)
                     (eval_m s tinfo m (pair heck cnames0))
                     (list_map fst cnames0 only_names)
-                    (shortcut_apply_domain etag only_names !!true))
+                    (shortcut_apply_domain etag only_names !!true)
+                    (debug_tag_list "only_names" only_names)
+                    success)
                  (debug_var fuck Expr.reify (function
                      | [ e ] ->
                        Format.printf "expr = %a\n%!" Expr.pp_logic e;
                        success
                      | _ -> assert false))
                  (q16 === pair fuck cnames)
-                 (q18 === !!true)
                  (correct_rez === q9)
+                 (* building new cases including 'default' branch *)
                  (fresh
                     (new_cases default_tag final_int)
                     (shortcut_apply_domain default_tag only_names !!true)
                     (list_itero
                        (fun br ->
-                         fresh c (fst br c) (default_tag =/= c) (FD.neq default_tag c))
+                         fresh
+                           c
+                           (fst br c)
+                           (debug "Trying to add disequality")
+                           (debug_tag_pair "between tags: " (Std.pair default_tag c))
+                           (default_tag =/= c)
+                           (FD.neq default_tag c)
+                           (debug "Disequality added"))
                        cases)
+                    (* будем вставлять дефолтный случай в конец, чтобы было по порядку *)
                     (Std.List.appendo cases !<(Std.pair default_tag on_default) new_cases)
                     (eval_m s tinfo m q16)
                     (q16 === pair (eConstr etag eargs) cnames)
                     (q9 === Std.some final_int)
-                    (pizda
+                    (debug
+                       (Printf.sprintf "  calling iteration over branches: %s" __FILE__))
+                    (dirty_hack
                        new_cases
                        (fun tag rhs rrrr ->
                          fresh
@@ -492,7 +616,7 @@ let rec eval_ir
                            (shortcut_apply_domain tag only_names !!true)
                            (debug_var
                               (Std.pair tag etag)
-                              (Pair.reify reify reify)
+                              (Pair.reify Tag.reify Tag.reify)
                               (function
                                | [ Value (l, r) ] ->
                                  Format.printf
@@ -502,7 +626,19 @@ let rec eval_ir
                                    (GT.fmt Tag.logic)
                                    r;
                                  success
-                               | _ -> assert false))
+                               | [] -> assert false
+                               | xs ->
+                                 let open Format in
+                                 Format.printf
+                                   "\tToo many tags %a\n%!"
+                                   (pp_print_list
+                                      ~pp_sep:pp_print_space
+                                      (GT.fmt
+                                         Pair.logic
+                                         (GT.fmt Tag.logic)
+                                         (GT.fmt Tag.logic)))
+                                   xs;
+                                 success))
                            (tag === etag)
                            (inner history test_list rhs (Std.some rrrr))
                          (* ; tag =/= etag &&& FD.neq tag etag *))
@@ -517,6 +653,7 @@ let rec eval_ir
                  (list_map fst cnames q38)
                  (test_list (m % history) etag q38 on_default cases q9)
              ])
+             *)
       ]
   in
   let rec test_list next_histo etag cnames on_default cases0 q57 =
