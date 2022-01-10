@@ -390,6 +390,8 @@ let rec not_in_history x xs q61 =
     ]
 ;;
 
+let minisleep (sec : float) = ignore (Unix.select [] [] [] sec)
+
 open Format
 
 let rec eval_ir
@@ -413,15 +415,22 @@ let rec eval_ir
       (conde [ q4 === sz &&& (q2 === !!true); q2 === !!false &&& (q4 =/= sz) ])
       (list_length eargs q4)
   in
-  let gives_single_answer _ = assert false in
   let debug_tag_list text xs =
     debug_var xs (Std.List.reify OCanren.reify) (fun xs ->
         let open Format in
         Format.printf
           "%s: %a \n%!"
           text
-          (pp_print_list (GT.fmt Std.List.logic @@ GT.fmt OCanren.logic @@ GT.fmt GT.int))
+          (pp_print_list [%fmt: GT.int OCanren.logic Std.List.logic])
           xs;
+        minisleep 0.1;
+        success)
+  in
+  let debug_ir text xs =
+    debug_var xs IR.reify (fun xs ->
+        let open Format in
+        Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: IR.logic]) xs;
+        minisleep 0.1;
         success)
   in
   let debug_tag_pair text xs =
@@ -432,9 +441,35 @@ let rec eval_ir
           text
           (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
           xs;
+        minisleep 0.1;
         success)
   in
-  let dirty_hack branches myeval (rez : (int, _) OCanren.injected) =
+  let debug_tag text xs =
+    debug_var xs Tag.reify (fun xs ->
+        let open Format in
+        Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: Tag.logic]) xs;
+        minisleep 0.1;
+        success)
+  in
+  let debug_expr text xs =
+    debug_var xs Expr.reify (fun xs ->
+        let open Format in
+        Format.printf
+          "%s: %a \n%!"
+          text
+          (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") Expr.pp_logic)
+          xs;
+        minisleep 0.1;
+        success)
+  in
+  let debug_matchable_kind text xs =
+    debug_var xs MatchableKind.reify (fun xs ->
+        let open Format in
+        Format.printf "%s: %a \n%!" text (pp_print_list MatchableKind.pp_logic) xs;
+        minisleep 0.1;
+        success)
+  in
+  let dirty_hack branches ~f:myeval (rez : (int, _) OCanren.injected) =
     let rec helper branches =
       conde
         [ fresh () (branches === Std.nil ())
@@ -466,267 +501,167 @@ let rec eval_ir
     in
     fresh () (debug_lino __FILE__ __LINE__) (helper branches)
   in
-  let rec inner history test_list irrr q9 =
+  let union_cases_and_default cases default_rhs new_cases =
+    fresh
+      default_tag
+      (list_itero
+         (fun br ->
+           fresh
+             c
+             (fst br c)
+             (debug "Trying to add disequality")
+             (debug_tag_pair "between tags: " (Std.pair default_tag c))
+             (default_tag =/= c)
+             (FD.neq default_tag c)
+             (debug "Disequality added"))
+         cases)
+      (Std.List.appendo cases !<(Std.pair default_tag default_rhs) new_cases)
+  in
+  (* Function that takes a pattern matching and prepares it to interate over all branches.
+    The default cases is promotes to be a last branch
+  *)
+  let rec inner history test_list irrr inner_rez =
     conde
-      [ irrr === fail () &&& (q9 === none ())
-      ; fresh n (irrr === lit n) (q9 === some n)
+      [ irrr === fail () &&& (inner_rez === none ())
+      ; fresh n (irrr === lit n) (inner_rez === some n)
       ; fresh
-          (m cases on_default is_forbidden sub_scru subtypes etag eargs only_names)
+          (m
+             cases
+             on_default
+             is_forbidden
+             sub_scru
+             subtypes
+             etag
+             eargs
+             only_names
+             new_cases)
           (irrr === switch m cases on_default)
-          (debug_var irrr IR.reify (function
-              | [ ir ] ->
-                Format.printf "ir = @[%a@]\n%!" IR.fmt_logic ir;
-                success
-              | _ -> assert false))
+          (debug_ir "ir =" irrr)
           (shortcut0 m max_height cases is_forbidden)
           (eval_m s tinfo m (pair sub_scru subtypes))
           (list_map fst subtypes only_names)
           (sub_scru === eConstr etag eargs)
-          (conde
-             [ cases === Std.nil () &&& inner (m % history) test_list on_default q9
-             ; fresh
-                 (brtl tag rhs)
-                 (cases === Std.pair tag rhs % brtl)
-                 (conde
-                    [ fresh
-                        ()
-                        (etag === tag)
-                        (is_forbidden === goodSubTree ())
-                        (inner (m % history) test_list rhs q9)
-                    ; fresh
-                        new_cases
-                        (etag === tag)
-                        (is_forbidden === missExample ())
-                        (fresh
-                           default_tag
-                           (list_itero
-                              (fun br ->
-                                fresh
-                                  c
-                                  (fst br c)
-                                  (debug "Trying to add disequality")
-                                  (debug_tag_pair
-                                     "between tags: "
-                                     (Std.pair default_tag c))
-                                  (default_tag =/= c)
-                                  (FD.neq default_tag c)
-                                  (debug "Disequality added"))
-                              cases)
-                           (Std.List.appendo
-                              cases
-                              !<(Std.pair default_tag on_default)
-                              new_cases))
-                        (* (q9 === Std.some final_int) *)
-                        (debug (sprintf "  calling iteration over branches: %s" __FILE__))
-                        (dirty_hack
-                           new_cases
-                           (fun tag rhs rrrr ->
-                             fresh
-                               ()
-                               (shortcut_apply_domain tag only_names !!true)
-                               (debug_tag_pair "too many tags could be there" (Std.pair tag etag))
-                               (debug_var
-                                  (Std.pair tag etag)
-                                  (Pair.reify Tag.reify Tag.reify)
-                                  (function
-                                   | [ Value (l, r) ] ->
-                                     Format.printf
-                                       "tag and etag are :  %a and %a\n%!"
-                                       (GT.fmt Tag.logic)
-                                       l
-                                       (GT.fmt Tag.logic)
-                                       r;
-                                     success
-                                   | [] -> assert false
-                                   | xs ->
-                                     let open Format in
-                                     Format.printf
-                                       "\tToo many tags %a\n%!"
-                                       (pp_print_list
-                                          ~pp_sep:pp_print_space
-                                          (GT.fmt
-                                             Pair.logic
-                                             (GT.fmt Tag.logic)
-                                             (GT.fmt Tag.logic)))
-                                       xs;
-                                     success))
-                               (tag === etag)
-                               (inner history test_list rhs (Std.some rrrr))
-                             (* ; tag =/= etag &&& FD.neq tag etag *))
-                           final_int)
-                    ; fresh () (etag =/= tag) (is_forbidden === goodSubTree ())
-                    ; fresh () (etag =/= tag) (is_forbidden === missExample ())
-                    ])
-             ])
-        (*
-          (conde
-             [ fresh
-                 (correct_rez q16 etag eargs cnames fuck only_names)
-                 (is_forbidden === missExample ())
-                 (debug_var m Matchable.reify (fun xs ->
-                      let open Format in
-                      Format.printf
-                        "Missed matchables (%d): [ %a ]\n%!"
-                        (Stdlib.List.length xs)
-                        (pp_print_list (GT.fmt Matchable.logic))
-                        xs;
-                      success))
-                 (fuck === eConstr etag eargs)
-                 (fresh
-                    (cnames0 heck)
-                    (eval_m s tinfo m (pair heck cnames0))
-                    (list_map fst cnames0 only_names)
-                    (shortcut_apply_domain etag only_names !!true)
-                    (debug_tag_list "only_names" only_names)
-                    success)
-                 (debug_var fuck Expr.reify (function
-                     | [ e ] ->
-                       Format.printf "expr = %a\n%!" Expr.pp_logic e;
-                       success
-                     | _ -> assert false))
-                 (q16 === pair fuck cnames)
-                 (correct_rez === q9)
-                 (* building new cases including 'default' branch *)
-                 (fresh
-                    (new_cases default_tag final_int)
-                    (shortcut_apply_domain default_tag only_names !!true)
-                    (list_itero
-                       (fun br ->
-                         fresh
-                           c
-                           (fst br c)
-                           (debug "Trying to add disequality")
-                           (debug_tag_pair "between tags: " (Std.pair default_tag c))
-                           (default_tag =/= c)
-                           (FD.neq default_tag c)
-                           (debug "Disequality added"))
-                       cases)
-                    (* будем вставлять дефолтный случай в конец, чтобы было по порядку *)
-                    (Std.List.appendo cases !<(Std.pair default_tag on_default) new_cases)
-                    (eval_m s tinfo m q16)
-                    (q16 === pair (eConstr etag eargs) cnames)
-                    (q9 === Std.some final_int)
-                    (debug
-                       (Printf.sprintf "  calling iteration over branches: %s" __FILE__))
-                    (dirty_hack
-                       new_cases
-                       (fun tag rhs rrrr ->
-                         fresh
-                           ()
-                           (shortcut_apply_domain tag only_names !!true)
-                           (debug_var
-                              (Std.pair tag etag)
-                              (Pair.reify Tag.reify Tag.reify)
-                              (function
-                               | [ Value (l, r) ] ->
-                                 Format.printf
-                                   "tag and etag are :  %a and %a\n%!"
-                                   (GT.fmt Tag.logic)
-                                   l
-                                   (GT.fmt Tag.logic)
-                                   r;
-                                 success
-                               | [] -> assert false
-                               | xs ->
-                                 let open Format in
-                                 Format.printf
-                                   "\tToo many tags %a\n%!"
-                                   (pp_print_list
-                                      ~pp_sep:pp_print_space
-                                      (GT.fmt
-                                         Pair.logic
-                                         (GT.fmt Tag.logic)
-                                         (GT.fmt Tag.logic)))
-                                   xs;
-                                 success))
-                           (tag === etag)
-                           (inner history test_list rhs (Std.some rrrr))
-                         (* ; tag =/= etag &&& FD.neq tag etag *))
-                       final_int))
-             ; fresh
-                 (q33 etag eargs cnames q38)
-                 (q13 === goodSubTree ())
-                 (q33 === pair (eConstr etag eargs) cnames)
-                 (eval_m s tinfo m q33)
-                 (indeed_good_arity cnames etag eargs !!true)
-                 (shortcut1 etag m cases history tinfo !!true)
-                 (list_map fst cnames q38)
-                 (test_list (m % history) etag q38 on_default cases q9)
-             ])
-             *)
+          (debug_expr "sub_scru" sub_scru)
+          (union_cases_and_default cases on_default new_cases)
+          (debug_tag_list "available tags here" only_names)
+          (test_list
+             ~shortcut_history:(fun () -> shortcut1 etag m cases history tinfo !!true)
+             (m % history)
+             etag
+             only_names
+             new_cases
+             is_forbidden
+             inner_rez)
       ]
   in
-  let rec test_list next_histo etag cnames on_default cases0 q57 =
-    let rec helper constr_names cases q22 =
+  let rec test_list
+      ~shortcut_history
+      next_histo
+      etag
+      cnames
+      cases0
+      is_forbidden
+      test_list_rez
+    =
+    let case_2 () =
       fresh
-        ()
-        (* (debug_var
-           constr_names
-           (flip @@ Std.List.reify OCanren.reify)
-           (function
-             | _ ->
-               Format.printf "%s %d\n%!" __FILE__ __LINE__;
-               success)) *)
-        (shortcut_apply_domain etag cnames !!true)
+        (new_cases final_int)
+        (debug (sprintf "  case_2: %s" __FILE__))
+        (dirty_hack new_cases final_int ~f:(fun tag rhs rrrr ->
+             fresh
+               ()
+               (* (shortcut_apply_domain tag only_names !!true) *)
+               (debug_tag_pair "too many tags could be there" (Std.pair tag etag))
+               (*                (debug_var (Std.pair tag etag) (Pair.reify Tag.reify Tag.reify) (function
+                   | [ Value (l, r) ] ->
+                     Format.printf
+                       "tag and etag are :  %a and %a\n%!"
+                       (GT.fmt Tag.logic)
+                       l
+                       (GT.fmt Tag.logic)
+                       r;
+                     success
+                   | [] -> assert false
+                   | xs ->
+                     let open Format in
+                     Format.printf
+                       "\tToo many tags %a\n%!"
+                       (pp_print_list
+                          ~pp_sep:pp_print_space
+                          (GT.fmt Pair.logic (GT.fmt Tag.logic) (GT.fmt Tag.logic)))
+                       xs;
+                     success)) *)
+               (tag === etag)
+               (shortcut_history ())
+               (inner next_histo test_list rhs (Std.some rrrr))))
+    in
+    let rec iter_cnames br_tag constr_names sk =
+      fresh
+        (constr_hd constr_tl)
         (conde
-           [ cases === nil () &&& inner next_histo test_list on_default q22
+           [ constr_names === nil () &&& debug "bad program" &&& failure
            ; fresh
-               (constr_hd constr_tl qtag ontag clauses_tl q27)
-               (cases =/= nil ())
+               ()
                (constr_names === constr_hd % constr_tl)
-               (cases === pair qtag ontag % clauses_tl)
                (conde
-                  [ fresh
-                      ()
-                      (qtag === constr_hd)
-                      (conde
-                         [ fresh
-                             ()
-                             (qtag === etag)
-                             (FD.eq qtag etag)
-                             (inner next_histo test_list ontag q22)
-                         ; fresh
-                             ()
-                             (qtag =/= etag)
-                             (debug_var
-                                (Std.pair qtag etag)
-                                (Pair.reify reify reify)
-                                (function
-                                 | [ Value (l, r) ] ->
-                                   Format.printf
-                                     "qtag =/= etag:  %a =/= %a\n%!"
-                                     (GT.fmt Tag.logic)
-                                     l
-                                     (GT.fmt Tag.logic)
-                                     r;
-                                   success
-                                 | _ -> assert false))
-                             (FD.neq qtag etag)
-                             (helper constr_tl clauses_tl q22)
-                         ])
-                  ; fresh
-                      ()
-                      (qtag =/= constr_hd)
-                      (FD.neq qtag constr_hd)
-                      (debug_var
-                         (Std.pair qtag constr_hd)
-                         (Pair.reify reify reify)
-                         (function
-                          | [ Value (l, r) ] ->
-                            Format.printf
-                              "qtag =/= constr_hd:  %a =/= %a\n%!"
-                              (GT.fmt Tag.logic)
-                              l
-                              (GT.fmt Tag.logic)
-                              r;
-                            success
-                          | _ -> assert false))
-                      (q27 === !!false)
-                      (helper constr_tl cases q22)
+                  [ constr_hd === br_tag &&& sk constr_tl
+                  ; constr_hd === br_tag &&& iter_cnames br_tag constr_tl sk
                   ])
            ])
     in
-    helper cnames cases0 q57
+    let rec cases_3_and_4 constr_names brtl helper_rez =
+      helper constr_names brtl helper_rez
+    and helper constr_names cases helper_rez =
+      fresh
+        ()
+        (conde
+           [ cases === nil () &&& debug "bad program" &&& failure
+           ; fresh
+               (brh brtl tag rhs)
+               (cases === brh % brtl)
+               (brh === Std.pair tag rhs)
+               (debug_tag "etag = " etag)
+               (debug_tag "head branch containts" tag)
+               (debug_matchable_kind "is_forbidden" is_forbidden)
+               (iter_cnames tag constr_names (fun constr_names ->
+                    conde
+                      [ fresh
+                          ()
+                          (etag === tag)
+                          (FD.eq etag tag)
+                          (is_forbidden === goodSubTree ())
+                          (debug_lino __FILE__ __LINE__)
+                          (inner next_histo test_list rhs helper_rez)
+                      ; fresh
+                          ()
+                          (debug_tag_pair " >>> ?" (Std.pair tag etag))
+                          (etag === tag)
+                          (is_forbidden === missExample ())
+                          (debug_lino __FILE__ __LINE__)
+                          (debug_tag_pair "?" (Std.pair tag etag))
+                          (debug_var etag Tag.reify (fun _ -> assert false))
+                          (case_2 ())
+                      ; fresh
+                          ()
+                          (etag =/= tag)
+                          (FD.neq etag tag)
+                          (is_forbidden === goodSubTree ())
+                          (debug_lino __FILE__ __LINE__)
+                          (cases_3_and_4 constr_names brtl helper_rez)
+                      ; fresh
+                          ()
+                          (etag =/= tag)
+                          (is_forbidden === missExample ())
+                          (debug_lino __FILE__ __LINE__)
+                          (cases_3_and_4 constr_names brtl helper_rez)
+                      ]))
+           ])
+    in
+    fresh
+      ()
+      (debug "test_list called")
+      (shortcut_apply_domain etag cnames !!true)
+      (helper cnames cases0 test_list_rez)
   in
   inner (nil ()) test_list ir q60
 ;;

@@ -404,7 +404,7 @@ module PairsDirtyHack = struct
                  success)) )
   ;;
 
-  let _ =
+  let __ _ =
     let _, x, fields = List.nth examples 0 in
     test_example ~fields 0 x
   ;;

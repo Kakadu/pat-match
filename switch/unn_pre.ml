@@ -305,9 +305,21 @@ let logic_list_len_lo =
 module MatchableKind = struct
   type injected = (gmatchable_kind, gmatchable_kind OCanren.logic) OCanren.injected
 
+  let pp_logic ppf x =
+    GT.fmt
+      logic
+      (fun ppf -> function
+        | GoodSubTree -> Format.fprintf ppf "good"
+        | MissExample -> Format.fprintf ppf "miss"
+        | MissTotally -> assert false)
+      ppf
+      x
+  ;;
+
   let good : injected = goodSubTree ()
   let miss_example : injected = missExample ()
   let miss_totally : injected = missTotally ()
+  let reify = OCanren.reify
 end
 
 module Pattern = struct
