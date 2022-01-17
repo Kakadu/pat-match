@@ -390,7 +390,10 @@ let rec not_in_history x xs q61 =
     ]
 ;;
 
-let minisleep (sec : float) = ignore (Unix.select [] [] [] sec)
+let minisleep (sec : float) =
+  let _ = Unix.select [] [] [] sec in
+  ()
+;;
 
 open Format
 
@@ -541,6 +544,11 @@ let rec eval_ir
           (eval_m s tinfo m (pair sub_scru subtypes))
           (list_map fst subtypes only_names)
           (sub_scru === eConstr etag eargs)
+          (conde
+             [ fresh () (etag === !!(Tag.of_string_exn "true")) (eargs === Std.nil ())
+             ; fresh () (etag === !!(Tag.of_string_exn "false")) (eargs === Std.nil ())
+               (* ; fresh () (etag === !!(Tag.of_string_exn "pair")) *)
+             ])
           (debug_expr "sub_scru" sub_scru)
           (union_cases_and_default cases on_default new_cases)
           (debug_tag_list "available tags here" only_names)
@@ -563,9 +571,9 @@ let rec eval_ir
       is_forbidden
       test_list_rez
     =
-    let case_2 () =
+    let case_2 new_cases =
       fresh
-        (new_cases final_int)
+        final_int
         (debug (sprintf "  case_2: %s" __FILE__))
         (dirty_hack new_cases final_int ~f:(fun tag rhs rrrr ->
              fresh
@@ -599,7 +607,7 @@ let rec eval_ir
       fresh
         (constr_hd constr_tl)
         (conde
-           [ constr_names === nil () &&& debug "bad program" &&& failure
+           [ constr_names === nil () &&& debug "bad program1" &&& failure
            ; fresh
                ()
                (constr_names === constr_hd % constr_tl)
@@ -615,7 +623,7 @@ let rec eval_ir
       fresh
         ()
         (conde
-           [ cases === nil () &&& debug "bad program" &&& failure
+           [ cases === nil () &&& debug "bad program2" &&& failure
            ; fresh
                (brh brtl tag rhs)
                (cases === brh % brtl)
@@ -624,37 +632,61 @@ let rec eval_ir
                (debug_tag "head branch containts" tag)
                (debug_matchable_kind "is_forbidden" is_forbidden)
                (iter_cnames tag constr_names (fun constr_names ->
-                    conde
-                      [ fresh
-                          ()
-                          (etag === tag)
-                          (FD.eq etag tag)
-                          (is_forbidden === goodSubTree ())
-                          (debug_lino __FILE__ __LINE__)
-                          (inner next_histo test_list rhs helper_rez)
-                      ; fresh
-                          ()
-                          (debug_tag_pair " >>> ?" (Std.pair tag etag))
-                          (etag === tag)
-                          (is_forbidden === missExample ())
-                          (debug_lino __FILE__ __LINE__)
-                          (debug_tag_pair "?" (Std.pair tag etag))
-                          (debug_var etag Tag.reify (fun _ -> assert false))
-                          (case_2 ())
-                      ; fresh
-                          ()
-                          (etag =/= tag)
-                          (FD.neq etag tag)
-                          (is_forbidden === goodSubTree ())
-                          (debug_lino __FILE__ __LINE__)
-                          (cases_3_and_4 constr_names brtl helper_rez)
-                      ; fresh
-                          ()
-                          (etag =/= tag)
-                          (is_forbidden === missExample ())
-                          (debug_lino __FILE__ __LINE__)
-                          (cases_3_and_4 constr_names brtl helper_rez)
-                      ]))
+                    fresh
+                      branch_n
+                      (conde
+                         [ fresh
+                             ()
+                             (branch_n === !!1)
+                             (etag === tag)
+                             (FD.eq etag tag)
+                             (is_forbidden === goodSubTree ())
+                         ; fresh
+                             ()
+                             (branch_n === !!2)
+                             (etag === tag)
+                             (is_forbidden === missExample ())
+                         ; fresh
+                             ()
+                             (branch_n === !!3)
+                             (etag =/= tag)
+                             (FD.neq etag tag)
+                             (is_forbidden === goodSubTree ())
+                         ; fresh
+                             ()
+                             (branch_n === !!4)
+                             (etag =/= tag)
+                             (is_forbidden === missExample ())
+                         ])
+                      (debug_int branch_n "branch_n = ")
+                      (conde
+                         [ fresh
+                             ()
+                             (branch_n === !!1)
+                             (debug_lino "branch 1 hit" __LINE__)
+                             (inner next_histo test_list rhs helper_rez)
+                             (debug ">>> leaving branch 1 ")
+                         ; fresh
+                             ()
+                             (branch_n === !!2)
+                             (debug_lino "branch 2 hit!" __LINE__)
+                             (* (debug_tag_pair "branch 2 hit!" (Std.pair tag etag)) *)
+                             (* (debug_var etag Tag.reify (fun _ -> assert false)) *)
+                             (case_2 cases)
+                             (debug ">>> leaving branch 2 ")
+                         ; fresh
+                             ()
+                             (branch_n === !!3)
+                             (debug_lino __FILE__ __LINE__)
+                             (cases_3_and_4 constr_names brtl helper_rez)
+                         ; fresh
+                             ()
+                             (branch_n === !!4)
+                             (debug_lino "branch 4 hit!" __LINE__)
+                             (debug_lino __FILE__ __LINE__)
+                             (cases_3_and_4 constr_names brtl helper_rez)
+                             (debug ">>> leaving branch 4")
+                         ])))
            ])
     in
     fresh
