@@ -9,7 +9,7 @@ open Unn_pre.IR
 let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
-
+;;
 
 exception FilteredOutBySize of int
 exception FilteredOutByForm
@@ -17,39 +17,54 @@ exception FilteredOutByNestedness
 
 let is_enabled = ref true
 
-
-module Make(W: WORK)(Arg: ARG_FINAL) = struct
-
+module Make (W : WORK) (Arg : ARG_FINAL) = struct
   (* ******************** Default synthesis shortucts ************************* *)
   let default_shortcut0 m max_height cases rez =
     let open OCanren in
-    (W.matchable_leq_nat m max_height !!true) &&&
-    (cases =/= Std.nil()) &&&
-    (rez === !!true)
+    W.matchable_leq_nat m max_height !!true &&& (cases =/= Std.nil ()) &&& (rez === !!true)
+  ;;
 
-  let default_shortcut etag m cases history rez =
+  let default_shortcut _etag m _cases history _rez =
     let open OCanren in
-    (W.not_in_history m history !!true)
+    W.not_in_history m history !!true
+  ;;
 
-  let default_shortcut_tag constr_names cases rez =
+  let default_shortcut_tag constr_names cases _rez =
     let open OCanren in
     let open OCanren.Std in
-    (conde
-      [ (constr_names === nil()) &&& failure
-      ; fresh (u)
-          (constr_names === u % (nil()))
-          (cases === nil())
-      ; fresh (u v w)
-          (constr_names === u % (v % w) )
-      ])
+    conde
+      [ constr_names === nil () &&& failure
+      ; fresh u (constr_names === u % nil ()) (cases === nil ())
+      ; fresh (u v w) (constr_names === u % (v % w))
+      ]
+  ;;
 
-
-  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
-          ~prunes_period ~with_default_shortcuts clauses typs =
-    print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-
+  let work
+      ~n
+      ~with_hack
+      ~print_examples
+      ~check_repeated_ifs
+      ~debug_filtered_by_size
+      ~prunes_period
+      ~with_default_shortcuts
+      clauses
+      typs
+    =
+    print_endline
+      "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+    let _ = n in
+    let _ = with_hack in
+    let _ = print_examples in
+    let _ = check_repeated_ifs in
+    let _ = debug_filtered_by_size in
+    let _ = prunes_period in
+    let _ = with_default_shortcuts in
+    let _ = clauses in
+    let _ = typs in
     failwith "not revived"
-    (*
+  ;;
+
+  (*
     let printed_clauses = Format.asprintf "%a" Clauses.pretty_print clauses in
     Format.printf "%s" printed_clauses;
     let max_ifs_count = ref 0 in
@@ -377,17 +392,27 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         else Format.sprintf "%10.0fms\n%!" ms)
 *)
 
-
-  let test ?(print_examples=true) ?(debug_filtered_by_size=false)
-      ?(with_hack=true) ?(check_repeated_ifs=false)
-      ?(prunes_period=(Some 100)) ?(with_default_shortcuts=true)
-      n =
+  let test
+      ?(print_examples = true)
+      ?(debug_filtered_by_size = false)
+      ?(with_hack = true)
+      ?(check_repeated_ifs = false)
+      ?(prunes_period = Some 100)
+      ?(with_default_shortcuts = true)
+      n
+    =
     if !is_enabled
-    then work ~n ~with_hack ~print_examples ~check_repeated_ifs
-      ~debug_filtered_by_size ~with_default_shortcuts
-      ~prunes_period
-      Arg.clauses Arg.typs
+    then
+      work
+        ~n
+        ~with_hack
+        ~print_examples
+        ~check_repeated_ifs
+        ~debug_filtered_by_size
+        ~with_default_shortcuts
+        ~prunes_period
+        Arg.clauses
+        Arg.typs
     else ()
+  ;;
 end
-
-

@@ -126,7 +126,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
   (** synthetizer main  *)
   let work
-      ?(n = 10)
+      ~n
       ~with_hack
       ~print_examples
       ~check_repeated_ifs:_
@@ -421,7 +421,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                      q
                      qh
                      ("test example", goal_interpret1);
-                   [%tester runR IR.reify IR.show IR.show_logic (-1) (fun q -> success)]
+                   [%tester runR IR.reify IR.show IR.show_logic (-1) (fun _q -> success)]
                  in
                  ())
       in
@@ -530,7 +530,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                        ])
                     (my_eval_ir ideal_IR scru injected_typs ideal_IR res_ir)
                     (debug_var scru Expr.reify (function
-                        | [ scru ] ->
+                        | [ _scru ] ->
                           (* Format.printf "testing on scrutinee: %s\n%!"
                              (Expr.show_logic scru); *)
                           success

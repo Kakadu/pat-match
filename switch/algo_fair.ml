@@ -126,7 +126,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
   (** synthetizer main  *)
   let work
-      ?(n = 10)
+      ~n
       ~with_hack
       ~print_examples
       ~check_repeated_ifs:_
@@ -341,7 +341,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                  let stream =
                    OCanren.(run one)
                      (fun rez ->
-                       fresh n (W.eval_pat scru_demo injected_clauses rez)
+                       fresh _n (W.eval_pat scru_demo injected_clauses rez)
                        (*                    (rez === Std.Option.some ir)*)
                        (*                    (ir === IR.int n)*)
                        (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))

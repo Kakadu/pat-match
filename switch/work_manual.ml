@@ -4,7 +4,7 @@ open OCanren.Std
 open Work_base_common
 open Unn_pre
 
-let debug_lino line num =
+let debug_lino _line _num =
   fresh
     q
     (debug_var q OCanren.reify (function _ ->
@@ -194,7 +194,7 @@ let rec list_foldl f acc ys q142 =
 ;;
 
 let list_decorate_nat xs q140 =
-  fresh q139 (list_mapi (fun i x q141 -> i === q141) xs q139) (list_combine q139 xs q140)
+  fresh q139 (list_mapi (fun i _x q141 -> i === q141) xs q139) (list_combine q139 xs q140)
 ;;
 
 let rec list_nth_nat idx xs q133 =
