@@ -62,13 +62,16 @@ jobs:
       - name: Pinning noCanren
         run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-new -n
 
+      - name: Pinning OCanren
+        run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard+fd+diseq2 -n
+
       - run: opam pin add . --no-action
 
       # Remove explicit installation of GT because it is already in OPAM
       #- run: opam pin add https://github.com/JetBrains-Research/GT.git --no-action
 
-      - name: Installing depexts
-        run: opam depext pat-match --yes --with-test
+      #- name: Installing depexts
+      #  run: opam depext pat-match --yes --with-test
 
       - name: Installing dependencies
         run: opam install . --deps-only --with-test --verbose
