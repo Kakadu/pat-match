@@ -53,6 +53,8 @@ jobs:
         uses: avsm/setup-ocaml@v2
         with:
           ocaml-version: ${{ matrix.ocaml-version }}
+          opam-depext: false
+          dune-cache: true
 
       #- run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard --no-action
       #- run: opam depext OCanren.dev --yes --with-test
