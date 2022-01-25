@@ -67,8 +67,6 @@ jobs:
       - name: Installing depexts
         run: opam depext pat-match --yes --with-test
 
-      # - run: opam install GT-p5 --yes --verbose
-
       - name: Installing dependencies
         run: opam install . --deps-only --with-test --verbose
       - name: Building

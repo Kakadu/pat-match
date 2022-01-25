@@ -22,7 +22,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-        ocaml-version:
+        ocaml-compiler:
           - 4.12.1
 
     runs-on: ${{ matrix.os }}
@@ -49,19 +49,17 @@ jobs:
           # invalidate cache daily, gets built daily using a scheduled job
           key: ${{ steps.cache-key.outputs.date }}
 
-      - name: Use OCaml ${{ matrix.ocaml-version }}
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: avsm/setup-ocaml@v2
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
           opam-depext: false
           dune-cache: true
 
       #- run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard --no-action
       #- run: opam depext OCanren.dev --yes --with-test
       - name: Pinning GT
-        run: |
-          opam pin add GT-p5 https://github.com/Kakadu/GT.git -n
-          opam pin add GT    https://github.com/Kakadu/GT.git -n
+        run: opam pin add GT    https://github.com/Kakadu/GT.git -n
 
       - name: Pinning noCanren
         run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-new -n
