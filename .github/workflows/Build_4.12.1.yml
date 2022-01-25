@@ -1,0 +1,88 @@
+name: Build_4.12.1
+
+on:
+  push:
+    paths-ignore:
+      - 'papers/**'
+      - '.github/workflows/FCPM.yml'
+      - '.github/workflows/master.yml'
+      # do not run CI if we are writing a paper
+      # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#example-ignoring-paths
+    branches:
+      - 'master'
+
+  schedule:
+    - cron: "0 13 * * 1"
+    # https://jasonet.co/posts/scheduled-actions/
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-20.04
+        ocaml-version:
+          - 4.12.1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.7.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Retrieve date for cache key
+        id: cache-key
+        run: echo "::set-output name=date::$(/bin/date -u "+%Y%m%d")"
+        shell: bash
+
+      - name: Restore opam cache
+        id: opam-cache
+        uses: actions/cache@v2
+        with:
+          path: "~/.opam"
+          # invalidate cache daily, gets built daily using a scheduled job
+          key: ${{ steps.cache-key.outputs.date }}
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v2
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      #- run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard --no-action
+      #- run: opam depext OCanren.dev --yes --with-test
+      - name: Pinning GT
+        run: opam pin add GT --dev-repo -n
+
+      - name: Pinning noCanren
+        run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-new -n
+
+      - run: opam pin add . --no-action
+
+      # Remove explicit installation of GT because it is already in OPAM
+      #- run: opam pin add https://github.com/JetBrains-Research/GT.git --no-action
+
+      - name: Installing depexts
+        run: opam depext pat-match --yes --with-test
+
+      - name: Installing dependencies
+        run: opam install . --deps-only --with-test --verbose
+      - name: Building switch/main_switch.exe
+        run: opam exec -- dune build switch/main_switch.exe --profile=release
+
+      - name: Building switch/demo3.exe
+        run: opam exec -- dune build switch/demo3.exe  --profile=release
+
+      #- name: Build documentation
+      #  run: opam exec -- dune build @doc
+
+      #- name: Deploy documentation
+      #  uses: peaceiris/actions-gh-pages@v3
+      #  with:
+      #    github_token: ${{ secrets.GITHUB_TOKEN }}
+      #    publish_dir: ./_build/default/_doc/_html
