@@ -59,7 +59,7 @@ jobs:
       #- run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard --no-action
       #- run: opam depext OCanren.dev --yes --with-test
       - name: Pinning GT
-        run: opam pin add GT https://github.com/Kakadu/GT.git -n
+        run: opam pin add https://github.com/Kakadu/GT.git -n
 
       - name: Pinning noCanren
         run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-new -n
