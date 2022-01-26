@@ -83,7 +83,7 @@ jobs:
           ls switch
 
       - name: Building switch/main_switch.exe
-        run: opam exec -- dune build switch/main_switch.exe --profile=release
+        run: opam exec -- dune build switch/main.exe --profile=release
 
       - name: Building switch/demo3.exe
         run: opam exec -- dune build switch/demo3.exe  --profile=release
