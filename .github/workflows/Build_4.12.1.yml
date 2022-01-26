@@ -65,7 +65,7 @@ jobs:
         run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-new -n
 
       - name: Pinning OCanren
-        run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard+fd+diseq2 -n
+        run: opam pin add OCanren OCanren-ppx https://github.com/Kakadu/OCanren.git\#wildcard+fd+diseq2 -n
 
       - run: opam pin add . --no-action
 
