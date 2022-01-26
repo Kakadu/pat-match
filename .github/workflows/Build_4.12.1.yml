@@ -77,6 +77,11 @@ jobs:
 
       - name: Installing dependencies
         run: opam install . --deps-only --with-test --verbose
+
+      - run: |
+          ls
+          ls switch
+
       - name: Building switch/main_switch.exe
         run: opam exec -- dune build switch/main_switch.exe --profile=release
 
