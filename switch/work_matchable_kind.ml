@@ -429,10 +429,17 @@ let rec eval_ir
         minisleep 0.1;
         success)
   in
-  let debug_ir text xs =
+  let debug_ir ?color text xs =
     debug_var xs IR.reify (fun xs ->
         let open Format in
-        Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: IR.logic]) xs;
+        Format.printf "%s: " text;
+        let () =
+          (match color with
+          | None -> printf "%a\n%!"
+          | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
+            (pp_print_list [%fmt: IR.logic])
+            xs
+        in
         minisleep 0.1;
         success)
   in
@@ -504,9 +511,10 @@ let rec eval_ir
     in
     fresh () (debug_lino __FILE__ __LINE__) (helper branches)
   in
-  let union_cases_and_default cases default_rhs new_cases =
+  let union_cases_and_default cases default_rhs new_cases ~cnames =
     fresh
       default_tag
+      (shortcut_apply_domain default_tag cnames !!true)
       (list_itero
          (fun br ->
            fresh
@@ -514,6 +522,8 @@ let rec eval_ir
              (fst br c)
              (debug "Trying to add disequality")
              (debug_tag_pair "between tags: " (Std.pair default_tag c))
+             trace_domain_constraints
+             (debug_ir ~color:32 "current IR = " ir)
              (default_tag =/= c)
              (FD.neq default_tag c)
              (debug "Disequality added"))
@@ -550,7 +560,7 @@ let rec eval_ir
                (* ; fresh () (etag === !!(Tag.of_string_exn "pair")) *)
              ])
           (debug_expr "sub_scru" sub_scru)
-          (union_cases_and_default cases on_default new_cases)
+          (union_cases_and_default cases on_default new_cases ~cnames:only_names)
           (debug_tag_list "available tags here" only_names)
           (test_list
              ~shortcut_history:(fun () -> shortcut1 etag m cases history tinfo !!true)
@@ -617,8 +627,7 @@ let rec eval_ir
                   ])
            ])
     in
-    let rec cases_3_and_4 constr_names brtl helper_rez =
-      helper constr_names brtl helper_rez
+    let rec cases_3_and_4 constr_names = helper constr_names
     and helper constr_names cases helper_rez =
       fresh
         ()
@@ -631,6 +640,7 @@ let rec eval_ir
                (debug_tag "etag = " etag)
                (debug_tag "head branch containts" tag)
                (debug_matchable_kind "is_forbidden" is_forbidden)
+               (shortcut_apply_domain tag cnames !!true)
                (iter_cnames tag constr_names (fun constr_names ->
                     fresh
                       branch_n
