@@ -21,8 +21,8 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-        ocaml-version:
-          - 4.10.1
+        ocaml-compiler:
+          - 4.13.x
 
     runs-on: ${{ matrix.os }}
 
@@ -48,10 +48,12 @@ jobs:
           # invalidate cache daily, gets built daily using a scheduled job
           key: ${{ steps.cache-key.outputs.date }}
 
-      - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: avsm/setup-ocaml@v2
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          opam-depext: false
+          dune-cache: true
 
       #- run: opam pin add OCanren https://github.com/Kakadu/OCanren.git\#wildcard --no-action
       #- run: opam depext OCanren.dev --yes --with-test
@@ -59,6 +61,7 @@ jobs:
       #- name: Install dependencies for documentation
       #  run: opam install odoc pa_ppx --yes
 
+      - run: opam pin add noCanren https://github.com/Kakadu/noCanren.git\#dune-4.13-eucpp -n
       - run: opam pin add . --no-action
 
       # Remove explicit installation of GT because it is already in OPAM
@@ -70,7 +73,9 @@ jobs:
       - name: Installing dependencies
         run: opam install . --deps-only --with-test --verbose
       - name: Building
-        run: opam exec -- dune build switch/main_switch.exe --profile=release
+        run: |
+          opam exec -- dune build switch/main_switch.exe --profile=release
+          opam exec -- dune build switch/demo3.exe --profile=release
 
       #- name: Build documentation
       #  run: opam exec -- dune build @doc
