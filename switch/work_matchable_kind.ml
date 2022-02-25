@@ -508,7 +508,7 @@ let rec eval_ir
         minisleep 0.1;
         success)
   in
-  let dirty_hack branches ~f:myeval (rez : (int, _) OCanren.injected) =
+  let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) =
     let rec helper branches =
       conde
         [ fresh () (branches === Std.nil ())
@@ -520,8 +520,10 @@ let rec eval_ir
             (debug "  After unique_answers call")
             (conde
                [ fresh
-                   ()
-                   (ans === Unique.unique rez)
+                   temp
+                   (* TODO: What to pass as expected answer? *)
+                   (rez === Std.Option.some temp)
+                   (ans === Unique.unique temp)
                    (debug_lino __FILE__ __LINE__)
                    (debug_int rez "unique: ")
                    (helper btl)
@@ -620,7 +622,7 @@ let rec eval_ir
       fresh
         final_int
         (debug (sprintf "  case_2: %s" __FILE__))
-        (dirty_hack new_cases final_int ~f:(fun tag rhs rrrr ->
+        (dirty_hack new_cases test_list_rez ~f:(fun tag rhs rrrr ->
              fresh
                ()
                (* (shortcut_apply_domain tag only_names !!true) *)
