@@ -510,6 +510,16 @@ module Expr = struct
     in
     helper e
   ;;
+
+  let logic =
+    { GT.gcata = ()
+    ; GT.fix = (fun _ -> assert false)
+    ; GT.plugins =
+        object
+          method fmt = pp_logic
+        end
+    }
+  ;;
 end
 
 let pwc = WildCard

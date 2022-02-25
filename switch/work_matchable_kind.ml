@@ -443,6 +443,20 @@ let rec eval_ir
         minisleep 0.1;
         success)
   in
+  let debug_option_int ?color text xs =
+    debug_var xs (Option.reify OCanren.reify) (fun xs ->
+        let open Format in
+        Format.printf "%s: " text;
+        let () =
+          (match color with
+          | None -> printf "%a\n%!"
+          | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
+            (pp_print_list [%fmt: int OCanren.logic Std.Option.logic])
+            xs
+        in
+        minisleep 0.1;
+        success)
+  in
   let debug_tag_pair text xs =
     debug_var xs (Std.Pair.reify Tag.reify Tag.reify) (fun xs ->
         let open Format in
@@ -479,6 +493,21 @@ let rec eval_ir
         minisleep 0.1;
         success)
   in
+  let debug_cases text xs =
+    debug_var
+      xs
+      (List.reify (Pair.reify Tag.reify IR.reify))
+      (fun xs ->
+        let open Format in
+        Format.printf
+          "%s: \027[%dm%a\027[0m \n%!"
+          text
+          35
+          (pp_print_list [%fmt: (Tag.logic, IR.logic) Std.Pair.logic Std.List.logic])
+          xs;
+        minisleep 0.1;
+        success)
+  in
   let dirty_hack branches ~f:myeval (rez : (int, _) OCanren.injected) =
     let rec helper branches =
       conde
@@ -511,7 +540,7 @@ let rec eval_ir
     in
     fresh () (debug_lino __FILE__ __LINE__) (helper branches)
   in
-  let union_cases_and_default cases default_rhs new_cases ~cnames =
+  let union_cases_and_default ~cnames cases default_rhs new_cases =
     fresh
       default_tag
       (shortcut_apply_domain default_tag cnames !!true)
@@ -534,43 +563,49 @@ let rec eval_ir
     The default cases is promotes to be a last branch
   *)
   let rec inner history test_list irrr inner_rez =
-    conde
-      [ irrr === fail () &&& (inner_rez === none ())
-      ; fresh n (irrr === lit n) (inner_rez === some n)
-      ; fresh
-          (m
-             cases
-             on_default
-             is_forbidden
-             sub_scru
-             subtypes
-             etag
-             eargs
-             only_names
-             new_cases)
-          (irrr === switch m cases on_default)
-          (debug_ir "ir =" irrr)
-          (shortcut0 m max_height cases is_forbidden)
-          (eval_m s tinfo m (pair sub_scru subtypes))
-          (list_map fst subtypes only_names)
-          (sub_scru === eConstr etag eargs)
-          (conde
-             [ fresh () (etag === !!(Tag.of_string_exn "true")) (eargs === Std.nil ())
-             ; fresh () (etag === !!(Tag.of_string_exn "false")) (eargs === Std.nil ())
-               (* ; fresh () (etag === !!(Tag.of_string_exn "pair")) *)
-             ])
-          (debug_expr "sub_scru" sub_scru)
-          (union_cases_and_default cases on_default new_cases ~cnames:only_names)
-          (debug_tag_list "available tags here" only_names)
-          (test_list
-             ~shortcut_history:(fun () -> shortcut1 etag m cases history tinfo !!true)
-             (m % history)
-             etag
-             only_names
-             new_cases
-             is_forbidden
-             inner_rez)
-      ]
+    fresh
+      ()
+      (debug_option_int "inner_rez" inner_rez)
+      (conde
+         [ irrr === fail () &&& (inner_rez === none ())
+         ; fresh n (irrr === lit n) (inner_rez === some (n : (int, _) injected))
+         ; fresh
+             (m
+                cases
+                on_default
+                is_forbidden
+                sub_scru
+                subtypes
+                etag
+                eargs
+                only_names
+                new_cases)
+             (irrr === switch m cases on_default)
+             (debug_ir "ir =" irrr)
+             (shortcut0 m max_height cases is_forbidden)
+             (eval_m s tinfo m (pair sub_scru subtypes))
+             (* Next line fixes hangings *)
+             (* (shortcut1 etag m cases history tinfo !!true) *)
+             (list_map fst subtypes only_names)
+             (sub_scru === eConstr etag eargs)
+             (conde
+                [ fresh () (etag === !!(Tag.of_string_exn "true")) (eargs === Std.nil ())
+                ; fresh () (etag === !!(Tag.of_string_exn "false")) (eargs === Std.nil ())
+                  (* ; fresh () (etag === !!(Tag.of_string_exn "pair")) *)
+                ])
+             (debug_expr "sub_scru" sub_scru)
+             (union_cases_and_default cases on_default new_cases ~cnames:only_names)
+             (debug_cases "new_cases" new_cases)
+             (debug_tag_list "available tags here" only_names)
+             (test_list
+                ~shortcut_history:(fun () -> shortcut1 etag m cases history tinfo !!true)
+                (m % history)
+                etag
+                only_names
+                new_cases
+                is_forbidden
+                inner_rez)
+         ])
   in
   let rec test_list
       ~shortcut_history
@@ -628,13 +663,20 @@ let rec eval_ir
            ])
     in
     let rec cases_3_and_4 constr_names = helper constr_names
-    and helper constr_names cases helper_rez =
+    and helper ~old_branches constr_names cases helper_rez =
       fresh
         ()
+        (debug_cases "cases = " cases)
         (conde
            [ cases === nil () &&& debug "bad program2" &&& failure
            ; fresh
                (brh brtl tag rhs)
+               (Stdlib.List.fold_left
+                  (fun acc v ->
+                    print_endline "added a new constraint on branch";
+                    acc &&& (v =/= tag))
+                  success
+                  old_branches)
                (cases === brh % brtl)
                (brh === Std.pair tag rhs)
                (debug_tag "etag = " etag)
@@ -688,13 +730,21 @@ let rec eval_ir
                              ()
                              (branch_n === !!3)
                              (debug_lino __FILE__ __LINE__)
-                             (cases_3_and_4 constr_names brtl helper_rez)
+                             (cases_3_and_4
+                                ~old_branches:(tag :: old_branches)
+                                constr_names
+                                brtl
+                                helper_rez)
                          ; fresh
                              ()
                              (branch_n === !!4)
                              (debug_lino "branch 4 hit!" __LINE__)
                              (debug_lino __FILE__ __LINE__)
-                             (cases_3_and_4 constr_names brtl helper_rez)
+                             (cases_3_and_4
+                                ~old_branches:(tag :: old_branches)
+                                constr_names
+                                brtl
+                                helper_rez)
                              (debug ">>> leaving branch 4")
                          ])))
            ])
@@ -703,7 +753,7 @@ let rec eval_ir
       ()
       (debug "test_list called")
       (shortcut_apply_domain etag cnames !!true)
-      (helper cnames cases0 test_list_rez)
+      (helper ~old_branches:[] cnames cases0 test_list_rez)
   in
   inner (nil ()) test_list ir q60
 ;;
