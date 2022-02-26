@@ -525,12 +525,13 @@ let rec eval_ir
                    (rez === Std.Option.some temp)
                    (ans === Unique.unique temp)
                    (debug_lino __FILE__ __LINE__)
-                   (debug_int rez "unique: ")
+                   (debug_int temp "unique: ")
                    (helper btl)
                ; fresh
                    ()
                    (ans === Unique.noanswer)
                    (debug_lino __FILE__ __LINE__)
+                   (rez === Std.Option.none ())
                    (helper btl)
                ; fresh
                    ()
@@ -587,7 +588,7 @@ let rec eval_ir
              (shortcut0 m max_height cases is_forbidden)
              (eval_m s tinfo m (pair sub_scru subtypes))
              (* Next line fixes hangings *)
-             (* (shortcut1 etag m cases history tinfo !!true) *)
+             (shortcut1 etag m cases history tinfo !!true)
              (list_map fst subtypes only_names)
              (sub_scru === eConstr etag eargs)
              (conde
@@ -620,7 +621,7 @@ let rec eval_ir
     =
     let case_2 new_cases =
       fresh
-        final_int
+        _final_int
         (debug (sprintf "  case_2: %s" __FILE__))
         (dirty_hack new_cases test_list_rez ~f:(fun tag rhs rrrr ->
              fresh
@@ -660,7 +661,7 @@ let rec eval_ir
                (constr_names === constr_hd % constr_tl)
                (conde
                   [ constr_hd === br_tag &&& sk constr_tl
-                  ; constr_hd === br_tag &&& iter_cnames br_tag constr_tl sk
+                  ; constr_hd =/= br_tag &&& iter_cnames br_tag constr_tl sk
                   ])
            ])
     in
