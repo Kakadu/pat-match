@@ -397,6 +397,104 @@ let minisleep (sec : float) =
 
 open Format
 
+let debug_tag_list text xs =
+  debug_var xs (Std.List.reify OCanren.reify) (fun xs ->
+      let open Format in
+      Format.printf
+        "%s: %a \n%!"
+        text
+        (pp_print_list [%fmt: GT.int OCanren.logic Std.List.logic])
+        xs;
+      minisleep 0.1;
+      success)
+;;
+
+let debug_ir ?color text xs =
+  debug_var xs IR.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: " text;
+      let () =
+        (match color with
+        | None -> printf "%a\n%!"
+        | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
+          (pp_print_list [%fmt: IR.logic])
+          xs
+      in
+      minisleep 0.1;
+      success)
+;;
+
+let debug_option_int ?color text xs =
+  debug_var xs (Option.reify OCanren.reify) (fun xs ->
+      let open Format in
+      Format.printf "%s: " text;
+      let () =
+        (match color with
+        | None -> printf "%a\n%!"
+        | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
+          (pp_print_list [%fmt: int OCanren.logic Std.Option.logic])
+          xs
+      in
+      minisleep 0.1;
+      success)
+;;
+
+let debug_tag_pair text xs =
+  debug_var xs (Std.Pair.reify Tag.reify Tag.reify) (fun xs ->
+      let open Format in
+      Format.printf
+        "%s: %a \n%!"
+        text
+        (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
+        xs;
+      minisleep 0.1;
+      success)
+;;
+
+let debug_tag text xs =
+  debug_var xs Tag.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: Tag.logic]) xs;
+      minisleep 0.1;
+      success)
+;;
+
+let debug_expr text xs =
+  debug_var xs Expr.reify (fun xs ->
+      let open Format in
+      Format.printf
+        "%s: %a \n%!"
+        text
+        (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") Expr.pp_logic)
+        xs;
+      minisleep 0.1;
+      success)
+;;
+
+let debug_matchable_kind text xs =
+  debug_var xs MatchableKind.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: %a \n%!" text (pp_print_list MatchableKind.pp_logic) xs;
+      minisleep 0.1;
+      success)
+;;
+
+let debug_cases text xs =
+  debug_var
+    xs
+    (List.reify (Pair.reify Tag.reify IR.reify))
+    (fun xs ->
+      let open Format in
+      Format.printf
+        "%s: \027[%dm%a\027[0m \n%!"
+        text
+        35
+        (pp_print_list [%fmt: (Tag.logic, IR.logic) Std.Pair.logic Std.List.logic])
+        xs;
+      minisleep 0.1;
+      success)
+;;
+
 let rec eval_ir
     s
     max_height
@@ -417,96 +515,6 @@ let rec eval_ir
       (* Manual reorder here *)
       (conde [ q4 === sz &&& (q2 === !!true); q2 === !!false &&& (q4 =/= sz) ])
       (list_length eargs q4)
-  in
-  let debug_tag_list text xs =
-    debug_var xs (Std.List.reify OCanren.reify) (fun xs ->
-        let open Format in
-        Format.printf
-          "%s: %a \n%!"
-          text
-          (pp_print_list [%fmt: GT.int OCanren.logic Std.List.logic])
-          xs;
-        minisleep 0.1;
-        success)
-  in
-  let debug_ir ?color text xs =
-    debug_var xs IR.reify (fun xs ->
-        let open Format in
-        Format.printf "%s: " text;
-        let () =
-          (match color with
-          | None -> printf "%a\n%!"
-          | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
-            (pp_print_list [%fmt: IR.logic])
-            xs
-        in
-        minisleep 0.1;
-        success)
-  in
-  let debug_option_int ?color text xs =
-    debug_var xs (Option.reify OCanren.reify) (fun xs ->
-        let open Format in
-        Format.printf "%s: " text;
-        let () =
-          (match color with
-          | None -> printf "%a\n%!"
-          | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
-            (pp_print_list [%fmt: int OCanren.logic Std.Option.logic])
-            xs
-        in
-        minisleep 0.1;
-        success)
-  in
-  let debug_tag_pair text xs =
-    debug_var xs (Std.Pair.reify Tag.reify Tag.reify) (fun xs ->
-        let open Format in
-        Format.printf
-          "%s: %a \n%!"
-          text
-          (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
-          xs;
-        minisleep 0.1;
-        success)
-  in
-  let debug_tag text xs =
-    debug_var xs Tag.reify (fun xs ->
-        let open Format in
-        Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: Tag.logic]) xs;
-        minisleep 0.1;
-        success)
-  in
-  let debug_expr text xs =
-    debug_var xs Expr.reify (fun xs ->
-        let open Format in
-        Format.printf
-          "%s: %a \n%!"
-          text
-          (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") Expr.pp_logic)
-          xs;
-        minisleep 0.1;
-        success)
-  in
-  let debug_matchable_kind text xs =
-    debug_var xs MatchableKind.reify (fun xs ->
-        let open Format in
-        Format.printf "%s: %a \n%!" text (pp_print_list MatchableKind.pp_logic) xs;
-        minisleep 0.1;
-        success)
-  in
-  let debug_cases text xs =
-    debug_var
-      xs
-      (List.reify (Pair.reify Tag.reify IR.reify))
-      (fun xs ->
-        let open Format in
-        Format.printf
-          "%s: \027[%dm%a\027[0m \n%!"
-          text
-          35
-          (pp_print_list [%fmt: (Tag.logic, IR.logic) Std.Pair.logic Std.List.logic])
-          xs;
-        minisleep 0.1;
-        success)
   in
   let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) =
     let rec helper branches =
@@ -584,8 +592,8 @@ let rec eval_ir
                 only_names
                 new_cases)
              (irrr === switch m cases on_default)
-             (debug_ir "ir =" irrr)
              (shortcut0 m max_height cases is_forbidden)
+             (debug_ir "ir =" irrr)
              (eval_m s tinfo m (pair sub_scru subtypes))
              (* Next line fixes hangings *)
              (shortcut1 etag m cases history tinfo !!true)
