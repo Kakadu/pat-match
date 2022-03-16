@@ -405,7 +405,7 @@ let debug_tag_list text xs =
         text
         (pp_print_list [%fmt: GT.int OCanren.logic Std.List.logic])
         xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -420,7 +420,7 @@ let debug_ir ?color text xs =
           (pp_print_list [%fmt: IR.logic])
           xs
       in
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -435,7 +435,7 @@ let debug_option_int ?color text xs =
           (pp_print_list [%fmt: int OCanren.logic Std.Option.logic])
           xs
       in
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -447,7 +447,7 @@ let debug_tag_pair text xs =
         text
         (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
         xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -455,7 +455,7 @@ let debug_tag text xs =
   debug_var xs Tag.reify (fun xs ->
       let open Format in
       Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: Tag.logic]) xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -467,7 +467,7 @@ let debug_expr text xs =
         text
         (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") Expr.pp_logic)
         xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -475,7 +475,7 @@ let debug_matchable_kind text xs =
   debug_var xs MatchableKind.reify (fun xs ->
       let open Format in
       Format.printf "%s: %a \n%!" text (pp_print_list MatchableKind.pp_logic) xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -491,7 +491,7 @@ let debug_cases text xs =
         35
         (pp_print_list [%fmt: (Tag.logic, IR.logic) Std.Pair.logic Std.List.logic])
         xs;
-      minisleep 0.1;
+      minisleep 0.05;
       success)
 ;;
 
@@ -616,6 +616,7 @@ let rec eval_ir
                 new_cases
                 is_forbidden
                 inner_rez)
+             (debug_option_int "test_list finished. inner_rez = " inner_rez)
          ])
   in
   let rec test_list
@@ -636,6 +637,7 @@ let rec eval_ir
                ()
                (* (shortcut_apply_domain tag only_names !!true) *)
                (debug_tag_pair "too many tags could be there" (Std.pair tag etag))
+               (* TODO: Maybe we should use unique_answers here to speedup everything *)
                (*                (debug_var (Std.pair tag etag) (Pair.reify Tag.reify Tag.reify) (function
                    | [ Value (l, r) ] ->
                      Format.printf
@@ -765,6 +767,7 @@ let rec eval_ir
       (debug "test_list called")
       (shortcut_apply_domain etag cnames !!true)
       (helper ~old_branches:[] cnames cases0 test_list_rez)
+      (debug_option_int "test_list_rez" test_list_rez)
   in
   inner (nil ()) test_list ir q60
 ;;

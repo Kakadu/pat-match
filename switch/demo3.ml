@@ -586,7 +586,7 @@ module PairsSuperSimple = struct
     in
     fresh
       max_height
-      (max_height === N.(inject @@ of_int 2))
+      (max_height === N.(inject @@ of_int 1))
       (Work_matchable_kind.eval_ir
          scru
          max_height
