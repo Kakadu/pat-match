@@ -33,7 +33,7 @@ unn:
 	dune exec unn/main_unnested.exe $(DUNEOPTS)
 
 switch:
-	dune exec switch/main.exe $(DUNEOPTS)
+	dune exec switch/demo3.exe $(DUNEOPTS)
 
 nonlin:
 	dune exec nonlinear/main_nonlinear.exe $(DUNEOPTS)
