@@ -4,7 +4,7 @@ open OCanren.Std
 open Work_base_common
 open Unn_pre
 
-let debug_int v text =
+let debug_int text v =
   debug_var v OCanren.reify (fun xs ->
       Format.printf "%s " text;
       Stdlib.List.iter
@@ -188,14 +188,16 @@ let rec list_combine xs ys q146 =
 let rec list_itero f xs =
   conde
     [
-      debug "list_itero: nil: start"
-      &&& (xs === nil ())
-      &&& debug "list_itero: nil: end";
+      (* debug "list_itero: nil: start"
+         &&& (xs === nil ())
+         &&& debug "list_itero: nil: end"; *)
+      xs === nil ();
       fresh (h tl)
-        (debug "list_itero: cons: start")
+        (* (debug "list_itero: cons: start") *)
         (xs === h % tl)
-        (f h) (list_itero f tl)
-        (debug "list_itero: cons: end");
+        (f h)
+        (list_itero f tl) (* (debug "list_itero: cons: end") *)
+        success;
     ]
 
 let rec list_foldl f acc ys q142 =
@@ -412,6 +414,14 @@ let debug_ir ?color text xs =
       minisleep 0.05;
       success)
 
+let debug_peano text xs =
+  debug_var xs Unn_pre.N.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: " text;
+      let () = printf "%a\n%!" (pp_print_list [%fmt: Unn_pre.N.logic]) xs in
+      minisleep 0.05;
+      success)
+
 let debug_option_int ?color text xs =
   debug_var xs (Option.reify OCanren.reify) (fun xs ->
       let open Format in
@@ -470,6 +480,58 @@ let debug_cases text xs =
       minisleep 0.05;
       success)
 
+let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
+  let rec helper branches ~ok_branches =
+    conde
+      [
+        fresh () (branches === Std.nil ()) (ok_branches === Std.nil ());
+        fresh (btl btag brhs ans)
+          (branches === Std.pair btag brhs % btl)
+          (debug "  Testing a branch")
+          (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+          (debug "  After unique_answers call")
+          (conde
+             [
+               fresh (temp br_tl)
+                 (* TODO: What to pass as expected answer? *)
+                 (rez === Std.Option.some temp)
+                 (ans === Unique.unique temp)
+                 (debug_lino __FILE__ __LINE__)
+                 (debug_int "unique: " temp)
+                 (ok_branches === Std.pair btag brhs % br_tl)
+                 (helper ~ok_branches:br_tl btl);
+               fresh () (ans === Unique.noanswer)
+                 (debug_lino __FILE__ __LINE__)
+                 (rez === Std.Option.none ())
+                 (helper ~ok_branches btl);
+               fresh () (ans === Unique.different)
+                 (debug_lino __FILE__ __LINE__)
+                 failure;
+             ]);
+      ]
+  in
+  fresh ok_branches
+    (debug_lino __FILE__ __LINE__)
+    (helper branches ~ok_branches)
+    (conde
+       [
+         fresh (temp l)
+           (rez === Std.Option.some temp)
+           (debug_int "HERRR" temp)
+           (list_length ok_branches l)
+           (debug_peano "ok_bbranches length = " l)
+           (list_itero
+              (fun br ->
+                fresh (btag brhs)
+                  (br === Std.pair btag brhs)
+                  (* (debug_ir "calling myeval on rhs = " brhs) *)
+                  (myeval btag brhs temp)
+                (* (debug_ir "new rhs = " brhs) *))
+              ok_branches);
+         rez === Std.Option.none ();
+       ])
+    (debug_ir "Specialized result = " ir0)
+
 let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
     _shortcut_branch ir q60 =
   let indeed_good_arity tinfo etag eargs q0 =
@@ -477,50 +539,6 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
       (* Manual reorder here *)
       (conde [ q4 === sz &&& (q2 === !!true); q2 === !!false &&& (q4 =/= sz) ])
       (list_length eargs q4)
-  in
-  let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) =
-    let rec helper branches ~ok_branches =
-      conde
-        [
-          fresh () (branches === Std.nil ());
-          fresh (btl btag brhs ans)
-            (branches === Std.pair btag brhs % btl)
-            (debug "  Testing a branch")
-            (OCanren.Unique.unique_answers (myeval btag brhs) ans)
-            (debug "  After unique_answers call")
-            (conde
-               [
-                 fresh temp
-                   (* TODO: What to pass as expected answer? *)
-                   (rez === Std.Option.some temp)
-                   (ans === Unique.unique temp)
-                   (debug_lino __FILE__ __LINE__)
-                   (debug_int temp "unique: ")
-                   (helper ~ok_branches:(Std.pair btag brhs % ok_branches) btl);
-                 fresh () (ans === Unique.noanswer)
-                   (debug_lino __FILE__ __LINE__)
-                   (rez === Std.Option.none ())
-                   (helper ~ok_branches btl);
-                 fresh () (ans === Unique.different)
-                   (debug_lino __FILE__ __LINE__)
-                   failure;
-               ]);
-        ]
-    in
-    fresh ok_branches
-      (debug_lino __FILE__ __LINE__)
-      (helper branches ~ok_branches)
-      (conde
-         [
-           fresh temp (rez === Std.Option.some temp)
-           (* (list_itero
-              (fun br ->
-                fresh (btag brhs)
-                  (br === Std.pair btag brhs)
-                  (myeval btag brhs temp))
-              ok_branches) *);
-           rez === Std.Option.none ();
-         ])
   in
 
   let union_cases_and_default ~cnames cases default_rhs new_cases =
@@ -588,7 +606,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
     let case_2 new_cases =
       fresh _final_int
         (debug (sprintf "  case_2: %s" __FILE__))
-        (dirty_hack new_cases test_list_rez ~f:(fun tag rhs rrrr ->
+        (dirty_hack new_cases test_list_rez
+           ~f:(fun tag rhs rrrr ->
              fresh ()
                (* (shortcut_apply_domain tag only_names !!true) *)
                (debug_tag_pair "myeval started: too many tags could be there"
@@ -616,7 +635,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (tag === etag)
                (shortcut_history ())
                (inner next_histo test_list rhs (Std.some rrrr))
-               (debug_int rrrr "myeval: ENDED ")))
+               (debug_int "myeval: ENDED " rrrr))
+           ir)
     in
     let rec iter_cnames br_tag constr_names sk =
       fresh (constr_hd constr_tl)
@@ -669,14 +689,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                              (FD.neq etag tag) (debug "branch 4")
                              (is_forbidden === missExample ());
                          ])
-                      (debug_int branch_n "branch_n = ")
+                      (debug_int "branch_n = " branch_n)
                       (* (conde_no_int *)
                       (conde
                          [
                            fresh () (branch_n === !!1)
-                           (* (debug_lino "branch 1 hit" __LINE__)
-                              (inner next_histo test_list rhs helper_rez)
-                              (debug ">>> leaving branch 1 ") *);
+                             (debug_lino "branch 1 hit" __LINE__)
+                             (inner next_histo test_list rhs helper_rez)
+                             (debug ">>> leaving branch 1 ");
                            fresh () (branch_n === !!2)
                              (debug_lino "branch 2 hit!" __LINE__)
                              (* (debug_tag_pair "branch 2 hit!" (Std.pair tag etag)) *)
@@ -685,13 +705,13 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                              (debug ">>> leaving branch 2 ");
                            fresh () (branch_n === !!3)
                              (debug_lino __FILE__ __LINE__)
-                           (* (cases_3_and_4 ~old_branches:(tag :: old_branches)
-                              constr_names brtl helper_rez) *);
+                             (cases_3_and_4 ~old_branches:(tag :: old_branches)
+                                constr_names brtl helper_rez);
                            fresh () (branch_n === !!4)
-                             (* (debug_lino "branch 4 hit!" __LINE__)
-                                (debug_lino __FILE__ __LINE__)
-                                (cases_3_and_4 ~old_branches:(tag :: old_branches)
-                                   constr_names brtl helper_rez) *)
+                             (debug_lino "branch 4 hit!" __LINE__)
+                             (debug_lino __FILE__ __LINE__)
+                             (cases_3_and_4 ~old_branches:(tag :: old_branches)
+                                constr_names brtl helper_rez)
                              (debug ">>> leaving branch 4");
                          ])));
            ])
