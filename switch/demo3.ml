@@ -440,19 +440,38 @@ module PairsVerySimple = struct
     let _, x, fields = List.nth examples 1 in
     test_example ~fields 1 x
 
-  let __ _ =
+  let _ =
+    print_endline "HERR";
     run_ir 1 q qh
       (REPR
          (fun ir ->
-           List.fold_left
-             (fun acc (rhs, init_scru, fields) ->
-               fresh (scru rez)
-                 (rez === Std.Option.some !!rhs)
-                 acc (init_scru scru)
-                 (eval_ir_pairs ~fields scru ir rez))
-             success
-             [ List.nth examples 0; List.nth examples 1 ]))
+           fresh m
+             (m =/= Matchable.field1 ())
+             (ir
+             === IR.switch m (* (Matchable.field1 ()) *)
+                   Std.(!<(pair !!(Tag.of_string_exn "true") (IR.lit !!0)))
+                   (IR.lit !!1)
+                 (* __ *))
+             (List.fold_left
+                (fun acc (rhs, init_scru, fields) ->
+                  fresh (scru rez) acc
+                    (Work_matchable_kind.debug_ir "inside fold" ir)
+                    (debug_lino __FILE__ __LINE__)
+                    (rez === Std.Option.some !!rhs)
+                    (init_scru scru)
+                    (eval_ir_pairs ~fields scru ir rez))
+                success
+                [ (* List.nth examples 0; *) List.nth examples 1 ])
+           (* (let (r0, scru0, fields0) =  List.nth examples 0 in
+               let (r1, scru1, fields1) =  List.nth examples 1 in
+               fresh (scru0 rez0 scru1 rez1)
+
+
+
+              ) *)))
 end
+
+let _ = exit 0
 
 module PairsSuperSimple = struct
   (*
@@ -535,16 +554,17 @@ module PairsSuperSimple = struct
     run_ir 1 q qh
       (REPR
          (fun ir ->
-           List.fold_left
-             (fun acc (rhs, init_scru, fields) ->
-               fresh (scru rez)
-                 (rez === Std.Option.some !!rhs)
-                 acc (init_scru scru)
-                 (eval_ir_pairs ~fields scru ir rez))
-             success
-             [ List.nth examples 0; List.nth examples 1 ]))
+           fresh ()
+             (List.fold_left
+                (fun acc (rhs, init_scru, fields) ->
+                  fresh (scru rez)
+                    (rez === Std.Option.some !!rhs)
+                    acc (init_scru scru)
+                    (eval_ir_pairs ~fields scru ir rez))
+                success
+                [ List.nth examples 0 (* List.nth examples 1 *) ])))
 
-  let __ _ =
+  let _ =
     let open Work_matchable_kind in
     let open Std in
     let goal q =

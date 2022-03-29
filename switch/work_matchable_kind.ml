@@ -517,17 +517,19 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
        [
          fresh (temp l)
            (rez === Std.Option.some temp)
-           (debug_int "HERRR" temp)
-           (list_length ok_branches l)
-           (debug_peano "ok_bbranches length = " l)
-           (list_itero
-              (fun br ->
-                fresh (btag brhs)
-                  (br === Std.pair btag brhs)
-                  (* (debug_ir "calling myeval on rhs = " brhs) *)
-                  (myeval btag brhs temp)
-                (* (debug_ir "new rhs = " brhs) *))
-              ok_branches);
+           (is_free temp
+              (debug "CUTTING EARLY" &&& failure)
+              (fresh () (debug_int "HERRR" temp)
+                 (list_length ok_branches l)
+                 (debug_peano "ok_bbranches length = " l)
+                 (list_itero
+                    (fun br ->
+                      fresh (btag brhs)
+                        (br === Std.pair btag brhs)
+                        (* (debug_ir "calling myeval on rhs = " brhs) *)
+                        (myeval btag brhs temp)
+                      (* (debug_ir "new rhs = " brhs) *))
+                    ok_branches)));
          rez === Std.Option.none ();
        ])
     (debug_ir "Specialized result = " ir0)
@@ -563,10 +565,18 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
   let rec inner history test_list irrr inner_rez =
     fresh ()
       (debug_option_int "inner_rez" inner_rez)
+      (debug_ir "root ir = " ir)
+      (debug_ir "irrrr   = " irrr)
       (conde
          [
            irrr === fail () &&& (inner_rez === none ());
-           fresh n (irrr === lit n) (inner_rez === some (n : (int, _) injected));
+           fresh n
+             (debug_ir "unifying with literal" irrr)
+             (irrr === lit n)
+             (debug "done!")
+             (inner_rez === some n)
+             (debug_lino __FILE__ __LINE__)
+             (debug_ir "root_ir" ir);
            fresh
              (m cases on_default is_forbidden sub_scru subtypes etag eargs
                 only_names new_cases)
@@ -579,7 +589,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (list_map fst subtypes only_names)
              (sub_scru === eConstr etag eargs)
              (* (conde_no_int *)
-             (conde
+             (* (conde
                 [
                   fresh ()
                     (etag === !!(Tag.of_string_exn "true"))
@@ -589,6 +599,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                     (eargs === Std.nil ())
                   (* ; fresh () (etag === !!(Tag.of_string_exn "pair")) *);
                 ])
+             *)
              (debug_expr "sub_scru" sub_scru)
              (union_cases_and_default cases on_default new_cases
                 ~cnames:only_names)
@@ -612,6 +623,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (* (shortcut_apply_domain tag only_names !!true) *)
                (debug_tag_pair "myeval started: too many tags could be there"
                   (Std.pair tag etag))
+               (debug_ir "rhs = " rhs) (debug_int "rrrr" rrrr)
                (* TODO: Maybe we should use unique_answers here to speedup everything *)
                (* (debug_var (Std.pair tag etag) (Pair.reify Tag.reify Tag.reify) (function
                   | [ Value (l, r) ] ->
