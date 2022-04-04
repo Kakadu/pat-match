@@ -41,17 +41,22 @@ let default_shortcut0 good_matchables m max_height cases rez =
     (W.matchable_leq_nat m max_height !!true)
     (cases =/= Std.nil ())
     (debug_var m Matchable.reify (fun ms ->
-         (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
-         match ms with
-         | [] -> failure
-         | _ :: _ :: _ -> failwith "too many answers"
-         | [ ms ] -> (
-             match Matchable.to_ground ms with
-             | None -> success
-             | Some Matchable.Scru -> failure
-             | Some m when List.mem m good_matchables ->
-                 rez === MatchableKind.good
-             | Some _m -> rez === MatchableKind.miss_example)))
+         let set = Matchable.Set.of_list ms in
+         if Matchable.Set.is_empty set then failure
+         else
+           let ms = Matchable.Set.min_elt set in
+           (* match Stdlib.List. ms with
+              | [] -> failure
+              | _ :: _ :: _ ->
+                  Format.printf "default_shortcut0 on matchable %s\n%!"
+                    ((GT.show GT.list) Matchable.show_logic ms);
+                  failwith "too many answers" *)
+           match Matchable.to_ground ms with
+           | None -> success
+           | Some Matchable.Scru -> failure
+           | Some m when List.mem m good_matchables ->
+               rez === MatchableKind.good
+           | Some _m -> rez === MatchableKind.miss_example))
 
 let default_shortcut _etag m _cases history _typs _rez =
   let open OCanren in
@@ -399,14 +404,31 @@ module PairsVerySimple = struct
     let tfalse = !!(Tag.of_string_exn "false") in
     fresh () (q === ite field0 ttrue _0 _1)
 
+  (* let examples =
+     let open E in
+     [
+       (0, (fun q -> fresh __r (q === pair true_ __r)), GroundField.[ field0 ]);
+       ( 1,
+         (fun q -> fresh () (q =/= pair true_ __) (q === pair false_ __)),
+         GroundField.[ field0 ] );
+     ] *)
+
   let examples =
     let open E in
     [
       (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ]);
-      ( 1,
-        (fun q -> fresh () (q =/= pair true_ __) (q === pair false_ __)),
-        GroundField.[ field0 ] );
+      (1, (fun q -> fresh () (q =/= pair true_ __)), GroundField.[ field0 ]);
     ]
+  (* let examples =
+     let open E in
+     [
+       ( 0,
+         (fun q -> fresh () (q === pair true_ true_)),
+         GroundField.[ field0; field1 ] );
+       ( 1,
+         (fun q -> fresh () (q =/= pair true_ true_) (q === pair __ __)),
+         GroundField.[] );
+     ] *)
 
   let eval_ir_pairs ~fields scru ir rez =
     fresh max_height
@@ -442,26 +464,22 @@ module PairsVerySimple = struct
 
   let _ =
     print_endline "HERR";
-    run_ir 1 q qh
+    run_ir 2 q qh
       (REPR
          (fun ir ->
            fresh m
              (m =/= Matchable.field1 ())
-             (ir
-             === IR.switch m (* (Matchable.field1 ()) *)
-                   Std.(!<(pair !!(Tag.of_string_exn "true") (IR.lit !!0)))
-                   (IR.lit !!1)
-                 (* __ *))
+             (ir === IR.switch m __ __ (* __ *))
              (List.fold_left
                 (fun acc (rhs, init_scru, fields) ->
                   fresh (scru rez) acc
-                    (Work_matchable_kind.debug_ir "inside fold" ir)
+                    (* (Work_matchable_kind.debug_ir "inside fold" ir) *)
                     (debug_lino __FILE__ __LINE__)
                     (rez === Std.Option.some !!rhs)
                     (init_scru scru)
                     (eval_ir_pairs ~fields scru ir rez))
                 success
-                [ (* List.nth examples 0; *) List.nth examples 1 ])
+                [ (* List.nth examples 0;  *) List.nth examples 1 ])
            (* (let (r0, scru0, fields0) =  List.nth examples 0 in
                let (r1, scru1, fields1) =  List.nth examples 1 in
                fresh (scru0 rez0 scru1 rez1)
@@ -501,6 +519,9 @@ module PairsSuperSimple = struct
       (0, (fun q -> fresh () (q === true_)), GroundField.[ scru ]);
       (1, (fun q -> fresh () (q =/= true_)), GroundField.[]);
     ]
+  (* let examples =
+     let open E in
+     [ (0, (fun q -> fresh () (q =/= __)), GroundField.[]) ] *)
 
   let eval_ir_pairs ~fields scru ir rez =
     let shortcut0 good_matchables m max_height cases rez =
@@ -550,7 +571,7 @@ module PairsSuperSimple = struct
     let _, x, fields = List.nth examples 1 in
     test_example ~fields 1 x
 
-  let _ =
+  let __ _ =
     run_ir 1 q qh
       (REPR
          (fun ir ->
@@ -564,7 +585,7 @@ module PairsSuperSimple = struct
                 success
                 [ List.nth examples 0 (* List.nth examples 1 *) ])))
 
-  let _ =
+  let __ _ =
     let open Work_matchable_kind in
     let open Std in
     let goal q =
