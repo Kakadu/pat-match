@@ -40,6 +40,7 @@ let default_shortcut0 good_matchables m max_height cases rez =
   fresh ()
     (W.matchable_leq_nat m max_height !!true)
     (cases =/= Std.nil ())
+    (debug "inside default_shortcut0")
     (debug_var m Matchable.reify (fun ms ->
          let set = Matchable.Set.of_list ms in
          if Matchable.Set.is_empty set then failure
@@ -52,7 +53,10 @@ let default_shortcut0 good_matchables m max_height cases rez =
                     ((GT.show GT.list) Matchable.show_logic ms);
                   failwith "too many answers" *)
            match Matchable.to_ground ms with
-           | None -> success
+           | None ->
+               Format.printf "non-ground matchable is %a\n%!"
+                 (GT.fmt Matchable.logic) ms;
+               success
            | Some Matchable.Scru -> failure
            | Some m when List.mem m good_matchables ->
                rez === MatchableKind.good
@@ -479,7 +483,7 @@ module PairsVerySimple = struct
                     (init_scru scru)
                     (eval_ir_pairs ~fields scru ir rez))
                 success
-                [ (* List.nth examples 0;  *) List.nth examples 1 ])
+                [ List.nth examples 0; List.nth examples 1 ])
            (* (let (r0, scru0, fields0) =  List.nth examples 0 in
                let (r1, scru1, fields1) =  List.nth examples 1 in
                fresh (scru0 rez0 scru1 rez1)

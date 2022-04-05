@@ -468,6 +468,15 @@ let debug_matchable_kind text xs =
       minisleep 0.05;
       success)
 
+let debug_matchable text xs =
+  debug_var xs Matchable.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: %a \n%!" text
+        (pp_print_list (GT.fmt Matchable.logic))
+        xs;
+      minisleep 0.05;
+      success)
+
 let debug_cases text xs =
   debug_var xs
     (List.reify (Pair.reify Tag.reify IR.reify))
@@ -616,8 +625,10 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 only_names new_cases)
              (irrr === switch m cases on_default)
              (shortcut0 m max_height cases is_forbidden)
+             (debug_matchable_kind "is_forbidden = " is_forbidden)
              (debug_ir "ir =" irrr)
              (eval_m s tinfo m (pair sub_scru subtypes))
+             (shortcut0 m max_height cases is_forbidden)
              (* Next line fixes hangings *)
              (shortcut1 etag m cases history tinfo !!true)
              (list_map fst subtypes only_names)
