@@ -404,7 +404,14 @@ module PairsVerySimple = struct
     [
       (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ]);
       ( 1,
-        (fun q -> fresh () (q =/= pair true_ __) (q === pair false_ __)),
+        (fun q ->
+          fresh (_25 c)
+            (q =/= pair _25 __)
+            (_25 === true_)
+            (_25 === Expr.constr c (Std.nil ()))
+          (* (FD.domain c [ 2; 3 ]) *)
+          (* (FD.neq c !!2) trace_domain_constraints *)
+          (* (q === pair false_ __) *)),
         GroundField.[ field0 ] );
     ]
 
@@ -442,15 +449,18 @@ module PairsVerySimple = struct
 
   let _ =
     print_endline "HERR";
-    run_ir 1 q qh
+    run_ir 2 q qh
       (REPR
          (fun ir ->
            fresh m
              (m =/= Matchable.field1 ())
              (ir
              === IR.switch m (* (Matchable.field1 ()) *)
-                   Std.(!<(pair !!(Tag.of_string_exn "true") (IR.lit !!0)))
-                   (IR.lit !!1)
+                   (* Std.(
+                      !<(pair !!(Tag.of_string_exn "true") __ (* (IR.lit __)*))) *)
+                   __ __
+                 (*__*)
+                 (* (IR.lit __) *)
                  (* __ *))
              (List.fold_left
                 (fun acc (rhs, init_scru, fields) ->
@@ -461,7 +471,7 @@ module PairsVerySimple = struct
                     (init_scru scru)
                     (eval_ir_pairs ~fields scru ir rez))
                 success
-                [ (* List.nth examples 0; *) List.nth examples 1 ])
+                [ List.nth examples 1 (* ; List.nth examples 1 *) ])
            (* (let (r0, scru0, fields0) =  List.nth examples 0 in
                let (r1, scru1, fields1) =  List.nth examples 1 in
                fresh (scru0 rez0 scru1 rez1)
@@ -499,7 +509,8 @@ module PairsSuperSimple = struct
     let open E in
     [
       (0, (fun q -> fresh () (q === true_)), GroundField.[ scru ]);
-      (1, (fun q -> fresh () (q =/= true_)), GroundField.[]);
+      (* (1, (fun q -> fresh () (q =/= true_)), GroundField.[ scru ]); *)
+      (1, (fun q -> fresh () (q === false_)), GroundField.[ scru ]);
     ]
 
   let eval_ir_pairs ~fields scru ir rez =
@@ -562,9 +573,9 @@ module PairsSuperSimple = struct
                     acc (init_scru scru)
                     (eval_ir_pairs ~fields scru ir rez))
                 success
-                [ List.nth examples 0 (* List.nth examples 1 *) ])))
+                [ List.nth examples 0; List.nth examples 1 ])))
 
-  let _ =
+  let __ _ =
     let open Work_matchable_kind in
     let open Std in
     let goal q =
