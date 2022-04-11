@@ -1,0 +1,13 @@
+type t = diamond | club
+
+(* logic x: poker_suit *)
+logic y: t
+
+goal g1 :  (y = club) or (y = diamond)
+goal g2 : exists y: t . not (y=y)
+(*
+goal g3 : not (y = club) and (not (y = diamond))
+
+goal g4:
+    not (y = club) and (not (y = diamond))
+*)

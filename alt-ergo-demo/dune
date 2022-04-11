@@ -1,0 +1,15 @@
+(library
+ (name allllll)
+ (modules demo1)
+ (libraries alt-ergo-lib)
+ (preprocess
+  (pps ppx_inline_test))
+ (inline_tests))
+
+(library
+ (name alllll22222l)
+ (libraries alt-ergo-lib)
+ (modules demo2)
+ (preprocess
+  (pps ppx_inline_test))
+ (inline_tests))
