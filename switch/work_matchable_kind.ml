@@ -40,7 +40,6 @@ let nat_leq a b q229 =
   helper (pair a b) q229
 
 let fst z q221 = fresh (a q222) (z === pair a q222) (a === q221)
-
 let snd z q218 = fresh (q219 a) (z === pair q219 a) (a === q218)
 
 let rec list_mem x xs q210 =
@@ -316,9 +315,7 @@ let tinfo_names_with_arity tt q103 =
        xs q103)
 
 let tinfo_args tt name q102 = fresh xs (tt === t xs) (list_assoc name xs q102)
-
 let tinfo_nth_arg tt n q101 = fresh xs (tt === t xs) (list_nth_nat n xs q101)
-
 let info_assoc tt name q100 = fresh xs (tt === t xs) (list_assoc name xs q100)
 
 let rec well_typed_expr e0 typs0 q96 =
@@ -630,14 +627,17 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (irrr === switch m cases on_default)
              (debug_ir "ir =" irrr)
              (eval_m s tinfo m (pair sub_scru subtypes))
+             (* (debug_tag "sub_scru:etag 00000" etag) *)
              (shortcut0 m max_height cases is_forbidden)
              (* Next line fixes hangings *)
+             (* (debug_tag_list "only_names = " only_names) *)
              (shortcut1 etag m cases history tinfo !!true)
              (list_map fst subtypes only_names)
-             (sub_scru === eConstr etag eargs)
-             (* (shortcut_apply_domain etag only_names !!true) *)
+             (shortcut_apply_domain etag only_names !!true)
              (* TODO: this line helps, but we probably forget about already created disequality constraints *)
+             (sub_scru === eConstr etag eargs)
              (debug_tag "sub_scru:etag" etag)
+             trace_domain_constraints trace_diseq_constraints
              (* (conde_no_int *)
              (* (conde
                 [
