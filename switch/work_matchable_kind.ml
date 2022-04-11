@@ -40,6 +40,7 @@ let nat_leq a b q229 =
   helper (pair a b) q229
 
 let fst z q221 = fresh (a q222) (z === pair a q222) (a === q221)
+
 let snd z q218 = fresh (q219 a) (z === pair q219 a) (a === q218)
 
 let rec list_mem x xs q210 =
@@ -315,7 +316,9 @@ let tinfo_names_with_arity tt q103 =
        xs q103)
 
 let tinfo_args tt name q102 = fresh xs (tt === t xs) (list_assoc name xs q102)
+
 let tinfo_nth_arg tt n q101 = fresh xs (tt === t xs) (list_nth_nat n xs q101)
+
 let info_assoc tt name q100 = fresh xs (tt === t xs) (list_assoc name xs q100)
 
 let rec well_typed_expr e0 typs0 q96 =
@@ -632,6 +635,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (shortcut1 etag m cases history tinfo !!true)
              (list_map fst subtypes only_names)
              (sub_scru === eConstr etag eargs)
+             (* (shortcut_apply_domain etag only_names !!true) *)
+             (* TODO: this line helps, but we probably forget about already created disequality constraints *)
              (debug_tag "sub_scru:etag" etag)
              (* (conde_no_int *)
              (* (conde
@@ -794,9 +799,10 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
        (debug_option_int "test_list_rez" test_list_rez) *)
     debug "test_list called" &&& debug_tag "etag: " etag
     &&& no_longer_than cases0 cnames !!true
-    (* &&& FD.domain etag [ 2; 3 ]
-       &&& FD.neq etag !!2 &&& trace_domain_constraints
-    *) &&& shortcut_apply_domain etag cnames !!true
+    (* &&& FD.domain etag [ 2; 3 ] *)
+    (* &&& FD.neq etag !!2  *)
+    &&& trace_domain_constraints
+    &&& shortcut_apply_domain etag cnames !!true
     &&& debug_cases "cases0 = " cases0
     &&& helper ~old_branches:[] cnames cases0 test_list_rez
     &&& debug_option_int "test_list_rez" test_list_rez
