@@ -14,6 +14,7 @@ module E = struct
     Expr.constr !!(Tag.inttag_of_string_exn "triple") (a % (b %< c))
 
   let true_ = Expr.constr !!(Tag.inttag_of_string_exn "true") (nil ())
+
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
 
@@ -26,6 +27,20 @@ let run_bool eta =
   runR OCanren.reify (GT.show GT.bool)
     (GT.show OCanren.logic @@ GT.show GT.bool)
     eta
+
+let run_pair eta =
+  let show_int = GT.show GT.bool in
+  let sl = GT.show OCanren.logic show_int in
+  runR
+    (Std.Pair.reify OCanren.reify OCanren.reify)
+    (GT.show Std.Pair.ground show_int show_int)
+    (GT.show Std.Pair.logic sl sl)
+    eta
+
+let run_ir eta =
+  let show_int = GT.show GT.bool in
+  let sl = GT.show OCanren.logic show_int in
+  runR IR.reify IR.show IR.show_logic eta
 
 let run_expr eta = runR Expr.reify Expr.show Expr.show_logic eta
 
@@ -120,172 +135,26 @@ let __ _ =
            (W.eval_pat scru injected_clauses (Std.Option.some ans))));
   ()
 
-let run_pair eta =
-  let show_int = GT.show GT.bool in
-  let sl = GT.show OCanren.logic show_int in
-  runR
-    (Std.Pair.reify OCanren.reify OCanren.reify)
-    (GT.show Std.Pair.ground show_int show_int)
-    (GT.show Std.Pair.logic sl sl)
-    eta
-
-let run_ir eta =
-  let show_int = GT.show GT.bool in
-  let sl = GT.show OCanren.logic show_int in
-  runR IR.reify IR.show IR.show_logic eta
-
 (* *********************************************************** *)
 module GroundField = struct
   open Matchable
 
   let scru = Scru
+
   let field0 : ground = Field (N.Z, Scru)
+
   let field1 : ground = Field (N.(S Z), Scru)
+
   let field2 : ground = Field (N.(S (S Z)), Scru)
 end
 
 let _0 : IR.injected = IR.int !!0
+
 let _1 : IR.injected = IR.int !!1
+
 let _2 : IR.injected = IR.int !!2
+
 let _3 : IR.injected = IR.int !!3
-
-module TripleBoolAndDirtyHack () = struct
-  (*
-  match ... with
-  | triple (_, false, true) -> 0
-  | triple (false, true, _) -> 1
-  | triple (_, _, false) -> 2
-  | triple (_, _, true) -> 3
-
-  q=(switch S[1] with
-    | true -> (switch S[0] with
-              | true -> (switch S[2] with
-                        | true -> 3
-                        | _ -> 2 )
-              | _ -> 1 )
-    | _ -> (switch S[2] with
-            | true -> 0
-            | _    -> 2 )
-
-  *)
-
-  let program : IR.injected -> _ =
-   fun q ->
-    let open OCanren.Std in
-    let field0 = Matchable.field0 () in
-    let field1 = Matchable.field1 () in
-    let field2 = Matchable.field2 () in
-    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
-    let ttrue = !!(Tag.of_string_exn "true") in
-    fresh ()
-      (q
-      === ite field1 ttrue
-            (ite field0 ttrue (ite field2 ttrue _3 _2) _1)
-            (ite field2 ttrue _0 _2))
-
-  let examples =
-    (* let add_domain q =
-         FD.domain q [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ]
-       in *)
-    let open E in
-    [
-      ( 0,
-        (fun q -> fresh () (q === triple __ false_ true_)),
-        GroundField.[ field1; field2 ] );
-      ( 1,
-        (fun q ->
-          fresh ()
-            (q =/= triple __ false_ true_)
-            (q === triple false_ true_ __)
-            success success),
-        GroundField.[ field0; field1 ] );
-      ( 2,
-        (fun q ->
-          fresh (ta tb)
-            (q =/= triple __ false_ true_)
-            (q =/= triple false_ true_ __)
-            (q === triple (Expr.leaf ta) (Expr.leaf tb) false_)
-            (conde
-               [
-                 FD.neq ta !!(Tag.of_string_exn "false");
-                 FD.neq tb !!(Tag.of_string_exn "true");
-               ])),
-        GroundField.[ field2 ] );
-      ( 3,
-        (fun q ->
-          fresh (tb ta)
-            (q =/= triple __ false_ true_)
-            (q =/= triple false_ true_ __)
-            (q =/= triple __ __ false_)
-            (q === triple (Expr.leaf ta) (Expr.leaf tb) true_)
-            (FD.domain ta
-               [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
-            (FD.domain tb
-               [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
-            (FD.neq tb !!(Tag.of_string_exn "false"))
-            (FD.neq ta !!(Tag.of_string_exn "false"))
-            (ta =/= !!(Tag.of_string_exn "false"))
-            (tb =/= !!(Tag.of_string_exn "false"))),
-        GroundField.[ field2 ] );
-    ]
-
-  let eval_ir_triple_bool ~fields scru ir rez =
-    fresh max_height
-      (max_height === N.(inject @@ of_int 2))
-      (Work_matchable_kind.eval_ir scru max_height
-         (Typs.inject ArgTripleBool.typs)
-         (default_shortcut0 fields) default_shortcut default_shortcut_tag
-         default_shortcut4 ir rez)
-
-  let test_example ~fields n make_scru =
-    run_int 3 q qh
-      ( Format.sprintf "===== Running forward example %d in TripleBool test" n,
-        fun rhs ->
-          fresh (scru ir rez)
-            (rez === Std.Option.some rhs)
-            (program ir) (make_scru scru)
-            (eval_ir_triple_bool ~fields scru ir rez)
-            (debug_var scru Expr.reify (function xs ->
-                 List.iteri
-                   (fun n q ->
-                     Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
-                   xs;
-                 success)) )
-
-  let _ =
-    let _, x, fields = List.nth examples 0 in
-    test_example ~fields 0 x
-
-  let _ =
-    let _, x, fields = List.nth examples 1 in
-    test_example ~fields 1 x
-
-  let _ =
-    let _, x, fields = List.nth examples 2 in
-    test_example ~fields 2 x
-
-  let _ =
-    let _, x, fields = List.nth examples 3 in
-    test_example ~fields 3 x
-
-  let __ _ =
-    run_ir 3 q qh
-      (REPR
-         (fun ir ->
-           List.fold_left
-             (fun acc (rhs, desc, fields) ->
-               fresh (scru rez)
-                 (rez === Std.Option.some !!rhs)
-                 acc (desc scru)
-                 (eval_ir_triple_bool ~fields scru ir rez))
-             success
-             [
-               List.nth examples 0;
-               List.nth examples 1;
-               List.nth examples 2;
-               List.nth examples 3;
-             ]))
-end
 
 module PairsDirtyHack = struct
   (*
@@ -507,119 +376,4 @@ module PairsVerySimple = struct
 
 
               ) *)))
-end
-
-let _ = exit 0
-
-module PairsSuperSimple = struct
-  (*
-  match ... with
-  | true  -> 0
-  | _ -> 1
-
-
-  q=(switch S with
-    | true -> 0
-    | _ -> 1)
-
-  *)
-
-  let program : IR.injected -> _ =
-   fun q ->
-    let open OCanren.Std in
-    let scru = Matchable.scru () in
-    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
-    let ttrue = !!(Tag.of_string_exn "true") in
-    let tfalse = !!(Tag.of_string_exn "false") in
-    fresh () (q === ite scru ttrue _0 _1)
-
-  let examples =
-    let open E in
-    [
-      (0, (fun q -> fresh () (q === true_)), GroundField.[ scru ]);
-      (* (1, (fun q -> fresh () (q =/= true_)), GroundField.[ scru ]); *)
-      (1, (fun q -> fresh () (q === false_)), GroundField.[ scru ]);
-    ]
-  (* let examples =
-     let open E in
-     [ (0, (fun q -> fresh () (q =/= __)), GroundField.[]) ] *)
-
-  let eval_ir_pairs ~fields scru ir rez =
-    let shortcut0 good_matchables m max_height cases rez =
-      let open OCanren in
-      fresh ()
-        (W.matchable_leq_nat m max_height !!true)
-        (cases =/= Std.nil ())
-        (debug_var m Matchable.reify (fun ms ->
-             match ms with
-             | [] -> failure
-             | _ :: _ :: _ -> failwith "too many answers"
-             | [ ms ] -> (
-                 match Matchable.to_ground ms with
-                 | None -> success
-                 | Some m when List.mem m good_matchables ->
-                     rez === MatchableKind.good
-                 | Some _m -> rez === MatchableKind.miss_example)))
-    in
-    fresh max_height
-      (max_height === N.(inject @@ of_int 1))
-      (Work_matchable_kind.eval_ir scru max_height
-         (Typs.inject ArgTrueFalse.typs)
-         (shortcut0 fields) default_shortcut default_shortcut_tag
-         default_shortcut4 ir rez)
-
-  let test_example ~fields n init_scru =
-    run_int 3 q qh
-      ( Format.sprintf
-          "===== Running forward example %d in PairSuperSimple test" n,
-        fun rhs ->
-          fresh (scru ir rez)
-            (rez === Std.Option.some rhs)
-            (program ir) (init_scru scru)
-            (eval_ir_pairs ~fields scru ir rez)
-            (debug_var scru Expr.reify (function xs ->
-                 List.iteri
-                   (fun n q ->
-                     Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
-                   xs;
-                 success)) )
-
-  let __ _ =
-    let _, x, fields = List.nth examples 0 in
-    test_example ~fields 0 x
-
-  let __ _ =
-    let _, x, fields = List.nth examples 1 in
-    test_example ~fields 1 x
-
-  let __ _ =
-    run_ir 1 q qh
-      (REPR
-         (fun ir ->
-           fresh ()
-             (List.fold_left
-                (fun acc (rhs, init_scru, fields) ->
-                  fresh (scru rez)
-                    (rez === Std.Option.some !!rhs)
-                    acc (init_scru scru)
-                    (eval_ir_pairs ~fields scru ir rez))
-                success
-                [ List.nth examples 0; List.nth examples 1 ])))
-
-  let __ _ =
-    let open Work_matchable_kind in
-    let open Std in
-    let goal q =
-      fresh (a b a2 b2 a3 b3 ir)
-        (q === Std.pair a b % (Std.pair a2 b2 % (Std.pair a3 b3 % Std.nil ())))
-        (dirty_hack q (Std.some !!1) ir ~f:(fun _ rhs rez ->
-             conde [ rhs === rez; rhs === rez ]))
-    in
-    runR
-      (Std.List.reify (Std.Pair.reify OCanren.reify OCanren.reify))
-      ([%show: (GT.string, GT.int) Std.Pair.ground Std.List.ground] ())
-      ([%show:
-         (GT.string OCanren.logic, GT.int OCanren.logic) Std.Pair.logic
-         Std.List.logic] ())
-      1 q qh ("", goal)
 end

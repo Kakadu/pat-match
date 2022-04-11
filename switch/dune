@@ -57,9 +57,9 @@
    GT.ppx_all
    ppx_optcomp)))
 
-(executable
- (name demo3)
- (modules demo3)
+(executables
+ (names demo3 demo4bool demo5triplebool)
+ (modules demo3 demo4bool demo5triplebool)
  (libraries switches OCanren.tester)
  (preprocess
   (pps
