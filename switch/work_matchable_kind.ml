@@ -515,6 +515,7 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
     (helper branches ~ok_branches)
     (conde
        [
+         rez === Std.Option.none ();
          fresh (temp l)
            (rez === Std.Option.some temp)
            (is_free temp
@@ -530,7 +531,6 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                         (myeval btag brhs temp)
                       (* (debug_ir "new rhs = " brhs) *))
                     ok_branches)));
-         rez === Std.Option.none ();
        ])
     (debug_ir "Specialized result = " ir0)
 
@@ -546,6 +546,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
   let union_cases_and_default ~cnames cases default_rhs new_cases =
     fresh default_tag
       (shortcut_apply_domain default_tag cnames !!true)
+      (debug_cases "union_cases_and_default: cases = " cases)
       (list_itero
          (fun br ->
            fresh c (fst br c)
@@ -581,13 +582,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (m cases on_default is_forbidden sub_scru subtypes etag eargs
                 only_names new_cases)
              (irrr === switch m cases on_default)
-             (shortcut0 m max_height cases is_forbidden)
              (debug_ir "ir =" irrr)
              (eval_m s tinfo m (pair sub_scru subtypes))
+             (shortcut0 m max_height cases is_forbidden)
              (* Next line fixes hangings *)
              (shortcut1 etag m cases history tinfo !!true)
              (list_map fst subtypes only_names)
              (sub_scru === eConstr etag eargs)
+             (debug_tag "sub_scru:etag" etag)
              (* (conde_no_int *)
              (* (conde
                 [
@@ -605,6 +607,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 ~cnames:only_names)
              (debug_cases "new_cases" new_cases)
              (debug_tag_list "available tags here" only_names)
+             (debug_matchable_kind "is_forbidden: init: " is_forbidden)
              (test_list
                 ~shortcut_history:(fun () ->
                   shortcut1 etag m cases history tinfo !!true)
@@ -681,59 +684,71 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (brh === Std.pair tag rhs)
                (debug_tag "etag = " etag)
                (debug_tag "head branch containts" tag)
+               (* (tag === etag) *)
+               trace_domain_constraints
                (debug_matchable_kind "is_forbidden" is_forbidden)
                (shortcut_apply_domain tag cnames !!true)
+               (debug_tag "head branch containts: after shortcut: " tag)
                (iter_cnames tag constr_names (fun constr_names ->
-                    fresh branch_n
-                      (* (conde_no_int *)
-                      (conde
-                         [
-                           fresh () (branch_n === !!1) (etag === tag)
-                             (debug "branch 1") (FD.eq etag tag)
-                             (is_forbidden === goodSubTree ());
-                           fresh () (branch_n === !!2) (etag === tag)
-                             (FD.eq etag tag) (debug "branch 2")
-                             (is_forbidden === missExample ());
-                           fresh () (branch_n === !!3) (etag =/= tag)
-                             (debug "branch 3") (FD.neq etag tag)
-                             (is_forbidden === goodSubTree ());
-                           fresh () (branch_n === !!4) (etag =/= tag)
-                             (FD.neq etag tag) (debug "branch 4")
-                             (is_forbidden === missExample ());
-                         ])
-                      (debug_int "branch_n = " branch_n)
-                      (* (conde_no_int *)
-                      (conde
-                         [
-                           fresh () (branch_n === !!1)
-                             (debug_lino "branch 1 hit" __LINE__)
-                             (inner next_histo test_list rhs helper_rez)
-                             (debug ">>> leaving branch 1 ");
-                           fresh () (branch_n === !!2)
-                             (debug_lino "branch 2 hit!" __LINE__)
-                             (* (debug_tag_pair "branch 2 hit!" (Std.pair tag etag)) *)
-                             (* (debug_var etag Tag.reify (fun _ -> assert false)) *)
-                             (case_2 cases)
-                             (debug ">>> leaving branch 2 ");
-                           fresh () (branch_n === !!3)
-                             (debug_lino __FILE__ __LINE__)
-                             (cases_3_and_4 ~old_branches:(tag :: old_branches)
-                                constr_names brtl helper_rez);
-                           fresh () (branch_n === !!4)
-                             (debug_lino "branch 4 hit!" __LINE__)
-                             (debug_lino __FILE__ __LINE__)
-                             (cases_3_and_4 ~old_branches:(tag :: old_branches)
-                                constr_names brtl helper_rez)
-                             (debug ">>> leaving branch 4");
-                         ])));
+                    debug_tag "iter: tag = " tag
+                    &&& debug_tag "iter: etag = " etag
+                    &&& fresh branch_n
+                          (* (conde_no_int *)
+                          (conde
+                             [
+                               fresh () (branch_n === !!1) (etag === tag)
+                                 (FD.eq etag tag) (debug "branch 1")
+                                 (debug_tag "head branch containts" tag)
+                                 (debug_tag "etag = " etag)
+                                 (is_forbidden === goodSubTree ());
+                               fresh () (branch_n === !!2) (etag === tag)
+                                 (FD.eq etag tag) (debug "branch 2")
+                                 (is_forbidden === missExample ());
+                               fresh () (branch_n === !!3) (etag =/= tag)
+                                 (FD.neq etag tag) (debug "branch 3")
+                                 (is_forbidden === goodSubTree ());
+                               fresh () (branch_n === !!4) (etag =/= tag)
+                                 (FD.neq etag tag) (debug "branch 4")
+                                 (is_forbidden === missExample ());
+                             ])
+                          (debug_int "branch_n = " branch_n)
+                          (* (conde_no_int *)
+                          (conde
+                             [
+                               fresh () (branch_n === !!1)
+                                 (debug_lino "branch 1 hit" __LINE__)
+                                 (inner next_histo test_list rhs helper_rez)
+                                 (debug ">>> leaving branch 1 ");
+                               fresh () (branch_n === !!2)
+                                 (debug_lino "branch 2 hit!" __LINE__)
+                                 (* (debug_tag_pair "branch 2 hit!" (Std.pair tag etag)) *)
+                                 (* (debug_var etag Tag.reify (fun _ -> assert false)) *)
+                                 (case_2 cases)
+                                 (debug ">>> leaving branch 2 ");
+                               fresh () (branch_n === !!3)
+                                 (debug_lino __FILE__ __LINE__)
+                                 (cases_3_and_4
+                                    ~old_branches:(tag :: old_branches)
+                                    constr_names brtl helper_rez);
+                               fresh () (branch_n === !!4)
+                                 (debug_lino "branch 4 hit!" __LINE__)
+                                 (debug_lino __FILE__ __LINE__)
+                                 (cases_3_and_4
+                                    ~old_branches:(tag :: old_branches)
+                                    constr_names brtl helper_rez)
+                                 (debug ">>> leaving branch 4");
+                             ])));
            ])
     in
     (* fresh () (debug "test_list called")
        (shortcut_apply_domain etag cnames !!true)
        (helper ~old_branches:[] cnames cases0 test_list_rez)
        (debug_option_int "test_list_rez" test_list_rez) *)
-    debug "test_list called"
-    &&& shortcut_apply_domain etag cnames !!true
+    debug "test_list called" &&& debug_tag "etag: " etag
+    (* &&& FD.domain etag [ 2; 3 ]
+       &&& FD.neq etag !!2 &&& trace_domain_constraints
+    *) &&& shortcut_apply_domain etag cnames !!true
+    &&& debug_cases "cases0 = " cases0
     &&& helper ~old_branches:[] cnames cases0 test_list_rez
     &&& debug_option_int "test_list_rez" test_list_rez
   in
