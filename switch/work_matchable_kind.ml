@@ -468,6 +468,15 @@ let debug_matchable_kind text xs =
       minisleep 0.05;
       success)
 
+let debug_matchable text xs =
+  debug_var xs Matchable.reify (fun xs ->
+      let open Format in
+      Format.printf "%s: %a \n%!" text
+        (pp_print_list (GT.fmt Matchable.logic))
+        xs;
+      minisleep 0.05;
+      success)
+
 let debug_cases text xs =
   debug_var xs
     (List.reify (Pair.reify Tag.reify IR.reify))
@@ -479,6 +488,24 @@ let debug_cases text xs =
         xs;
       minisleep 0.05;
       success)
+
+let is_list_coercible_to_ground onarg xs =
+  let rec helper = function
+    | Var _ -> false
+    | Value (Std.List.Cons (x, tl)) -> onarg x && helper tl
+    | Value Std.List.Nil -> true
+  in
+  helper xs
+
+let assert_list_tag_is_ground ts =
+  let is_int_coercible_to_ground = function Value _ -> true | _ -> false in
+  debug_var ts (List.reify Tag.reify) (function
+    | [ tags ] ->
+        if is_list_coercible_to_ground is_int_coercible_to_ground tags then
+          success
+        else failure
+    | [] -> failwith "no available constructors"
+    | _ -> assert false)
 
 let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
   let rec helper branches ~ok_branches =
@@ -513,11 +540,13 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
   fresh ok_branches
     (debug_lino __FILE__ __LINE__)
     (helper branches ~ok_branches)
+    (debug_option_int "rez looks like " rez)
     (conde
        [
          rez === Std.Option.none ();
          fresh (temp l)
            (rez === Std.Option.some temp)
+           (debug_lino __FILE__ __LINE__)
            (is_free temp
               (debug "CUTTING EARLY" &&& failure)
               (fresh () (debug_int "HERRR" temp)
@@ -533,6 +562,20 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                     ok_branches)));
        ])
     (debug_ir "Specialized result = " ir0)
+
+(** Checks that first list is not longer than the second one. Relationally *)
+let rec no_longer_than left right ans =
+  conde
+    [
+      left === Std.nil () &&& (ans === !!true);
+      fresh (hl tll hr tlr)
+        (left === hl % tll)
+        (conde
+           [
+             right === Std.nil () &&& (ans === !!false);
+             right === hr % tlr &&& no_longer_than tll tlr ans;
+           ]);
+    ]
 
 let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
     _shortcut_branch ir q60 =
@@ -605,6 +648,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (debug_expr "sub_scru" sub_scru)
              (union_cases_and_default cases on_default new_cases
                 ~cnames:only_names)
+             (no_longer_than new_cases only_names !!true)
              (debug_cases "new_cases" new_cases)
              (debug_tag_list "available tags here" only_names)
              (debug_matchable_kind "is_forbidden: init: " is_forbidden)
@@ -670,7 +714,10 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
     let rec cases_3_and_4 constr_names = helper constr_names
     and helper ~old_branches constr_names cases helper_rez =
       fresh ()
-        (debug_cases "cases = " cases)
+        (no_longer_than cases cnames !!true)
+        (debug_cases "left cases = " cases)
+        (debug_tag_list "left constr_names = " constr_names)
+        (debug_tag_list "cnames = " cnames)
         (conde
            [
              cases === nil () &&& debug "bad program2" &&& failure;
@@ -740,11 +787,13 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                              ])));
            ])
     in
+
     (* fresh () (debug "test_list called")
        (shortcut_apply_domain etag cnames !!true)
        (helper ~old_branches:[] cnames cases0 test_list_rez)
        (debug_option_int "test_list_rez" test_list_rez) *)
     debug "test_list called" &&& debug_tag "etag: " etag
+    &&& no_longer_than cases0 cnames !!true
     (* &&& FD.domain etag [ 2; 3 ]
        &&& FD.neq etag !!2 &&& trace_domain_constraints
     *) &&& shortcut_apply_domain etag cnames !!true

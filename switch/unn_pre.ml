@@ -178,6 +178,13 @@ module Tag = struct
     try string_of_tag_exn (N.of_int (helper 0 l))
     with HasFreeVars -> GT.show N.logic l
   *)
+
+  let rec is_coercible_to_ground tag =
+    match tag with
+    | Value Z -> true
+    | Var _ -> false
+    | Value (S p) -> is_coercible_to_ground p
+
   let show_logic = GT.show OCanren.logic @@ string_of_tag_exn
 
   let ground =
@@ -593,6 +600,12 @@ module Matchable = struct
     let ans = helper 0 root in
     (*      Format.printf "check_scrutinee: length `%s` = %d\n%!" (Matchable.show_logic root) ans;*)
     ans
+
+  module Set = Stdlib.Set.Make (struct
+    type t = logic
+
+    let compare = compare
+  end)
 end
 
 (* ************************************************************************** *)
