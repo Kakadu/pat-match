@@ -14,7 +14,6 @@ module E = struct
     Expr.constr !!(Tag.inttag_of_string_exn "triple") (a % (b %< c))
 
   let true_ = Expr.constr !!(Tag.inttag_of_string_exn "true") (nil ())
-
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
 
@@ -140,20 +139,14 @@ module GroundField = struct
   open Matchable
 
   let scru = Scru
-
   let field0 : ground = Field (N.Z, Scru)
-
   let field1 : ground = Field (N.(S Z), Scru)
-
   let field2 : ground = Field (N.(S (S Z)), Scru)
 end
 
 let _0 : IR.injected = IR.int !!0
-
 let _1 : IR.injected = IR.int !!1
-
 let _2 : IR.injected = IR.int !!2
-
 let _3 : IR.injected = IR.int !!3
 
 module PairsDirtyHack = struct
@@ -349,7 +342,7 @@ module PairsVerySimple = struct
     run_ir 2 q qh
       (REPR
          (fun ir ->
-           fresh m
+           fresh_ m
              (m =/= Matchable.field1 ())
              (ir
              === IR.switch m (* (Matchable.field1 ()) *)

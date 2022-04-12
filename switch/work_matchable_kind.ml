@@ -614,14 +614,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
       (conde
          [
            irrr === fail () &&& (inner_rez === none ());
-           fresh n
+           fresh_ n
              (debug_ir "unifying with literal" irrr)
              (irrr === lit n)
              (debug "done!")
              (inner_rez === some n)
              (debug_lino __FILE__ __LINE__)
              (debug_ir "root_ir" ir);
-           fresh
+           fresh_
              (m cases on_default is_forbidden sub_scru subtypes etag eargs
                 only_names new_cases)
              (irrr === switch m cases on_default)
@@ -636,6 +636,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (shortcut_apply_domain etag only_names !!true)
              (* TODO: this line helps, but we probably forget about already created disequality constraints *)
              (sub_scru === eConstr etag eargs)
+             (eargs === Std.nil ()) (* Hack! *)
              (debug_tag "sub_scru:etag" etag)
              trace_domain_constraints trace_diseq_constraints
              (* (conde_no_int *)
