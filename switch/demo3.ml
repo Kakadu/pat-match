@@ -283,16 +283,7 @@ module PairsVerySimple = struct
     let open E in
     [
       (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ]);
-      ( 1,
-        (fun q ->
-          fresh (_25 c)
-            (q =/= pair _25 __)
-            (_25 === true_)
-            (_25 === Expr.constr c (Std.nil ()))
-          (* (FD.domain c [ 2; 3 ]) *)
-          (* (FD.neq c !!2) trace_domain_constraints *)
-          (* (q === pair false_ __) *)),
-        GroundField.[ field0 ] );
+      (1, (fun q -> fresh _25 (q =/= pair true_ __)), GroundField.[ field0 ]);
     ]
   (* let examples =
      let open E in
@@ -338,11 +329,10 @@ module PairsVerySimple = struct
     test_example ~fields 1 x
 
   let _ =
-    print_endline "HERR";
     run_ir 2 q qh
       (REPR
          (fun ir ->
-           fresh_ m
+           fresh m
              (m =/= Matchable.field1 ())
              (ir
              === IR.switch m (* (Matchable.field1 ()) *)
@@ -359,7 +349,9 @@ module PairsVerySimple = struct
                     (debug_lino __FILE__ __LINE__)
                     (rez === Std.Option.some !!rhs)
                     (init_scru scru)
-                    (eval_ir_pairs ~fields scru ir rez))
+                    (eval_ir_pairs ~fields scru ir rez)
+                    (Work_matchable_kind.debug_expr "exampful scru = " scru)
+                    trace_diseq_constraints success)
                 success
                 [ List.nth examples 1 (* ; List.nth examples 1 *) ])
            (* (let (r0, scru0, fields0) =  List.nth examples 0 in

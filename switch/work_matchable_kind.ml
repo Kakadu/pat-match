@@ -217,15 +217,14 @@ let list_decorate_nat xs q140 =
     (list_combine q139 xs q140)
 
 let rec list_nth_nat idx xs q133 =
-  fresh q134
-    (q134 === pair idx xs)
-    (conde
-       [
-         fresh (x q135) (q134 === pair (z ()) (x % q135)) (x === q133);
-         fresh (n q137 xs)
-           (q134 === pair (s n) (q137 % xs))
-           (list_nth_nat n xs q133);
-       ])
+  conde
+    [
+      fresh q135 (idx === z ()) (xs === q133 % q135);
+      fresh (n q137 tl)
+        (idx === s n)
+        (xs === q137 % tl)
+        (list_nth_nat n tl q133);
+    ]
 
 let rec list_length xs rez =
   conde
@@ -349,7 +348,15 @@ let matchable_leq_nat m n q90 =
   in
   helper (pair m n) q90
 
-let rec eval_m s typinfo0 path0 q81 =
+let rec eval_m (s : Expr.injected) (typinfo0 : Typs.injected)
+    (path0 : Matchable.injected)
+    (q81 :
+      ( Expr.ground,
+        _,
+        (* list of pairs: name * arity *)
+      (Tag.ground, N.ground) Pair.ground List.ground,
+        _ )
+      Std.Pair.groundi) =
   let rec helper path q69 =
     conde
       [
@@ -365,11 +372,10 @@ let rec eval_m s typinfo0 path0 q81 =
           (list_nth_nat nth arg_info q75);
       ]
   in
-  fresh (q78 ans info q79)
-    (q78 === pair ans info)
-    (q81 === pair ans q79)
-    (helper path0 q78)
+  fresh (sub_scru info q79)
+    (helper path0 (pair sub_scru info))
     (tinfo_names_with_arity info q79)
+    (q81 === pair sub_scru q79)
 
 let rec not_in_history x xs q61 =
   conde
@@ -625,8 +631,34 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (m cases on_default is_forbidden sub_scru subtypes etag eargs
                 only_names new_cases)
              (irrr === switch m cases on_default)
-             (debug_ir "ir =" irrr)
+             (debug_ir "ir =" irrr) (debug_expr "scru = " s)
              (eval_m s tinfo m (pair sub_scru subtypes))
+             (sub_scru === eConstr etag eargs)
+             (*
+             (conde
+                [
+                  fresh (targs scru_eargs)
+                    (tinfo === t !<(pair __ targs))
+                    (s === Expr.constr __ scru_eargs)
+                    (same_length targs scru_eargs !!true);
+                  tinfo === t (Std.nil ());
+                  tinfo === t (__ % (__ % __));
+                ])
+                *)
+             (conde
+                [
+                  subtypes === Std.nil ();
+                  fresh (_the_tag arity)
+                    (subtypes === !<(pair _the_tag arity))
+                    (* if only single constructor *)
+                    (debug_expr "cutting off sub_scru" sub_scru)
+                    (etag === _the_tag)
+                    (* I'm not sure it is 100% correct but ... *)
+                    (list_length eargs arity)
+                    (debug_expr "after cutting off = " sub_scru);
+                  fresh () (subtypes === __ % (__ % __));
+                ])
+             trace_diseq_constraints
              (* (debug_tag "sub_scru:etag 00000" etag) *)
              (shortcut0 m max_height cases is_forbidden)
              (* Next line fixes hangings *)
@@ -635,8 +667,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (list_map fst subtypes only_names)
              (shortcut_apply_domain etag only_names !!true)
              (* TODO: this line helps, but we probably forget about already created disequality constraints *)
-             (sub_scru === eConstr etag eargs)
-             (eargs === Std.nil ()) (* Hack! *)
+             (* (eargs === Std.nil ()) *)
+             (* Hack! *)
              (debug_tag "sub_scru:etag" etag)
              trace_domain_constraints trace_diseq_constraints
              (* (conde_no_int *)
