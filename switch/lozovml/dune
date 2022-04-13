@@ -37,6 +37,8 @@
   (run
    noCanren
    -old-ocanren
+   -w
+   -8
    -unnesting-mode
    -without-activate-tactics
    %{deps}
@@ -66,6 +68,8 @@
    noCanren
    %{main}
    -old-ocanren
+   -w
+   -8
    ;-rectypes
    -open
    Work_base
@@ -92,4 +96,4 @@
   (:main work.ml))
  (action
   (system
-   "noCanren %{main} -old-ocanren -unnesting-mode -without-activate-tactics -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))
+   "noCanren %{main} -old-ocanren -w -8 -unnesting-mode -without-activate-tactics -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))
