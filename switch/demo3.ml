@@ -351,7 +351,8 @@ module PairsVerySimple = struct
                     (init_scru scru)
                     (eval_ir_pairs ~fields scru ir rez)
                     (Work_matchable_kind.debug_expr "exampful scru = " scru)
-                    trace_diseq_constraints success)
+                    trace_diseq_constraints cut_off_wc_diseq_without_domain
+                    success)
                 success
                 [ List.nth examples 1 (* ; List.nth examples 1 *) ])
            (* (let (r0, scru0, fields0) =  List.nth examples 0 in
