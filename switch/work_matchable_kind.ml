@@ -1,4 +1,3 @@
-open GT
 open OCanren
 open OCanren.Std
 open Work_base_common
@@ -397,6 +396,23 @@ let minisleep (sec : float) =
 
 open Format
 
+let debug_helper reifier printer ?color text var =
+  debug_var var reifier (fun xs ->
+      let open Format in
+      let () =
+        (match color with
+        | None -> printf "%s: %a\n%!" text
+        | Some c -> printf "\027[%dm%s: %a\027[0m\n%!" c text)
+          (pp_print_list printer) xs
+      in
+      minisleep 0.05;
+      success)
+
+let debug_name_arity_list =
+  debug_helper
+    (Std.List.reify (Std.Pair.reify Tag.reify N.reify))
+    [%fmt: (Tag.logic, N.logic) Std.Pair.logic Std.List.logic]
+
 let debug_tag_list text xs =
   debug_var xs (Std.List.reify OCanren.reify) (fun xs ->
       let open Format in
@@ -436,7 +452,7 @@ let debug_option_int ?color text xs =
         (match color with
         | None -> printf "%a\n%!"
         | Some c -> printf "\027[%dm%a\027[0m\n%!" c)
-          (pp_print_list [%fmt: int OCanren.logic Std.Option.logic])
+          (pp_print_list [%fmt: GT.int OCanren.logic Std.Option.logic])
           xs
       in
       minisleep 0.05;
@@ -628,11 +644,11 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (debug_lino __FILE__ __LINE__)
              (debug_ir "root_ir" ir);
            fresh_
-             (m cases on_default is_forbidden sub_scru subtypes etag eargs
+             (m cases on_default is_forbidden sub_scru typ_info etag eargs
                 only_names new_cases)
              (irrr === switch m cases on_default)
              (debug_ir "ir =" irrr) (debug_expr "scru = " s)
-             (eval_m s tinfo m (pair sub_scru subtypes))
+             (eval_m s tinfo m (pair sub_scru typ_info))
              (sub_scru === eConstr etag eargs)
              (*
              (conde
@@ -647,16 +663,16 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 *)
              (conde
                 [
-                  subtypes === Std.nil ();
+                  typ_info === Std.nil ();
                   fresh (_the_tag arity)
-                    (subtypes === !<(pair _the_tag arity))
+                    (typ_info === !<(pair _the_tag arity))
                     (* if only single constructor *)
                     (debug_expr "cutting off sub_scru" sub_scru)
                     (etag === _the_tag)
                     (* I'm not sure it is 100% correct but ... *)
                     (list_length eargs arity)
                     (debug_expr "after cutting off = " sub_scru);
-                  fresh () (subtypes === __ % (__ % __));
+                  fresh () (typ_info === __ % (__ % __));
                 ])
              trace_diseq_constraints
              (* (debug_tag "sub_scru:etag 00000" etag) *)
@@ -664,7 +680,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (* Next line fixes hangings *)
              (* (debug_tag_list "only_names = " only_names) *)
              (shortcut1 etag m cases history tinfo !!true)
-             (list_map fst subtypes only_names)
+             (list_map fst typ_info only_names)
              (shortcut_apply_domain etag only_names !!true)
              (* TODO: this line helps, but we probably forget about already created disequality constraints *)
              (* (eargs === Std.nil ()) *)
@@ -692,13 +708,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
              (debug_matchable_kind "is_forbidden: init: " is_forbidden)
              (test_list
                 ~shortcut_history:(fun () ->
+                  (* TODO: maybe delay is not required *)
                   shortcut1 etag m cases history tinfo !!true)
-                (m % history) etag only_names new_cases is_forbidden inner_rez)
+                (m % history) etag typ_info new_cases is_forbidden inner_rez)
              (debug_option_int "test_list finished. inner_rez = " inner_rez);
          ])
   in
-  let rec test_list ~shortcut_history next_histo etag cnames cases0 is_forbidden
-      test_list_rez =
+  let rec test_list ~shortcut_history next_histo etag typ_info cases0
+      is_forbidden test_list_rez =
     let case_2 new_cases =
       fresh _final_int
         (debug (sprintf "  case_2: %s" __FILE__))
@@ -710,52 +727,33 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                   (Std.pair tag etag))
                (debug_ir "rhs = " rhs) (debug_int "rrrr" rrrr)
                (* TODO: Maybe we should use unique_answers here to speedup everything *)
-               (* (debug_var (Std.pair tag etag) (Pair.reify Tag.reify Tag.reify) (function
-                  | [ Value (l, r) ] ->
-                    Format.printf
-                      "tag and etag are :  %a and %a\n%!"
-                      (GT.fmt Tag.logic)
-                      l
-                      (GT.fmt Tag.logic)
-                      r;
-                    success
-                  | [] -> assert false
-                  | xs ->
-                    let open Format in
-                    Format.printf
-                      "\tToo many tags %a\n%!"
-                      (pp_print_list
-                         ~pp_sep:pp_print_space
-                         (GT.fmt Pair.logic (GT.fmt Tag.logic) (GT.fmt Tag.logic)))
-                      xs;
-                    success)) *)
                (tag === etag)
                (shortcut_history ())
                (inner next_histo test_list rhs (Std.some rrrr))
                (debug_int "myeval: ENDED " rrrr))
            ir)
     in
-    let rec iter_cnames br_tag constr_names sk =
-      fresh (constr_hd constr_tl)
-        (conde
-           [
-             constr_names === nil () &&& debug "bad program1" &&& failure;
-             fresh ()
-               (constr_names === constr_hd % constr_tl)
-               (conde
-                  [
-                    constr_hd === br_tag &&& sk constr_tl;
-                    constr_hd =/= br_tag &&& iter_cnames br_tag constr_tl sk;
-                  ]);
-           ])
+    let rec iter_cnames br_tag name_arity_list sk =
+      conde
+        [
+          name_arity_list === nil () &&& debug "bad program1" &&& failure;
+          fresh (constr_hd constr_tl)
+            (name_arity_list === Std.pair constr_hd __ % constr_tl)
+            (conde
+               [
+                 constr_hd === br_tag &&& sk constr_tl;
+                 constr_hd =/= br_tag &&& iter_cnames br_tag constr_tl sk;
+               ]);
+        ]
     in
-    let rec cases_3_and_4 constr_names = helper constr_names
-    and helper ~old_branches constr_names cases helper_rez =
+    let rec cases_3_and_4 eta = helper eta
+    and helper ~old_branches ~left_name_arity_list ~original_domain cases
+        helper_rez =
       fresh ()
-        (no_longer_than cases cnames !!true)
+        (no_longer_than cases typ_info !!true)
         (debug_cases "left cases = " cases)
-        (debug_tag_list "left constr_names = " constr_names)
-        (debug_tag_list "cnames = " cnames)
+        (debug_name_arity_list "left_name_arity_list = " left_name_arity_list)
+        (debug_name_arity_list "typ_info = " typ_info)
         (conde
            [
              cases === nil () &&& debug "bad program2" &&& failure;
@@ -769,16 +767,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (brh === Std.pair tag rhs)
                (debug_tag "etag = " etag)
                (debug_tag "head branch containts" tag)
-               (* (tag === etag) *)
                trace_domain_constraints
                (debug_matchable_kind "is_forbidden" is_forbidden)
-               (shortcut_apply_domain tag cnames !!true)
+               (shortcut_apply_domain tag original_domain !!true)
                (debug_tag "head branch containts: after shortcut: " tag)
-               (iter_cnames tag constr_names (fun constr_names ->
+               (iter_cnames tag left_name_arity_list (fun left_typ_info ->
                     debug_tag "iter: tag = " tag
                     &&& debug_tag "iter: etag = " etag
                     &&& fresh branch_n
-                          (* (conde_no_int *)
                           (conde
                              [
                                fresh () (branch_n === !!1) (etag === tag)
@@ -797,7 +793,6 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                                  (is_forbidden === missExample ());
                              ])
                           (debug_int "branch_n = " branch_n)
-                          (* (conde_no_int *)
                           (conde
                              [
                                fresh () (branch_n === !!1)
@@ -812,15 +807,17 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                                  (debug ">>> leaving branch 2 ");
                                fresh () (branch_n === !!3)
                                  (debug_lino __FILE__ __LINE__)
-                                 (cases_3_and_4
+                                 (cases_3_and_4 ~original_domain
                                     ~old_branches:(tag :: old_branches)
-                                    constr_names brtl helper_rez);
+                                    ~left_name_arity_list:left_typ_info brtl
+                                    helper_rez);
                                fresh () (branch_n === !!4)
                                  (debug_lino "branch 4 hit!" __LINE__)
                                  (debug_lino __FILE__ __LINE__)
-                                 (cases_3_and_4
+                                 (cases_3_and_4 ~original_domain
                                     ~old_branches:(tag :: old_branches)
-                                    constr_names brtl helper_rez)
+                                    ~left_name_arity_list:left_typ_info brtl
+                                    helper_rez)
                                  (debug ">>> leaving branch 4");
                              ])));
            ])
@@ -830,14 +827,16 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
        (shortcut_apply_domain etag cnames !!true)
        (helper ~old_branches:[] cnames cases0 test_list_rez)
        (debug_option_int "test_list_rez" test_list_rez) *)
-    debug "test_list called" &&& debug_tag "etag: " etag
-    &&& no_longer_than cases0 cnames !!true
-    (* &&& FD.domain etag [ 2; 3 ] *)
-    (* &&& FD.neq etag !!2  *)
-    &&& trace_domain_constraints
-    &&& shortcut_apply_domain etag cnames !!true
-    &&& debug_cases "cases0 = " cases0
-    &&& helper ~old_branches:[] cnames cases0 test_list_rez
-    &&& debug_option_int "test_list_rez" test_list_rez
+    fresh original_domain (debug "test_list called") (debug_tag "etag: " etag)
+      (list_map fst typ_info original_domain)
+      (no_longer_than cases0 typ_info !!true)
+      (* &&& FD.domain etag [ 2; 3 ] *)
+      (* &&& FD.neq etag !!2  *)
+      trace_domain_constraints
+      (shortcut_apply_domain etag original_domain !!true)
+      (debug_cases "cases0 = " cases0)
+      (helper ~old_branches:[] ~original_domain ~left_name_arity_list:typ_info
+         cases0 test_list_rez)
+      (debug_option_int "test_list_rez" test_list_rez)
   in
   inner (nil ()) test_list ir q60
