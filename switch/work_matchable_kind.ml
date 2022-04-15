@@ -710,11 +710,12 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 ~shortcut_history:(fun () ->
                   (* TODO: maybe delay is not required *)
                   shortcut1 etag m cases history tinfo !!true)
-                (m % history) etag typ_info new_cases is_forbidden inner_rez)
+                (m % history) ~etag ~eargs typ_info new_cases is_forbidden
+                inner_rez)
              (debug_option_int "test_list finished. inner_rez = " inner_rez);
          ])
   in
-  let rec test_list ~shortcut_history next_histo etag typ_info cases0
+  let rec test_list ~shortcut_history next_histo ~etag ~eargs typ_info cases0
       is_forbidden test_list_rez =
     let case_2 new_cases =
       fresh _final_int
@@ -737,11 +738,13 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
       conde
         [
           name_arity_list === nil () &&& debug "bad program1" &&& failure;
-          fresh (constr_hd constr_tl)
-            (name_arity_list === Std.pair constr_hd __ % constr_tl)
+          fresh
+            (constr_hd arity constr_tl)
+            (name_arity_list === Std.pair constr_hd arity % constr_tl)
             (conde
                [
-                 constr_hd === br_tag &&& sk constr_tl;
+                 constr_hd === br_tag &&& list_length eargs arity
+                 &&& sk constr_tl;
                  constr_hd =/= br_tag &&& iter_cnames br_tag constr_tl sk;
                ]);
         ]
@@ -757,14 +760,13 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
         (conde
            [
              cases === nil () &&& debug "bad program2" &&& failure;
-             fresh (brh brtl tag rhs)
+             fresh (brtl tag rhs)
                (Stdlib.List.fold_left
                   (fun acc v ->
                     print_endline "added a new constraint on branch";
                     acc &&& (v =/= tag))
                   success old_branches)
-               (cases === brh % brtl)
-               (brh === Std.pair tag rhs)
+               (cases === Std.pair tag rhs % brtl)
                (debug_tag "etag = " etag)
                (debug_tag "head branch containts" tag)
                trace_domain_constraints
