@@ -251,50 +251,33 @@ module PairsVerySimple = struct
   (*
   match ... with
   | pair (true, _) -> 0
-  | pair (false, _) -> 1
+  | pair (_, true) -> 1
+  | pair (_, _) -> 2
 
 
   q=(switch S[0] with
     | true -> 0
-    | _ -> 1
+    | _ -> (switch s[1] with true -> 1 | _ -> 2 )
 
   *)
 
-  let program : IR.injected -> _ =
-   fun q ->
-    let open OCanren.Std in
-    let field0 = Matchable.field0 () in
-    let field1 = Matchable.field1 () in
-    let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
-    let ttrue = !!(Tag.of_string_exn "true") in
-    let tfalse = !!(Tag.of_string_exn "false") in
-    fresh () (q === ite field0 ttrue _0 _1)
-
-  (* let examples =
-     let open E in
-     [
-       (0, (fun q -> fresh __r (q === pair true_ __r)), GroundField.[ field0 ]);
-       ( 1,
-         (fun q -> fresh () (q =/= pair true_ __) (q === pair false_ __)),
-         GroundField.[ field0 ] );
-     ] *)
+  (* let program : IR.injected -> _ =
+     fun q ->
+      let open OCanren.Std in
+      let field0 = Matchable.field0 () in
+      let field1 = Matchable.field1 () in
+      let ite cond c th el = IR.switch cond !<(Std.pair c th) el in
+      let ttrue = !!(Tag.of_string_exn "true") in
+      let tfalse = !!(Tag.of_string_exn "false") in
+      fresh () (q === ite field0 ttrue _0 _1) *)
 
   let examples =
     let open E in
     [
       (0, (fun q -> fresh () (q === pair true_ __)), GroundField.[ field0 ]);
-      (1, (fun q -> fresh _25 (q =/= pair true_ __)), GroundField.[ field0 ]);
+      (1, (fun q -> fresh _25 (q =/= pair __ true_)), GroundField.[ field1 ]);
+      (2, (fun q -> fresh _25 (q =/= pair __ __)), GroundField.[]);
     ]
-  (* let examples =
-     let open E in
-     [
-       ( 0,
-         (fun q -> fresh () (q === pair true_ true_)),
-         GroundField.[ field0; field1 ] );
-       ( 1,
-         (fun q -> fresh () (q =/= pair true_ true_) (q === pair __ __)),
-         GroundField.[] );
-     ] *)
 
   let eval_ir_pairs ~fields scru ir rez =
     fresh max_height
@@ -304,29 +287,29 @@ module PairsVerySimple = struct
          (default_shortcut0 fields) default_shortcut default_shortcut_tag
          default_shortcut4 ir rez)
 
-  let test_example ~fields n init_scru =
-    run_int 3 q qh
-      ( Format.sprintf "===== Running forward example %d in PairVerySimple test"
-          n,
-        fun rhs ->
-          fresh (scru ir rez)
-            (rez === Std.Option.some rhs)
-            (program ir) (init_scru scru)
-            (eval_ir_pairs ~fields scru ir rez)
-            (debug_var scru Expr.reify (function xs ->
-                 List.iteri
-                   (fun n q ->
-                     Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
-                   xs;
-                 success)) )
+  (* let test_example ~fields n init_scru =
+     run_int 3 q qh
+       ( Format.sprintf "===== Running forward example %d in PairVerySimple test"
+           n,
+         fun rhs ->
+           fresh (scru ir rez)
+             (rez === Std.Option.some rhs)
+             (program ir) (init_scru scru)
+             (eval_ir_pairs ~fields scru ir rez)
+             (debug_var scru Expr.reify (function xs ->
+                  List.iteri
+                    (fun n q ->
+                      Format.printf "\t%d: %s\n%!" n (Expr.show_logic q))
+                    xs;
+                  success)) )
+  *)
+  (* let __ _ =
+       let _, x, fields = List.nth examples 0 in
+       test_example ~fields 0 x
 
-  let __ _ =
-    let _, x, fields = List.nth examples 0 in
-    test_example ~fields 0 x
-
-  let __ _ =
-    let _, x, fields = List.nth examples 1 in
-    test_example ~fields 1 x
+     let __ _ =
+       let _, x, fields = List.nth examples 1 in
+       test_example ~fields 1 x *)
 
   let _ =
     run_ir 1 q qh
@@ -346,5 +329,13 @@ module PairsVerySimple = struct
                     trace_diseq_constraints cut_off_wc_diseq_without_domain
                     success)
                 success
-                [ List.nth examples 0; List.nth examples 1 ])))
+                [
+                  List.nth examples 0;
+                  List.nth examples 1 (* List.nth examples 2; *);
+                ])))
 end
+
+(*
+
+cutting off sub_scru: (pair [(false []); (false []); _.1510 [=/= ]])
+*)

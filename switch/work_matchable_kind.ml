@@ -405,7 +405,7 @@ let debug_helper reifier printer ?color text var =
         | Some c -> printf "\027[%dm%s: %a\027[0m\n%!" c text)
           (pp_print_list printer) xs
       in
-      minisleep 0.05;
+      (* minisleep 0.05; *)
       success)
 
 let debug_name_arity_list =
@@ -599,6 +599,17 @@ let rec no_longer_than left right ans =
            ]);
     ]
 
+let rec list_shorter_than left right ans =
+  conde
+    [
+      right === Std.nil () &&& (ans === !!false);
+      left === Std.nil () &&& (right === __ % __) &&& (ans === !!true);
+      fresh (hl tll hr tlr)
+        (left === hl % tll)
+        (right === hr % tlr)
+        (list_shorter_than tll tlr ans);
+    ]
+
 let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
     _shortcut_branch ir q60 =
   let indeed_good_arity tinfo etag eargs q0 =
@@ -700,12 +711,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 ])
              *)
              (debug_expr "sub_scru" sub_scru)
+             (list_shorter_than cases typ_info !!true)
              (union_cases_and_default cases on_default new_cases
                 ~cnames:only_names)
-             (no_longer_than new_cases only_names !!true)
              (debug_cases "new_cases" new_cases)
              (debug_tag_list "available tags here" only_names)
              (debug_matchable_kind "is_forbidden: init: " is_forbidden)
+             (* (debug_name_arity_list "before no_longer_than" typ_info) *)
+             (* (no_longer_than new_cases typ_info !!true) *)
              (test_list
                 ~shortcut_history:(fun () ->
                   (* TODO: maybe delay is not required *)
@@ -831,7 +844,6 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
        (debug_option_int "test_list_rez" test_list_rez) *)
     fresh original_domain (debug "test_list called") (debug_tag "etag: " etag)
       (list_map fst typ_info original_domain)
-      (no_longer_than cases0 typ_info !!true)
       (* &&& FD.domain etag [ 2; 3 ] *)
       (* &&& FD.neq etag !!2  *)
       trace_domain_constraints

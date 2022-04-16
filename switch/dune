@@ -59,8 +59,8 @@
    ppx_optcomp)))
 
 (executables
- (names demo3 demo4bool demo5triplebool)
- (modules demo3 demo4bool demo5triplebool)
+ (names demo3 demo4bool demo5triplebool demo6)
+ (modules demo3 demo4bool demo5triplebool demo6)
  (libraries switches OCanren.tester)
  (preprocess
   (pps

@@ -14,7 +14,6 @@ module E = struct
     Expr.constr !!(Tag.inttag_of_string_exn "triple") (a % (b %< c))
 
   let true_ = Expr.constr !!(Tag.inttag_of_string_exn "true") (nil ())
-
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
 
@@ -22,20 +21,14 @@ module GroundField = struct
   open Matchable
 
   let scru = Scru
-
   let field0 : ground = Field (N.Z, Scru)
-
   let field1 : ground = Field (N.(S Z), Scru)
-
   let field2 : ground = Field (N.(S (S Z)), Scru)
 end
 
 let _0 : IR.injected = IR.int !!0
-
 let _1 : IR.injected = IR.int !!1
-
 let _2 : IR.injected = IR.int !!2
-
 let _3 : IR.injected = IR.int !!3
 
 let default_shortcut0 good_matchables m max_height cases rez =
@@ -118,14 +111,8 @@ let run_ir eta =
 
 (* *********************************************************** *)
 
-module TripleBoolAndDirtyHack () = struct
+module TripleBoolAndDirtyHack = struct
   (*
-  match ... with
-  | triple (_, false, true) -> 0
-  | triple (false, true, _) -> 1
-  | triple (_, _, false) -> 2
-  | triple (_, _, true) -> 3
-
   q=(switch S[1] with
     | true -> (switch S[0] with
               | true -> (switch S[2] with
@@ -136,6 +123,11 @@ module TripleBoolAndDirtyHack () = struct
             | true -> 0
             | _    -> 2 )
 
+  match ... with
+  | triple (_, false, true) -> 0
+  | triple (false, true, _) -> 1
+  | triple (_, _, false) -> 2
+  | triple (_, _, true) -> 3
   *)
 
   let program : IR.injected -> _ =
@@ -153,9 +145,6 @@ module TripleBoolAndDirtyHack () = struct
             (ite field2 ttrue _0 _2))
 
   let examples =
-    (* let add_domain q =
-         FD.domain q [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ]
-       in *)
     let open E in
     [
       ( 0,
@@ -163,51 +152,35 @@ module TripleBoolAndDirtyHack () = struct
         GroundField.[ field1; field2 ] );
       ( 1,
         (fun q ->
-          fresh ()
-            (q =/= triple __ false_ true_)
-            (q === triple false_ true_ __)
-            success success),
+          fresh () (q =/= triple __ false_ true_) (q === triple false_ true_ __)),
         GroundField.[ field0; field1 ] );
       ( 2,
         (fun q ->
-          fresh (ta tb)
+          fresh ()
             (q =/= triple __ false_ true_)
             (q =/= triple false_ true_ __)
-            (q === triple (Expr.leaf ta) (Expr.leaf tb) false_)
-            (conde
-               [
-                 FD.neq ta !!(Tag.of_string_exn "false");
-                 FD.neq tb !!(Tag.of_string_exn "true");
-               ])),
+            (q === triple __ __ false_)),
         GroundField.[ field2 ] );
       ( 3,
         (fun q ->
-          fresh (tb ta)
+          fresh ()
             (q =/= triple __ false_ true_)
             (q =/= triple false_ true_ __)
             (q =/= triple __ __ false_)
-            (q === triple (Expr.leaf ta) (Expr.leaf tb) true_)
-            (FD.domain ta
-               [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
-            (FD.domain tb
-               [ Tag.of_string_exn "true"; Tag.of_string_exn "false" ])
-            (FD.neq tb !!(Tag.of_string_exn "false"))
-            (FD.neq ta !!(Tag.of_string_exn "false"))
-            (ta =/= !!(Tag.of_string_exn "false"))
-            (tb =/= !!(Tag.of_string_exn "false"))),
+            (q === triple __ __ true_)),
         GroundField.[ field2 ] );
     ]
 
   let eval_ir_triple_bool ~fields scru ir rez =
     fresh max_height
-      (max_height === N.(inject @@ of_int 2))
+      (max_height === N.(inject @@ of_int 3))
       (Work_matchable_kind.eval_ir scru max_height
          (Typs.inject ArgTripleBool.typs)
          (default_shortcut0 fields) default_shortcut default_shortcut_tag
          default_shortcut4 ir rez)
 
   let test_example ~fields n make_scru =
-    run_int 3 q qh
+    run_int 1 q qh
       ( Format.sprintf "===== Running forward example %d in TripleBool test" n,
         fun rhs ->
           fresh (scru ir rez)
@@ -221,24 +194,24 @@ module TripleBoolAndDirtyHack () = struct
                    xs;
                  success)) )
 
-  let _ =
+  let __ _ =
     let _, x, fields = List.nth examples 0 in
     test_example ~fields 0 x
 
-  let _ =
+  let __ _ =
     let _, x, fields = List.nth examples 1 in
     test_example ~fields 1 x
 
-  let _ =
+  let __ _ =
     let _, x, fields = List.nth examples 2 in
     test_example ~fields 2 x
 
-  let _ =
+  let __ _ =
     let _, x, fields = List.nth examples 3 in
     test_example ~fields 3 x
 
-  let __ _ =
-    run_ir 3 q qh
+  let _ =
+    run_ir 1 q qh
       (REPR
          (fun ir ->
            List.fold_left
@@ -246,12 +219,14 @@ module TripleBoolAndDirtyHack () = struct
                fresh (scru rez)
                  (rez === Std.Option.some !!rhs)
                  acc (desc scru)
-                 (eval_ir_triple_bool ~fields scru ir rez))
+                 (eval_ir_triple_bool ~fields scru ir rez)
+                 (Work_matchable_kind.debug_expr "exampful scru = " scru)
+                 trace_diseq_constraints cut_off_wc_diseq_without_domain success)
              success
              [
                List.nth examples 0;
-               List.nth examples 1;
-               List.nth examples 2;
-               List.nth examples 3;
+               List.nth examples 1
+               (* List.nth examples 2; *)
+               (* List.nth examples 3; *);
              ]))
 end
