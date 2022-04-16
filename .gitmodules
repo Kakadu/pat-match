@@ -1,0 +1,3 @@
+[submodule "noCanren"]
+	path = noCanren
+	url = https://github.com/Kakadu/noCanren.git

@@ -15,7 +15,7 @@
 Dependencies:
 
   opam install streaming z3 ocamlformat ppx_optcomp GT lazy-trie mtime ppx_expect --yes
-  pin add noCanren --dev-repo --yes
+  git submodule update --init 
   git clone git@github.com:Kakadu/OCanren.git\#wildcard+fd+diseq2
-  
+
 Run `make` to compile and run something...
