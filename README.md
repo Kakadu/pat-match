@@ -14,8 +14,9 @@
 
 Dependencies:
 
-  opam install streaming z3 ocamlformat ppx_optcomp GT lazy-trie mtime ppx_expect --yes
-  git submodule update --init 
-  git clone git@github.com:Kakadu/OCanren.git\#wildcard+fd+diseq2
+    opam switch create 4.14.0+flambda --package=ocaml-variants.4.14.0+options,ocaml-option-flambda
+    opam install streaming z3 ocamlformat ppx_optcomp GT lazy-trie mtime ppx_expect --yes
+    git submodule update --init 
+    git clone git@github.com:Kakadu/OCanren.git\#wildcard+fd+diseq2
 
 Run `make` to compile and run something...
