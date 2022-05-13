@@ -405,7 +405,7 @@ let debug_helper reifier printer ?color text var =
         | Some c -> printf "\027[%dm%s: %a\027[0m\n%!" c text)
           (pp_print_list printer) xs
       in
-      (* minisleep 0.05; *)
+      (* minisleep 0.001; *)
       success)
 
 let debug_name_arity_list =
@@ -419,7 +419,7 @@ let debug_tag_list text xs =
       Format.printf "%s: %a \n%!" text
         (pp_print_list [%fmt: GT.int OCanren.logic Std.List.logic])
         xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_ir ?color text xs =
@@ -433,7 +433,7 @@ let debug_ir ?color text xs =
           (pp_print_list [%fmt: IR.logic])
           xs
       in
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_peano text xs =
@@ -441,7 +441,7 @@ let debug_peano text xs =
       let open Format in
       Format.printf "%s: " text;
       let () = printf "%a\n%!" (pp_print_list [%fmt: Unn_pre.N.logic]) xs in
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_option_int ?color text xs =
@@ -455,7 +455,7 @@ let debug_option_int ?color text xs =
           (pp_print_list [%fmt: GT.int OCanren.logic Std.Option.logic])
           xs
       in
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_tag_pair text xs =
@@ -464,14 +464,14 @@ let debug_tag_pair text xs =
       Format.printf "%s: %a \n%!" text
         (pp_print_list [%fmt: (Tag.logic, Tag.logic) Std.Pair.logic])
         xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_tag text xs =
   debug_var xs Tag.reify (fun xs ->
       let open Format in
       Format.printf "%s: %a \n%!" text (pp_print_list [%fmt: Tag.logic]) xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_expr text xs =
@@ -480,14 +480,14 @@ let debug_expr text xs =
       Format.printf "%s: %a \n%!" text
         (pp_print_list ~pp_sep:(fun ppf () -> fprintf ppf "; ") Expr.pp_logic)
         xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_matchable_kind text xs =
   debug_var xs MatchableKind.reify (fun xs ->
       let open Format in
       Format.printf "%s: %a \n%!" text (pp_print_list MatchableKind.pp_logic) xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_matchable text xs =
@@ -496,7 +496,7 @@ let debug_matchable text xs =
       Format.printf "%s: %a \n%!" text
         (pp_print_list (GT.fmt Matchable.logic))
         xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let debug_cases text xs =
@@ -508,7 +508,7 @@ let debug_cases text xs =
         (pp_print_list
            [%fmt: (Tag.logic, IR.logic) Std.Pair.logic Std.List.logic])
         xs;
-      minisleep 0.05;
+      minisleep 0.001;
       success)
 
 let is_list_coercible_to_ground onarg xs =
@@ -536,15 +536,15 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
         fresh () (branches === Std.nil ()) (ok_branches === Std.nil ());
         fresh (btl btag brhs ans)
           (branches === Std.pair btag brhs % btl)
-          (debug "  Testing a branch")
-          (OCanren.Unique.unique_answers (myeval btag brhs) ans)
-          (debug "  After unique_answers call")
           (conde
              [
                fresh (temp br_tl)
                  (* TODO: What to pass as expected answer? *)
                  (rez === Std.Option.some temp)
                  (ans === Unique.unique temp)
+                 (debug "  Testing a branch (expecting unique)")
+                 (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+                 (debug "  After unique_answers call")
                  (debug_lino __FILE__ __LINE__)
                  (debug_int "unique: " temp)
                  (ok_branches === Std.pair btag brhs % br_tl)
@@ -552,6 +552,9 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                fresh () (ans === Unique.noanswer)
                  (debug_lino __FILE__ __LINE__)
                  (rez === Std.Option.none ())
+                 (debug "  Testing a branch (expecting noanswer)")
+                 (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+                 (debug "  After unique_answers call")
                  (helper ~ok_branches btl);
                fresh () (ans === Unique.different)
                  (debug_lino __FILE__ __LINE__)
@@ -739,7 +742,10 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (* (shortcut_apply_domain tag only_names !!true) *)
                (debug_tag_pair "myeval started: too many tags could be there"
                   (Std.pair tag etag))
-               (debug_ir "rhs = " rhs) (debug_int "rrrr" rrrr)
+               (debug_tag "   tag" tag) (debug_tag "   etag" etag)
+               (debug_ir "   rhs" rhs)
+               (debug_int "   expected_result" rrrr)
+               (debug_option_int "   test_list_rez" test_list_rez)
                (* TODO: Maybe we should use unique_answers here to speedup everything *)
                (tag === etag)
                (shortcut_history ())

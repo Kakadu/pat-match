@@ -317,6 +317,8 @@ module PairsVerySimple = struct
          (fun ir ->
            fresh m
              (ir === IR.switch m __ __)
+             (ir
+             === IR.switch m Std.(!<(pair !!(Tag.of_string_exn "true") __)) __)
              (List.fold_left
                 (fun acc (rhs, init_scru, fields) ->
                   fresh (scru rez) acc
@@ -330,7 +332,7 @@ module PairsVerySimple = struct
                     success)
                 success
                 [
-                  List.nth examples 0;
+                  (* List.nth examples 0 *)
                   List.nth examples 1 (* List.nth examples 2; *);
                 ])))
 end

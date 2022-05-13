@@ -62,6 +62,7 @@
  (names demo3 demo4bool demo5triplebool demo6)
  (modules demo3 demo4bool demo5triplebool demo6)
  (libraries switches OCanren.tester)
+ (modes exe byte)
  (preprocess
   (pps
    OCanren-ppx.ppx_repr

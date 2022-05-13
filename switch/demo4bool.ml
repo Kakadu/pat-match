@@ -14,7 +14,6 @@ module E = struct
     Expr.constr !!(Tag.inttag_of_string_exn "triple") (a % (b %< c))
 
   let true_ = Expr.constr !!(Tag.inttag_of_string_exn "true") (nil ())
-
   let false_ = Expr.constr !!(Tag.inttag_of_string_exn "false") (nil ())
 end
 
@@ -22,20 +21,14 @@ module GroundField = struct
   open Matchable
 
   let scru = Scru
-
   let field0 : ground = Field (N.Z, Scru)
-
   let field1 : ground = Field (N.(S Z), Scru)
-
   let field2 : ground = Field (N.(S (S Z)), Scru)
 end
 
 let _0 : IR.injected = IR.int !!0
-
 let _1 : IR.injected = IR.int !!1
-
 let _2 : IR.injected = IR.int !!2
-
 let _3 : IR.injected = IR.int !!3
 
 let default_shortcut0 good_matchables m max_height cases rez =
@@ -193,7 +186,7 @@ let __ _ =
   let _, x, fields = List.nth examples 1 in
   test_example ~fields 1 x
 
-let __ _ =
+let _ =
   run_ir 1 q qh
     (REPR
        (fun ir ->
