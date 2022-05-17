@@ -11,33 +11,32 @@ let inhabit_by typs cond =
   let iter2io f =
     let rec helper n xs ys =
       conde
-        [ xs === Std.List.nil () &&& (ys === Std.List.nil ())
-        ; fresh
-            (h1 tl1 h2 tl2)
+        [
+          xs === Std.List.nil () &&& (ys === Std.List.nil ());
+          fresh (h1 tl1 h2 tl2)
             (xs === Std.(h1 % tl1))
             (ys === Std.(h2 % tl2))
             (f n h1 h2)
-            (helper (N.s n) tl1 tl2)
+            (helper (N.s n) tl1 tl2);
         ]
     in
     helper N.(z)
   in
   let is_good_m m ans =
-    fresh
-      ()
+    fresh ()
       (debug_var m Matchable.reify (fun ms ->
            (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
            match ms with
            | [] -> failure
            | _ :: _ :: _ -> failwith "too many answers"
-           | [ ms ] ->
-             (match Matchable.to_ground ms with
-             | None ->
-               let _ = assert false in
-               success
-             | Some _ ->
-               let b = cond ms in
-               ans === !!b)
+           | [ ms ] -> (
+               match Matchable.to_ground ms with
+               | None ->
+                   let _ = assert false in
+                   success
+               | Some _ ->
+                   let b = cond ms in
+                   ans === !!b)
            (* match Matchable.to_ground ms with
               | None ->
                   let _ = assert false in success
@@ -48,42 +47,33 @@ let inhabit_by typs cond =
       success
   in
   let rec helper m typs e =
-    fresh
-      (c es is_ok arg_typs)
-      (is_good_m m is_ok)
+    fresh (c es is_ok arg_typs) (is_good_m m is_ok)
       (conde
-         [ fresh
-             ()
-             (is_ok === !!true)
+         [
+           fresh () (is_ok === !!true)
              (e === Expr.constr c es)
              (W.info_assoc typs c arg_typs)
-             (iter2io (fun n -> helper (Matchable.field n m)) arg_typs es)
-         ; fresh
-             ()
-             (is_ok === !!false)
+             (iter2io (fun n -> helper (Matchable.field n m)) arg_typs es);
+           fresh () (is_ok === !!false)
              (debug_var is_ok OCanren.reify (fun ok ->
                   let () =
-                    match ok with
-                    | [ Value false ] -> ()
-                    | _ -> assert false
+                    match ok with [ Value false ] -> () | _ -> assert false
                   in
-                  only_head @@ W.well_typed_expr e typs !!true))
+                  only_head @@ W.well_typed_expr e typs !!true));
          ])
   in
   helper (Matchable.scru ()) typs
-;;
 
 let inhabit_by_trie typs trie =
   inhabit_by typs (fun ms ->
       match Matchable.to_ground ms with
       | None ->
-        let _ = assert false in
-        true
+          let _ = assert false in
+          true
       | Some m ->
-        let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
-        (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
-        b)
-;;
+          let b = Pats_tree.is_set trie (Matchable.ground_to_list_repr m) in
+          (*Format.printf " is_set %a = %b\n%!" (GT.fmt Matchable.ground) m b;*)
+          b)
 
 module TypsHighlevel = struct
   type constr_name = string
@@ -94,12 +84,9 @@ module TypsHighlevel = struct
 
   type arg = accessor_name option * typ_name
   type adt = (constr_name * arg list) list
+  type type_def = Nonrec of adt | Mu of string * adt
 
-  type type_def =
-    | Nonrec of adt
-    | Mu of string * adt
-
-  let arg : ?acc:accessor_name -> typ_name -> arg = fun ?acc name -> acc, name
+  let arg : ?acc:accessor_name -> typ_name -> arg = fun ?acc name -> (acc, name)
 
   type env = (string * type_def) list
   type t = env * adt
@@ -109,28 +96,25 @@ module TypsHighlevel = struct
     fun () ->
       incr last_name;
       (Format.sprintf "typ%d" !last_name : typ_name)
-  ;;
 
   let list el =
     let n = next_name () in
-    Mu (n, [ "nil", []; "cons", [ Some "hd", el; Some "tl", n ] ])
-  ;;
+    Mu (n, [ ("nil", []); ("cons", [ (Some "hd", el); (Some "tl", n) ]) ])
 
-  let pair a b = Nonrec [ "Pair", [ None, a; None, b ] ]
-  let int = Nonrec [ "42", [] ]
+  let pair a b = Nonrec [ ("Pair", [ (None, a); (None, b) ]) ]
+  let int = Nonrec [ ("42", []) ]
 
   let unfold : _ -> t -> Unn_pre.Typs.pre_typ =
     let open Unn_pre.Typs in
     let rec helper env depth typname =
-      if depth <= 0
-      then T []
-      else (
+      if depth <= 0 then T []
+      else
         match List.assoc typname env with
         | exception Not_found -> assert false
         | Nonrec rhs -> on_alg env depth rhs
         | Mu (name, rhs) ->
-          let env = (name, Nonrec rhs) :: env in
-          on_alg env depth rhs)
+            let env = (name, Nonrec rhs) :: env in
+            on_alg env depth rhs
     (* | Named n -> (
        match List.assoc n env with
        | exception Not_found -> assert false
@@ -139,11 +123,13 @@ module TypsHighlevel = struct
       T
         (List.map
            (fun (name, args) ->
-             name, List.map (fun (_, typname) -> helper env (depth - 1) typname) args)
+             ( name,
+               List.map
+                 (fun (_, typname) -> helper env (depth - 1) typname)
+                 args ))
            rhs)
     in
     fun depth (env, adt) -> on_alg env depth adt
-  ;;
 end
 
 module type ARG0 = sig
@@ -151,7 +137,7 @@ module type ARG0 = sig
 
   type g
   type l
-  type qtyp_injected = (g, l) injected
+  type qtyp_injected
 
   val try_compile_naively : bool
   val inhabit : Expr.injected -> goal
@@ -162,27 +148,22 @@ module type ARG0 = sig
   val optimize : IR.ground -> IR.ground
   val initial_trie : Pats_tree.t
 
-  val shortcut0
-    :  Matchable.injected
-    -> N.injected
-    -> Cases.injected
-    -> MatchableKind.injected
-    -> goal
+  val shortcut0 :
+    Matchable.injected ->
+    N.injected ->
+    Cases.injected ->
+    MatchableKind.injected ->
+    goal
 
-  val shortcut
-    :  Tag.injected
-    -> Matchable.injected
-    -> (Tag.ground * IR.ground, (Tag.logic, IR.logic) Std.Pair.logic) Std.List.groundi
-    -> (Matchable.ground, Matchable.logic) Std.List.groundi
-    -> (bool, bool logic) injected
-    -> goal
+  val shortcut :
+    Tag.injected ->
+    Matchable.injected ->
+    (Tag.injected, IR.injected) Std.Pair.injected Std.List.injected ->
+    Matchable.injected Std.List.injected ->
+    bool ilogic ->
+    goal
 
-  val shortcut_tag
-    :  CNames.injected
-    -> Cases.injected
-    -> (bool, bool logic) injected
-    -> goal
-
+  val shortcut_tag : CNames.injected -> Cases.injected -> bool ilogic -> goal
   val info : string
 end
 
@@ -202,25 +183,23 @@ end
 module T = struct
   type t = (string * [ `Other of t | `Self ] list) list
 
-  let list el = [ "nil", []; "cons", [ `Other el; `Self ] ]
+  let list el = [ ("nil", []); ("cons", [ `Other el; `Self ]) ]
 
   let rec unfold depth (tt : t) : Unn_pre.Typs.pre_typ =
     let maptt f = List.map f tt in
     let rec helper depth =
       let open Unn_pre.Typs in
-      if depth <= 0
-      then T []
+      if depth <= 0 then T []
       else
         T
           (maptt (fun (name, args) ->
-               ( name
-               , args
+               ( name,
+                 args
                  |> List.map (function
-                        | `Self -> helper (depth - 1)
-                        | `Other targ -> unfold (depth - 1) targ) )))
+                      | `Self -> helper (depth - 1)
+                      | `Other targ -> unfold (depth - 1) targ) )))
     in
     helper depth
-  ;;
 end
 
 (* ************************************************************************** *)
@@ -229,31 +208,31 @@ module ArgTrueFalse : ARG0 = struct
 
   type g = bool
   type l = bool logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = g OCanren.ilogic
 
   let info = "bool"
 
   let typs =
     let open Unn_pre.Typs in
-    Typs.construct @@ T [ "true", []; "false", [] ]
-  ;;
+    Typs.construct @@ T [ ("true", []); ("false", []) ]
 
-  let tt : T.t = [ "true", []; "false", [] ]
+  let tt : T.t = [ ("true", []); ("false", []) ]
   let typs = T.unfold 1 tt |> Typs.construct
   let typs_highlevel = None
-  let clauses = [ ptrue, IR.eint 1; pfalse, IR.eint 0 ]
+  let clauses = [ (ptrue, IR.eint 1); (pfalse, IR.eint 0) ]
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (1 = n);
     n
-  ;;
 
   let rec optimize (root : IR.ground) = root
-  let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e
+  (* let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e *)
 
   let to_expr (demo_exprs : bool list) =
     let open Unn_pre.Expr in
@@ -262,7 +241,6 @@ module ArgTrueFalse : ARG0 = struct
       | false -> econstr "false" []
     in
     ListLabels.map demo_exprs ~f:helper
-  ;;
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -274,44 +252,38 @@ end
 module ArgAB : ARG0 = struct
   open OCanren
 
-  type ab =
-    | A
-    | B
-
+  type ab = A | B
   type g = ab
   type l = ab logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = g OCanren.ilogic
 
   let to_expr (demo_exprs : g list) =
     let open Unn_pre.Expr in
-    let rec helper = function
-      | A -> econstr "A" []
-      | B -> econstr "B" []
-    in
+    let rec helper = function A -> econstr "A" [] | B -> econstr "B" [] in
     ListLabels.map demo_exprs ~f:helper
-  ;;
 
   let info = "A|B"
-  let clauses = [ __, IR.eint 0; pleaf "A", IR.eint 1 ]
+  let clauses = [ (__, IR.eint 0); (pleaf "A", IR.eint 1) ]
 
   let typs =
     let open Unn_pre.Typs in
-    let grounded = Typs.construct @@ T [ "A", []; "B", [] ] in
+    let grounded = Typs.construct @@ T [ ("A", []); ("B", []) ] in
     grounded
-  ;;
 
   let typs_highlevel = None
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     assert (1 = n);
     n
-  ;;
 
   let rec optimize (root : IR.ground) = root
-  let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e
+
+  (* let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e *)
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
@@ -322,14 +294,10 @@ end
 module ArgABC : ARG0 = struct
   open OCanren
 
-  type abc =
-    | A
-    | B
-    | C
-
+  type abc = A | B | C
   type g = abc
   type l = abc logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = g OCanren.ilogic
 
   (* let to_expr (demo_exprs: g list) =
      let open Unn_pre.Expr in
@@ -342,23 +310,27 @@ module ArgABC : ARG0 = struct
 
   let typs =
     let open Unn_pre.Typs in
-    Typs.construct @@ T [ "A", []; "B", []; "C", [] ]
-  ;;
+    Typs.construct @@ T [ ("A", []); ("B", []); ("C", []) ]
 
   let info = "A|B|C"
-  let clauses = [ pleaf "A", IR.eint 1; pleaf "B", IR.eint 1; pleaf "C", IR.eint 0 ]
+
+  let clauses =
+    [ (pleaf "A", IR.eint 1); (pleaf "B", IR.eint 1); (pleaf "C", IR.eint 0) ]
+
   let typs_highlevel = None
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     assert (1 = n);
     n
-  ;;
 
   let rec optimize (root : IR.ground) = root
-  let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e
+
+  (* let prjp e = OCanren.prjc (fun _ _ -> failwith "should not happen5") e *)
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
@@ -369,29 +341,20 @@ end
 module ArgABCD : ARG0 = struct
   open OCanren
 
-  type 'a txxx =
-    | C of 'a
-    | A of 'a
-    | B
-    | D
+  [%%distrib
+  type nonrec 'a t = C of 'a | A of 'a | B | D
   [@@deriving gt ~options:{ gmap }]
 
-  type g = g txxx
-  type l = l txxx OCanren.logic
+  type ground = ground t]
 
-  module F = Fmap (struct
-    type 'a t = 'a txxx
+  type g = ground
+  type l = logic
+  type qtyp_injected = g ilogic
 
-    let fmap eta = GT.gmap txxx eta
-  end)
-
-  type injected = (g, l) OCanren.injected
-  type qtyp_injected = injected
-
-  let c x : injected = inj @@ F.distrib (C x)
-  let a x : injected = inj @@ F.distrib (A x)
-  let b : injected = inj @@ F.distrib B
-  let d : injected = inj @@ F.distrib D
+  (* let c x : injected = inj @@ F.distrib (C x) *)
+  (* let a x : injected = inj @@ F.distrib (A x) *)
+  (* let b : injected = inj @@ F.distrib B *)
+  (* let d : injected = inj @@ F.distrib D *)
 
   (* let to_expr (demo_exprs: g list) =
      let open Unn_pre.Expr in
@@ -406,71 +369,76 @@ module ArgABCD : ARG0 = struct
 
   let rec inhabit_t (rez : Expr.injected) : goal =
     conde
-      [ (rez === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil ())))
-      ; (rez === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil ())))
-      ; fresh
-          prev
+      [
+        (rez === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil ())));
+        (rez === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil ())));
+        fresh prev
           (rez === Expr.(constr Tag.(inject @@ of_string_exn "A") Std.(!<prev)))
-          (inhabit_t prev)
-      ; fresh
-          prev
+          (inhabit_t prev);
+        fresh prev
           (rez === Expr.(constr Tag.(inject @@ of_string_exn "C") Std.(!<prev)))
-          (inhabit_t prev)
+          (inhabit_t prev);
       ]
-  ;;
 
   let rec inhabit_height : Std.Nat.groundi -> Expr.injected -> goal =
    fun height rez ->
     conde
-      [ Std.Nat.zero === height &&& failure
-      ; fresh
-          prev
+      [
+        Std.Nat.zero === height &&& failure;
+        fresh prev
           (Std.Nat.succ prev === height)
           (conde
-             [ (rez === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil ())))
-             ; (rez === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil ())))
-             ; fresh
-                 inner
-                 (rez === Expr.(constr Tag.(inject @@ of_string_exn "A") Std.(!<inner)))
-                 (inhabit_height prev inner)
-             ; fresh
-                 inner
-                 (rez === Expr.(constr Tag.(inject @@ of_string_exn "C") Std.(!<inner)))
-                 (inhabit_height prev inner)
-             ])
+             [
+               (rez
+               === Expr.(constr Tag.(inject @@ of_string_exn "D") Std.(nil ()))
+               );
+               (rez
+               === Expr.(constr Tag.(inject @@ of_string_exn "B") Std.(nil ()))
+               );
+               fresh inner
+                 (rez
+                 === Expr.(
+                       constr Tag.(inject @@ of_string_exn "A") Std.(!<inner)))
+                 (inhabit_height prev inner);
+               fresh inner
+                 (rez
+                 === Expr.(
+                       constr Tag.(inject @@ of_string_exn "C") Std.(!<inner)))
+                 (inhabit_height prev inner);
+             ]);
       ]
- ;;
 
   let inhabit n rez = inhabit_height (Std.nat n) rez
   let info = "A of t|B|C of t | D"
 
   let typs =
     let open Unn_pre.Typs in
-    let l = T [ "A", []; "B", []; "C", []; "D", [] ] in
-    let l = T [ "A", [ l ]; "B", []; "C", [ l ]; "D", [] ] in
-    let l = T [ "A", [ l ]; "B", []; "C", [ l ]; "D", [] ] in
-    let l = T [ "A", [ l ]; "B", []; "C", [ l ]; "D", [] ] in
-    let l = T [ "A", [ l ]; "B", []; "C", [ l ]; "D", [] ] in
-    let l = T [ "A", [ l ]; "B", []; "C", [ l ]; "D", [] ] in
+    let l = T [ ("A", []); ("B", []); ("C", []); ("D", []) ] in
+    let l = T [ ("A", [ l ]); ("B", []); ("C", [ l ]); ("D", []) ] in
+    let l = T [ ("A", [ l ]); ("B", []); ("C", [ l ]); ("D", []) ] in
+    let l = T [ ("A", [ l ]); ("B", []); ("C", [ l ]); ("D", []) ] in
+    let l = T [ ("A", [ l ]); ("B", []); ("C", [ l ]); ("D", []) ] in
+    let l = T [ ("A", [ l ]); ("B", []); ("C", [ l ]); ("D", []) ] in
     Typs.construct l
-  ;;
 
   let pa x = pconstr "A" [ x ]
   let pc x = pconstr "C" [ x ]
   let pb = pconstr "B" []
   let pd = pconstr "D" []
-  let clauses = [ pc (pa pb), IR.eint 1; pc __, IR.eint 2; __, IR.eint 3 ]
+  let clauses = [ (pc (pa pb), IR.eint 1); (pc __, IR.eint 2); (__, IR.eint 3) ]
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     assert (3 = n);
     n
-  ;;
 
   let rec optimize (root : IR.ground) = root
-  let rec prjp e = F.prjc prjp (fun _ _ -> failwith "should not happen5") e
+
+  (* let rec prjp e = F.prjc prjp (fun _ _ -> failwith "should not happen5") e *)
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
@@ -503,13 +471,13 @@ let optimize_pair : IR.ground -> IR.ground =
     | Fail -> Fail
     | Switch (_, Std.List.Nil, default) -> helper default
     | Switch (_, Std.List.(Cons ((t, code), Nil)), _)
-      when Tag.string_of_tag_exn t = "pair" -> helper code
+      when Tag.string_of_tag_exn t = "pair" ->
+        helper code
     | Switch (m, xs, default) ->
-      let ys = GT.gmap Std.List.ground (fun (t, c) -> t, helper c) xs in
-      Switch (m, ys, helper default)
+        let ys = GT.gmap Std.List.ground (fun (t, c) -> (t, helper c)) xs in
+        Switch (m, ys, helper default)
   in
   helper ir
-;;
 
 let optimize_triple : IR.ground -> IR.ground =
  fun ir ->
@@ -521,13 +489,13 @@ let optimize_triple : IR.ground -> IR.ground =
     | Fail -> Fail
     | Switch (_, Std.List.Nil, default) -> helper default
     | Switch (_, Std.List.(Cons ((t, code), Nil)), _)
-      when Tag.string_of_tag_exn t = "triple" -> helper code
+      when Tag.string_of_tag_exn t = "triple" ->
+        helper code
     | Switch (m, xs, default) ->
-      let ys = GT.gmap Std.List.ground (fun (t, c) -> t, helper c) xs in
-      Switch (m, ys, helper default)
+        let ys = GT.gmap Std.List.ground (fun (t, c) -> (t, helper c)) xs in
+        Switch (m, ys, helper default)
   in
   helper ir
-;;
 
 (* ************************************************************************** *)
 module ArgPairTrueFalse : ARG0 = struct
@@ -535,36 +503,34 @@ module ArgPairTrueFalse : ARG0 = struct
 
   type g = bool * bool
   type l = (bool logic, bool logic) Std.Pair.logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = (bool ilogic, bool ilogic) Std.Pair.injected
 
   let info = "bool*bool"
 
   let clauses =
-    [ ppair ptrue __, IR.eint 1
-    ; ppair __ ptrue, IR.eint 2
-    ; ppair pfalse pfalse, IR.eint 3
-      (* ; (__, IR.eint 0)  *)
+    [
+      (ppair ptrue __, IR.eint 1);
+      (ppair __ ptrue, IR.eint 2);
+      (ppair pfalse pfalse, IR.eint 3) (* ; (__, IR.eint 0)  *);
     ]
-  ;;
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-  ;;
 
   let typs =
     let open Unn_pre.Typs in
-    let bool = T [ "true", []; "false", [] ] in
-    let p = T [ "pair", [ bool; bool ] ] in
+    let bool = T [ ("true", []); ("false", []) ] in
+    let p = T [ ("pair", [ bool; bool ]) ] in
     Typs.construct p
-  ;;
 
   let tt : T.t =
-    let bool_t = [ "true", []; "false", [] ] in
-    [ "pair", [ `Other bool_t; `Other bool_t ] ]
-  ;;
+    let bool_t = [ ("true", []); ("false", []) ] in
+    [ ("pair", [ `Other bool_t; `Other bool_t ]) ]
 
   let typs_highlevel = None
   let typs = T.unfold max_height tt |> Typs.construct
@@ -572,16 +538,15 @@ module ArgPairTrueFalse : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
   let optimize = optimize_pair
 
-  let prjp e =
-    let prjl e =
-      OCanren.prjc (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__) e
-    in
-    Std.Pair.prjc
-      prjl
-      prjl
-      (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-      e
-  ;;
+  (* let prjp e =
+     let prjl e =
+       OCanren.prjc
+         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+         e
+     in
+     Std.Pair.prjc prjl prjl
+       (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+       e *)
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -596,8 +561,10 @@ module ArgTripleBool : ARG0 = struct
   let info = "bool*bool*bool (Maranget;page1)"
 
   type g = bool * bool * bool
-  type l = (bool logic, bool logic, bool logic) Triple.logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type l = (bool logic, bool logic, bool logic) Std.Triple.logic
+
+  type qtyp_injected =
+    (bool ilogic, bool ilogic, bool ilogic) Std.Triple.injected
 
   let to_expr (demo_exprs : g list) =
     let open Unn_pre.Expr in
@@ -607,21 +574,21 @@ module ArgTripleBool : ARG0 = struct
     in
     ListLabels.map demo_exprs ~f:(fun (a, b, c) ->
         econstr "triple" [ helper a; helper b; helper c ])
-  ;;
 
   let clauses =
-    [ ptriple __ pfalse ptrue, IR.eint 1
-    ; ptriple pfalse ptrue __, IR.eint 2
-    ; ptriple __ __ pfalse, IR.eint 3
-    ; ptriple __ __ ptrue, IR.eint 4
+    [
+      (ptriple __ pfalse ptrue, IR.eint 1);
+      (ptriple pfalse ptrue __, IR.eint 2);
+      (ptriple __ __ pfalse, IR.eint 3);
+      (ptriple __ __ ptrue, IR.eint 4);
     ]
-  ;;
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     assert (2 = n);
     n
-  ;;
 
   let typs_highlevel = None
 
@@ -632,26 +599,23 @@ module ArgTripleBool : ARG0 = struct
      Typs.construct p
   *)
   let tt : T.t =
-    let bool_t = [ "true", []; "false", [] ] in
-    [ "triple", [ `Other bool_t; `Other bool_t; `Other bool_t ] ]
-  ;;
+    let bool_t = [ ("true", []); ("false", []) ] in
+    [ ("triple", [ `Other bool_t; `Other bool_t; `Other bool_t ]) ]
 
   let typs = T.unfold max_height tt |> Typs.construct
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
   let optimize = optimize_triple
 
-  let prjp e =
-    let prjl e =
-      OCanren.prjc (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__) e
-    in
-    Triple.prjc
-      prjl
-      prjl
-      prjl
-      (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-      e
-  ;;
+  (* let prjp e =
+     let prjl e =
+       OCanren.prjc
+         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+         e
+     in
+     Triple.prjc prjl prjl prjl
+       (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
+       e *)
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -667,57 +631,53 @@ let nat_inject =
     | Nat.S xs -> Nat.succ (helper xs)
   in
   helper
-;;
 
 module ArgPeanoSimple : ARG0 = struct
   open OCanren
 
   type g = (N.ground, N.ground) OCanren.Std.Pair.ground
   type l = (N.logic, N.logic) OCanren.Std.Pair.logic
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = (N.injected, N.injected) Std.Pair.injected
 
   let rec all_inhabitants (rez : N.injected) =
     conde [ rez === N.z; fresh tl (N.s tl === rez) (all_inhabitants tl) ]
-  ;;
 
   let make_wildcard_inhabitant : N.ground =
     let open OCanren in
-    run q all_inhabitants (fun rr -> rr#prjc @@ N.prjc (fun _ _ -> assert false))
-    |> OCanren.Stream.hd
-  ;;
+    run q all_inhabitants (fun rr -> rr#reify N.prj_exn) |> OCanren.Stream.hd
 
   let for_wildcard = make_wildcard_inhabitant
 
   let typs =
     let open Unn_pre.Typs in
-    let make prev = T [ "zero", []; "succ", [ prev ] ] in
-    let empty = T [ "zero", [] ] in
+    let make prev = T [ ("zero", []); ("succ", [ prev ]) ] in
+    let empty = T [ ("zero", []) ] in
     let height = make empty in
     let height = make height in
     let height = make height in
-    let pairs = T [ "pair", [ height; height ] ] in
+    let pairs = T [ ("pair", [ height; height ]) ] in
     Typs.construct pairs
-  ;;
 
   let typs_highlevel = None
   let info = "simple nats (a la Maranget2008)"
 
   let clauses =
-    [ ppair (psucc __) (psucc __), IR.eint 30
-    ; ppair pzero __, IR.eint 10
-    ; ppair __ pzero, IR.eint 10
+    [
+      (ppair (psucc __) (psucc __), IR.eint 30);
+      (ppair pzero __, IR.eint 10);
+      (ppair __ pzero, IR.eint 10);
     ]
-  ;;
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-  ;;
 
   let optimize = optimize_pair
   (*
@@ -755,43 +715,44 @@ let list_inject arg =
     | List.Cons (x, xs) -> arg x % helper xs
   in
   helper
-;;
 
 module ArgSimpleList : ARG0 = struct
   open OCanren
 
   type g = (int Std.List.ground, int Std.List.ground) Std.Pair.ground
   type l = (int logic Std.List.logic, int logic Std.List.logic) Std.Pair.logic
-  type qtyp_injected = (g, l) injected
+
+  type qtyp_injected =
+    ( int ilogic Std.List.injected,
+      int ilogic Std.List.injected )
+    Std.Pair.injected
 
   let typs =
     let open Unn_pre.Typs in
-    let ints = T [ "int", [] ] in
-    let list_empty = T [ "nil", [] ] in
-    let listints1 = T [ "nil", []; "cons", [ ints; list_empty ] ] in
-    let listints2 = T [ "nil", []; "cons", [ ints; listints1 ] ] in
-    let pairs = T [ "pair", [ listints2; listints2 ] ] in
+    let ints = T [ ("int", []) ] in
+    let list_empty = T [ ("nil", []) ] in
+    let listints1 = T [ ("nil", []); ("cons", [ ints; list_empty ]) ] in
+    let listints2 = T [ ("nil", []); ("cons", [ ints; listints1 ]) ] in
+    let pairs = T [ ("pair", [ listints2; listints2 ]) ] in
     let grounded = Typs.construct pairs in
     grounded
-  ;;
 
   let tt0 : TypsHighlevel.t =
     let open TypsHighlevel in
-    let int = Nonrec [ "42", [] ] in
+    let int = Nonrec [ ("42", []) ] in
     let int_list = list "int" in
-    let env = [ "int", int; "intlist", int_list ] in
-    env, [ "pair", [ arg "intlist"; arg "intlist" ] ]
-  ;;
+    let env = [ ("int", int); ("intlist", int_list) ] in
+    (env, [ ("pair", [ arg "intlist"; arg "intlist" ]) ])
 
   let typs_highlevel = Some tt0
   let info = "simple lists (from Maranget2008)"
 
   let clauses =
-    [ ppair pnil __, IR.eint 10
-    ; ppair __ pnil, IR.eint 20
-    ; ppair (pcons __ __) (pcons __ __), IR.eint 30
+    [
+      (ppair pnil __, IR.eint 10);
+      (ppair __ pnil, IR.eint 20);
+      (ppair (pcons __ __) (pcons __ __), IR.eint 30);
     ]
-  ;;
 
   (*
   let rec all_inhabitants inh_arg rez =
@@ -877,21 +838,21 @@ module ArgSimpleList : ARG0 = struct
 *)
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-  ;;
 
   let optimize = optimize_pair
 
   module L = OCanren.Std.List
 
-  let prjp e =
-    let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
-    let prjl e = L.prjc prj1 (fun _ _ -> failwith "should not happen2") e in
-    Std.Pair.prjc prjl prjl (fun _ _ -> failwith "should not happen5") e
-  ;;
+  (* let prjp e =
+     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
+     let prjl e = L.prjc prj1 (fun _ _ -> failwith "should not happen2") e in
+     Std.Pair.prjc prjl prjl (fun _ _ -> failwith "should not happen5") e *)
 
   (*
   let to_expr demo_exprs =
@@ -916,39 +877,36 @@ module TwoNilList = struct
   open OCanren
 
   module L = struct
-    type ('a, 'self) t =
-      | Nil
-      | Nil2
-      | Cons of 'a * 'self
+    [%%distrib
+    type nonrec ('a, 'self) t = Nil | Nil2 | Cons of 'a * 'self
     [@@deriving gt ~options:{ show; fmt; gmap }]
 
-    type 'a ground = ('a, 'a ground) t [@@deriving gt ~options:{ show; fmt; gmap }]
+    type 'a ground = ('a, 'a ground) t]
 
-    type 'a logic = ('a, 'a logic) t OCanren.logic
-    [@@deriving gt ~options:{ show; fmt; gmap }]
+    (* type 'a logic = ('a, 'a logic) t OCanren.logic
+       [@@deriving gt ~options:{ show; fmt; gmap }] *)
 
-    type ('a, 'b) injected = ('a ground, 'b logic) OCanren.injected
+    (* type ('a, 'b) injected = ('a ground, 'b logic) OCanren.injected *)
 
-    module T = Fmap2 (struct
-      type nonrec ('a, 'b) t = ('a, 'b) t
+    (* module T = Fmap2 (struct
+         type nonrec ('a, 'b) t = ('a, 'b) t
 
-      let fmap fa fb = (GT.gmap t) fa fb
-    end)
+         let fmap fa fb = (GT.gmap t) fa fb
+       end) *)
 
-    let nil () = inj @@ T.distrib Nil
-    let nil2 () = inj @@ T.distrib Nil2
-    let cons x xs = inj @@ T.distrib @@ Cons (x, xs)
-    let rec reify r1 h = T.reify r1 (reify r1) h
-    let rec prjc fa onvar env xs = T.prjc fa (prjc fa onvar) onvar env xs
+    (* let nil () = inj @@ T.distrib Nil *)
+    (* let nil2 () = inj @@ T.distrib Nil2 *)
+    (* let cons x xs = inj @@ T.distrib @@ Cons (x, xs) *)
+    (* let rec reify r1 h = T.reify r1 (reify r1) h *)
+    (* let rec prjc fa onvar env xs = T.prjc fa (prjc fa onvar) onvar env xs *)
 
-    let inject arg (e : _ ground) : (_, _) injected =
+    let inject arg (e : _ ground) : _ injected =
       let rec helper = function
         | Nil -> nil ()
         | Nil2 -> nil2 ()
         | Cons (x, xs) -> cons (arg x) (helper xs)
       in
       helper e
-    ;;
   end
 
   (*
@@ -964,15 +922,14 @@ module TwoNilList = struct
 *)
   let rec all_inhabitants_2nillist inh_arg rez =
     conde
-      [ rez === L.nil ()
-      ; rez === L.nil2 ()
-      ; fresh
-          (x tl)
+      [
+        rez === L.nil ();
+        rez === L.nil2 ();
+        fresh (x tl)
           (L.cons x tl === rez)
           (inh_arg x)
-          (all_inhabitants_2nillist inh_arg tl)
+          (all_inhabitants_2nillist inh_arg tl);
       ]
-  ;;
   (*
   let () =
     let open Mytester in
@@ -1036,68 +993,73 @@ end
 module ArgTwoNilLists1 : ARG0 = struct
   open OCanren
 
-  type g = (int TwoNilList.L.ground, int TwoNilList.L.ground) OCanren.Std.Pair.ground
+  type g =
+    (int TwoNilList.L.ground, int TwoNilList.L.ground) OCanren.Std.Pair.ground
 
   type l =
-    ( int OCanren.logic TwoNilList.L.logic
-    , int OCanren.logic TwoNilList.L.logic )
+    ( int OCanren.logic TwoNilList.L.logic,
+      int OCanren.logic TwoNilList.L.logic )
     OCanren.Std.Pair.logic
 
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected =
+    ( int OCanren.ilogic TwoNilList.L.injected,
+      int OCanren.ilogic TwoNilList.L.injected )
+    OCanren.Std.Pair.injected
 
   let info = "two-nil lists (no cons -- use WCs)"
 
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
-    let ints = T [ "int", [] ] in
-    let lists = T [ "nil", []; "nil2", [] ] in
-    let lists = T [ "nil", []; "nil2", []; "cons", [ ints; lists ] ] in
-    let lists = T [ "nil", []; "nil2", []; "cons", [ ints; lists ] ] in
-    let pairs = T [ "pair", [ lists; lists ] ] in
+    let ints = T [ ("int", []) ] in
+    let lists = T [ ("nil", []); ("nil2", []) ] in
+    let lists = T [ ("nil", []); ("nil2", []); ("cons", [ ints; lists ]) ] in
+    let lists = T [ ("nil", []); ("nil2", []); ("cons", [ ints; lists ]) ] in
+    let pairs = T [ ("pair", [ lists; lists ]) ] in
     let grounded = Typs.construct pairs in
     grounded
-  ;;
 
   let typs_highlevel = None
 
   let clauses =
-    [ ppair pnil __, IR.eint 10
-    ; ppair __ pnil, IR.eint 20
-    ; ppair pnil2 __, IR.eint 30
-    ; ppair __ pnil2, IR.eint 40
-    ; ppair __ __, IR.eint 60
+    [
+      (ppair pnil __, IR.eint 10);
+      (ppair __ pnil, IR.eint 20);
+      (ppair pnil2 __, IR.eint 30);
+      (ppair __ pnil2, IR.eint 40);
+      (ppair __ __, IR.eint 60);
     ]
-  ;;
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
-  ;;
 
   let optimize = optimize_pair
 
-  let prjp e =
-    let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
-    let prjl e = TwoNilList.L.prjc prj1 (fun _ _ -> failwith "should not happen2") e in
-    Std.Pair.prjc prjl prjl (fun _ _ -> failwith "should not happen5") e
-  ;;
+  (* let prjp e =
+     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
+     let prjl e =
+       TwoNilList.L.prjc prj1 (fun _ _ -> failwith "should not happen2") e
+     in
+     Std.Pair.prjc prjl prjl (fun _ _ -> failwith "should not happen5") e *)
 
   let to_expr demo_exprs =
     let open Unn_pre.Expr in
     let rec hack_list = function
       | TwoNilList.L.Nil -> econstr "nil" []
       | TwoNilList.L.Nil2 -> econstr "nil2" []
-      | TwoNilList.L.Cons (_, tl) -> econstr "cons" [ econstr "int" []; hack_list tl ]
+      | TwoNilList.L.Cons (_, tl) ->
+          econstr "cons" [ econstr "int" []; hack_list tl ]
     in
     ListLabels.map demo_exprs ~f:(fun (a, b) ->
         econstr "pair" [ hack_list a; hack_list b ])
-  ;;
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -1111,13 +1073,13 @@ module ArgTwoNilLists2Cons : ARG0 = struct
   let info = "two-nil lists (with cons)"
 
   let clauses =
-    [ ppair pnil __, IR.eint 10
-    ; ppair __ pnil, IR.eint 20
-    ; ppair pnil2 __, IR.eint 30
-    ; ppair __ pnil2, IR.eint 40
-    ; ppair (pcons __ __) (pcons __ __), IR.eint 60
+    [
+      (ppair pnil __, IR.eint 10);
+      (ppair __ pnil, IR.eint 20);
+      (ppair pnil2 __, IR.eint 30);
+      (ppair __ pnil2, IR.eint 40);
+      (ppair (pcons __ __) (pcons __ __), IR.eint 60);
     ]
-  ;;
 end
 
 module ArgTwoNilLists2Simplified : ARG0 = struct
@@ -1126,13 +1088,13 @@ module ArgTwoNilLists2Simplified : ARG0 = struct
   let info = "two-nil lists (with cons; simplified RHS)"
 
   let clauses =
-    [ ppair pnil __, IR.eint 10
-    ; ppair __ pnil, IR.eint 10
-    ; ppair pnil2 __, IR.eint 10
-    ; ppair __ pnil2, IR.eint 10
-    ; ppair (pcons __ __) (pcons __ __), IR.eint 60
+    [
+      (ppair pnil __, IR.eint 10);
+      (ppair __ pnil, IR.eint 10);
+      (ppair pnil2 __, IR.eint 10);
+      (ppair __ pnil2, IR.eint 10);
+      (ppair (pcons __ __) (pcons __ __), IR.eint 60);
     ]
-  ;;
 
   let () = assert (max_height = 2)
 end
@@ -1154,17 +1116,13 @@ module PCF = struct
     | Apply
 
   type acc = code
-
-  type stack_item =
-    | Val of code
-    | Env of int
-    | Code of int
+  type stack_item = Val of code | Env of int | Code of int
 
   module S : sig
     val run : acc -> stack_item list -> code list -> int
   end = struct
     let rec run a s c =
-      match a, s, c with
+      match (a, s, c) with
       | _, _, Ldi i :: c -> 1
       | _, _, Push :: c -> 2
       | Int n2, Val (Int n1) :: s, IOp op :: c -> 3
@@ -1179,7 +1137,6 @@ module PCF = struct
       | Clo (cc, ce), Val v :: s, Apply :: c -> 12
       | a, Code c :: Env e :: s, [] -> 13
       | a, [], [] -> 14
-    ;;
   end [@warning "-8-27"]
 end
 
@@ -1188,7 +1145,7 @@ module ArgPCF : ARG0 = struct
 
   type g
   type l
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = unit OCanren.ilogic
 
   let info = "BIG (no cons -- use WCs)"
   let pldi x = pconstr "Ldi" [ x ]
@@ -1210,9 +1167,10 @@ module ArgPCF : ARG0 = struct
   let pcode x = pconstr "Code" [ x ]
 
   let clauses =
-    [ ptriple __ __ (pcons (pldi __) __), IR.eint 1
-    ; ptriple __ __ (pcons ppush __), IR.eint 2
-    ; ptriple (pInt __) __ (pcons (piop __) __), IR.eint 3
+    [
+      (ptriple __ __ (pcons (pldi __) __), IR.eint 1);
+      (ptriple __ __ (pcons ppush __), IR.eint 2);
+      (ptriple (pInt __) __ (pcons (piop __) __), IR.eint 3)
       (*    ; ptriple (pInt __) (pcons (pval __) __) (pcons (piop __) __), IR.eint 3*)
       (*    ; ptriple (pInt __) (pcons (pval (pInt __)) __)  (pcons (piop __) __), IR.eint 3*)
       (*    ; ptriple (pInt __) (pcons __ __)  (pcons (piop __) __), IR.eint 3*)
@@ -1229,89 +1187,114 @@ module ArgPCF : ARG0 = struct
          ; ptriple __   __ (pcons (pmkclosrec __) __), IR.eint 10
          ; ptriple (pclo __ __) (pcons (pval __) __) (pcons papply __), IR.eint 12
          ; ptriple __   (pcons (pcode __) (pcons (penv __) __)) pnil, IR.eint 13
-         ; ptriple __   pnil pnil, IR.eint 14*)
+         ; ptriple __   pnil pnil, IR.eint 14*);
     ]
-  ;;
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     n
-  ;;
 
   let typs =
     let open Unn_pre in
     let open Unn_pre.Typs in
-    let int = T [ "42", [] ] in
+    let int = T [ ("42", []) ] in
     (*    let pairint = T [ ("pair", [ int; int ]) ] in*)
     let code =
       T
-        [ "Push", []
+        [
+          ("Push", [])
           (* ; ("Extend", [])
              ; ("Pushenv", [])
              ; ("Popenv", [])
-             ; ("Apply", [])*)
-        ; "Ldi", [ int ]
+             ; ("Apply", [])*);
+          ("Ldi", [ int ])
           (* ; ("Search", [ int ])
              ; ("Mkclos", [ int ])
-             ; ("Mkclosrec", [ int ])*)
-        ; "IOp", [ int ]
-        ; "Int", [ int ]
+             ; ("Mkclosrec", [ int ])*);
+          ("IOp", [ int ]);
+          ("Int", [ int ])
           (* ; ("Test", [ int; int ])
-             ; ("Clo", [ int; int])*)
+             ; ("Clo", [ int; int])*);
         ]
     in
     let prog =
-      let t = T [ "nil", [] ] in
-      let t = T [ "nil", []; "cons", [ code; t ] ] in
-      let t = T [ "nil", []; "cons", [ code; t ] ] in
-      let t = T [ "nil", []; "cons", [ code; t ] ] in
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ code; t ]) ] in
       t
     in
-    let stack_item = T [ "Val", [ code ]; "Env", [ int ]; "Code", [ int ] ] in
+    let stack_item =
+      T [ ("Val", [ code ]); ("Env", [ int ]); ("Code", [ int ]) ]
+    in
     let stack =
-      let t = T [ "nil", [] ] in
-      let t = T [ "nil", []; "cons", [ stack_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ stack_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ stack_item; t ] ] in
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ stack_item; t ]) ] in
       t
     in
-    let pairs = T [ "triple", [ code; stack; prog ] ] in
+    let pairs = T [ ("triple", [ code; stack; prog ]) ] in
     let grounded = Typs.construct pairs in
     grounded
-  ;;
 
   let tts : T.t =
-    let int = [ "42", [] ] in
+    let int = [ ("42", []) ] in
     let code =
-      [ "Push", []; "Ldi", [ `Other int ]; "IOp", [ `Other int ]; "Int", [ `Other int ] ]
+      [
+        ("Push", []);
+        ("Ldi", [ `Other int ]);
+        ("IOp", [ `Other int ]);
+        ("Int", [ `Other int ]);
+      ]
     in
     let prog = T.list code in
     let stack_item =
-      [ "Val", [ `Other code ]; "Env", [ `Other int ]; "Code", [ `Other int ] ]
+      [
+        ("Val", [ `Other code ]);
+        ("Env", [ `Other int ]);
+        ("Code", [ `Other int ]);
+      ]
     in
     let stack = T.list stack_item in
-    [ "triple", [ `Other code; `Other stack; `Other prog ] ]
-  ;;
+    [ ("triple", [ `Other code; `Other stack; `Other prog ]) ]
 
   let typs = Unn_pre.Typs.construct @@ T.unfold (1 + max_height) tts
 
   let tt0 : TypsHighlevel.t =
     let open TypsHighlevel in
-    let int = Nonrec [ "42", [] ] in
+    let int = Nonrec [ ("42", []) ] in
     let code =
       Nonrec
-        [ "Push", []; "Ldi", [ arg "int" ]; "IOp", [ arg "int" ]; "Int", [ arg "int" ] ]
+        [
+          ("Push", []);
+          ("Ldi", [ arg "int" ]);
+          ("IOp", [ arg "int" ]);
+          ("Int", [ arg "int" ]);
+        ]
     in
     let prog = list "code" in
     let stack_item =
-      Nonrec [ "Val", [ arg "code" ]; "Env", [ arg "int" ]; "Code", [ arg "int" ] ]
+      Nonrec
+        [
+          ("Val", [ arg "code" ]);
+          ("Env", [ arg "int" ]);
+          ("Code", [ arg "int" ]);
+        ]
     in
     let stack = list "stack_item" in
     let env =
-      [ "code", code; "prog", prog; "stack_item", stack_item; "stack", stack; "int", int ]
+      [
+        ("code", code);
+        ("prog", prog);
+        ("stack_item", stack_item);
+        ("stack", stack);
+        ("int", int);
+      ]
     in
-    env, [ "triple", [ arg "code"; arg "stack"; arg "prog" ] ]
-  ;;
+    (env, [ ("triple", [ arg "code"; arg "stack"; arg "prog" ]) ])
 
   let typs = Unn_pre.Typs.construct @@ TypsHighlevel.unfold (1 + max_height) tt0
   let typs_highlevel = Some tt0
@@ -1321,10 +1304,7 @@ module ArgPCF : ARG0 = struct
     Work_base_common.well_typed_expr_height
       N.(inject @@ of_int n)
       Expr.(inject @@ eleaf "nil")
-      e
-      (Typs.inject typs)
-      !!true
-  ;;
+      e (Typs.inject typs) !!true
 
   let _f () =
     let open OCanren in
@@ -1336,11 +1316,11 @@ module ArgPCF : ARG0 = struct
     let s = run q r (fun rr -> rr#reify Expr.reify) in
     let xs = Stream.take s in
     let n = List.length xs in
-    Printf.printf "With default generation there are %d examples for test `%s`\n%!" n info;
+    Printf.printf
+      "With default generation there are %d examples for test `%s`\n%!" n info;
     Printf.printf "<examples>\n%!";
     List.iteri (fun i e -> Printf.printf "\t%d: %s\n" i (Expr.show_logic e)) xs;
     Printf.printf "</examples>\n%!"
-  ;;
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
@@ -1410,7 +1390,7 @@ module ArgTuple5 : ARG0 = struct
 
   type g
   type l
-  type qtyp_injected = (g, l) OCanren.injected
+  type qtyp_injected = g OCanren.ilogic
 
   let info = "for path heuristic (no cons -- use WCs)"
 
@@ -1420,8 +1400,10 @@ module ArgTuple5 : ARG0 = struct
     (*    let int = T [ ("int",[]) ] in*)
     let list_item =
       T
-        [ "Push", []
-        ; "Extend", [] (*      ; ("Pushenv", [])*)
+        [
+          ("Push", []);
+          ("Extend", [])
+          (*      ; ("Pushenv", [])*)
           (*      ; ("Popenv", [])*)
           (*      ; ("Apply", [])*)
           (*; ("Ldi", [ int ])
@@ -1431,27 +1413,26 @@ module ArgTuple5 : ARG0 = struct
             ; ("IOp", [ int ])
             ; ("Int", [ int ])
             ; ("Test", [ int ])
-            ; ("Clo", [ int ])*)
+            ; ("Clo", [ int ])*);
         ]
     in
     let stack =
-      let t = T [ "nil", [] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
-      let t = T [ "nil", []; "cons", [ list_item; t ] ] in
+      let t = T [ ("nil", []) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
+      let t = T [ ("nil", []); ("cons", [ list_item; t ]) ] in
       t
     in
-    let pairs = T [ "triple", [ stack; stack; stack ] ] in
+    let pairs = T [ ("triple", [ stack; stack; stack ]) ] in
     Typs.construct pairs
-  ;;
 
   let typs_highlevel = None
   let pldi x = pconstr "Ldi" [ x ]
@@ -1474,18 +1455,19 @@ module ArgTuple5 : ARG0 = struct
   let optimize = id
 
   let clauses =
-    [ ptriple __ __ (pcons __ (pcons __ (pcons __ __))), IR.eint 1
-    ; ptriple __ __ (pcons ppush __), IR.eint 2
+    [
+      (ptriple __ __ (pcons __ (pcons __ (pcons __ __))), IR.eint 1);
+      (ptriple __ __ (pcons ppush __), IR.eint 2);
     ]
-  ;;
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n = Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses) in
+    let n =
+      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
+    in
     n
-  ;;
 
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
@@ -1497,25 +1479,26 @@ module ArgMake (Arg : ARG0) : ARG_FINAL = struct
   include Arg
 
   let possible_answer, max_ifs_count =
-    if Arg.try_compile_naively
-    then (
+    if Arg.try_compile_naively then
       let run_ground clauses : IR.ground =
         let injected : Clauses.injected = Clauses.inject clauses in
         let first =
-          OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr -> rr#prj)
+          OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr ->
+              rr#reify IR.prj_exn)
           |> OCanren.Stream.hd
         in
         let second = Arg.optimize first in
         second
       in
       let ans = run_ground clauses in
-      Some ans, IR.count_ifs_ground ans)
-    else (
+      (Some ans, IR.count_ifs_ground ans)
+    else
       let sum =
-        List.fold_left (fun acc (p, _) -> acc + Pattern.count_constructors p) 0 clauses
+        List.fold_left
+          (fun acc (p, _) -> acc + Pattern.count_constructors p)
+          0 clauses
       in
-      None, sum)
-  ;;
+      (None, sum)
 
   let minimal_trie = Pats_tree.minimize initial_trie
   let ir_hint _ = OCanren.success
@@ -1524,8 +1507,7 @@ module ArgMake (Arg : ARG0) : ARG_FINAL = struct
   let max_nested_switches : int =
     List.map
       (fun (p, _) ->
-        GT.transform
-          Pattern.ground
+        GT.transform Pattern.ground
           (fun fself ->
             object
               method c_PConstr acc _ _name args =
@@ -1533,26 +1515,24 @@ module ArgMake (Arg : ARG0) : ARG_FINAL = struct
 
               method c_WildCard acc _ = acc + 1
             end)
-          0
-          p
+          0 p
         |> fun size ->
         (*        Format.printf "pattern %a has size %d\n%!" (GT.fmt Pattern.ground) p size;*)
         size)
       clauses
     |> Helper.List.max
-  ;;
 end
 
 module type ALGO = sig
   module Make : functor (W : WORK) (Arg : ARG_FINAL) -> sig
-    val test
-      :  ?print_examples:bool
-      -> ?debug_filtered_by_size:bool
-      -> ?with_hack:bool
-      -> ?check_repeated_ifs:bool
-      -> ?prunes_period:int option
-      -> ?with_default_shortcuts:bool
-      -> int
-      -> unit
+    val test :
+      ?print_examples:bool ->
+      ?debug_filtered_by_size:bool ->
+      ?with_hack:bool ->
+      ?check_repeated_ifs:bool ->
+      ?prunes_period:int option ->
+      ?with_default_shortcuts:bool ->
+      int ->
+      unit
   end
 end

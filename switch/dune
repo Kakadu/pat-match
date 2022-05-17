@@ -1,7 +1,7 @@
 (env
  (dev
   (flags
-   (:standard -rectypes -warn-error +20+5 -w -33-37-26)))
+   (:standard -rectypes -warn-error +20+5 -w -33-34-37-26)))
  (release
   (flags
    (:standard -rectypes -warn-error +20+5))))
@@ -31,11 +31,13 @@
   mybench)
  (preprocess
   (pps
+   OCanren-ppx.ppx_distrib
    OCanren-ppx.ppx_tester
    OCanren-ppx.ppx_repr
    OCanren-ppx.ppx_fresh
    OCanren-ppx.ppx_wildcard
    GT.ppx_all
+   ppx_expect
    ppx_optcomp)))
 
 (executable

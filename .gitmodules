@@ -1,3 +1,8 @@
 [submodule "noCanren"]
 	path = noCanren
 	url = https://github.com/Kakadu/noCanren.git
+[submodule "OCanren"]
+	path = OCanren
+	url = https://github.com/Kakadu/OCanren.git
+	branch = master-fd3
+

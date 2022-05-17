@@ -7,88 +7,72 @@ open OCanren
 
 let print_span span =
   let ms = Mtime.Span.to_ms span in
-  if ms > 10000.0
-  then printf "%10.0fs \n%!" (Mtime.Span.to_s span)
+  if ms > 10000.0 then printf "%10.0fs \n%!" (Mtime.Span.to_s span)
   else printf "%10.0fms\n%!" ms
 
-let wrap ~span onOK onFree i (name, x) =
-  if x#is_open
-  then onFree i name ~span x
-  else onOK   i name ~span x
+let wrap ~span:_ onOK i (name, x) = onOK i name x
 
-let qh onOK onFree = fun q ~span () ->
+let qh onOK q ~span =
   print_span span;
-  List.iteri (wrap ~span onOK onFree) @@ ["q", q]
+  List.iteri (wrap ~span onOK (* ~span *)) @@ [ ("q", q) ]
+(* let qrh onOK q r () = List.iteri (wrap onOK) @@ [ ("q", q); ("r", r) ] *)
 
-let qrh onOK onFree = fun q r ~span () ->
-  print_span span;
-  List.iteri (wrap ~span onOK onFree) @@ ["q", q; "r", r]
+(* let qrsh onOK q r s () =
+     List.iteri (wrap onOK) @@ [ ("q", q); ("r", r); ("s", s) ]
 
-let qrsh onOK onFree = fun q r s ~span () ->
-  print_span span;
-  List.iteri (wrap ~span onOK onFree) @@ ["q", q; "r", r; "s", s]
-
-let qrsth onOK onFree = fun q r s t ~span () ->
-  print_span span;
-  List.iteri (wrap ~span onOK onFree) @@ ["q", q; "r", r; "s", s; "t", t]
-
+   let qrsth onOK q r s t () =
+     List.iteri (wrap onOK) @@ [ ("q", q); ("r", r); ("s", s); ("t", t) ]
+*)
 let make_title n msg =
-  printf "%s, %s answer%s {\n%!"
-    msg
-    (if n = (-1) then "all" else string_of_int n)
-    (if n <>  1  then "s" else "")
+  printf "%s, %s answer%s {\n%!" msg
+    (if n = -1 then "all" else string_of_int n)
+    (if n <> 1 then "s" else "")
 
 exception NoMoreAnswers
 
-let run_gen onOK onFree n num handler (repr, goal) =
+let run_gen onFree n num handler (repr, goal) =
   make_title n repr;
   let rec loop st = function
-  | k when (k > n) && (n >= 0) -> ()
-  | k ->
-    let start = Mtime_clock.counter () in
-    let stream_rez = Stream.retrieve ~n:1 st in
-    let span = Mtime_clock.count start in
-    match stream_rez with
-    | [],_ ->
-        print_span span;
-        raise NoMoreAnswers
-    | [f],tl ->
-      f ~span ();
-      printf "\n%!";
-      loop tl (k+1)
-    | _ -> assert false
+    | k when k > n && n >= 0 -> ()
+    | k -> (
+        let start = Mtime_clock.counter () in
+        let stream_rez = Stream.retrieve ~n:1 st in
+        let span = Mtime_clock.count start in
+        match stream_rez with
+        | [], _ ->
+            print_span span;
+            raise NoMoreAnswers
+        | [ f ], tl ->
+            f ~span;
+            printf "\n%!";
+            loop tl (k + 1)
+        | _ -> assert false)
   in
-  let handler = handler onOK onFree in
+  let handler = handler onFree in
   let () = try loop (run num goal handler) 1 with NoMoreAnswers -> () in
   printf "}\n%!"
 
-(**
-  [run_exn printer n name_helper goal] prints answers supposing there are no free variables there
-  (i.e. reification is not required)
-*)
-let run_exn printer = run_gen
-  (fun i name ~span x  -> printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer x#prj) )
-  (fun _ _ ~span:_ _  -> failwith "Free logic variables in the answer")
+let run_r reifier printerR =
+  run_gen (fun i name (func : _ OCanren.reified) ->
+      let ans = func#reify reifier in
+      printf "%s%s=%s;%!"
+        (if i <> 0 then " " else "")
+        name
+        (printerR ~span:(Obj.magic 1) ans))
 
-(**
-  [runR reifier print_plain print_injected n name_helper goal] prints answers both with free varibles and
-  without them. In the first cases it uses [print_plain] as printer fuction. In the latter case it does
-  reification using [reifier] and prints the result wit [print_ibjected]
-*)
-let runR reifier printerNoFree printerR = run_gen
-  (fun i name ~span x ->
-    (* i is a answer part (depends on qh, qrh sizes). It is not index of an answer *)
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerNoFree ~span x#prj)
-  )
-  (fun i name ~span func  ->
-    let ans = func#reify reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerR ~span ans)
-    )
+let%expect_test _ =
+  let open Tester in
+  run_r
+    (OCanren.prj_exn : (GT.int ilogic, GT.int) Reifier.t)
+    (GT.show GT.int) 1 q
+    (qh : (int -> string -> GT.int OCanren.reified -> _) -> _)
+    ("", fun (q : int ilogic) -> q === !!1)
 
-let run_prjc reifier printer = run_gen
-  (fun i name ~span x  ->
-     printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span x#prj) )
-  (fun i name ~span func ->
-    let ans = func#prjc reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span ans)
-  )
+let%expect_test _ =
+  run_r
+    (OCanren.prj_exn : (GT.string ilogic, GT.string) Reifier.t)
+    (fun ~span : _ -> GT.show GT.string)
+    1 q
+    (qh : (int -> string -> GT.string OCanren.reified -> _) -> _)
+    ("", fun (q : string ilogic) -> q === !!"1");
+  [%expect {| 2 |}]

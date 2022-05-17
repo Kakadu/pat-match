@@ -21,9 +21,19 @@
  (modules mytester)
  (public_name mytester)
  (preprocess
-  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_expect))
  (flags (-rectypes))
- (libraries mtime.clock.os OCanren))
+ (libraries mtime.clock.os OCanren.tester OCanren GT))
+
+(executable
+ (name mytester_run)
+ (modules mytester_run)
+ (flags
+  (:standard -rectypes))
+ (libraries mytester))
+
+(cram
+ (deps ./mytester_run.exe))
 
 (library
  (name mybench)
