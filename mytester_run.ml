@@ -1,12 +1,16 @@
 open Mytester
 open OCanren
+open OCanren.Std
 
 let () =
   run_r
-    (OCanren.prj_exn : (GT.string ilogic, GT.string) Reifier.t)
-    (fun ~span ->
-      Mytester.print_span span;
-      GT.show GT.string)
-    1 q
-    (qh : (int -> string -> GT.string OCanren.reified -> _) -> _)
-    ("", fun (q : string ilogic) -> q === !!"1")
+    (OCanren.prj_exn : (GT.int ilogic, GT.int) Reifier.t)
+    (fun ~span:_ ->
+      (* Mytester.print_span span; *)
+      GT.show GT.int)
+    1 q qh
+    ( "",
+      fun (q : int ilogic) ->
+        fresh (xs tl)
+          (xs === q % tl)
+          (List.reverso xs (Std.list ( !! ) (Stdlib.List.init 100 Fun.id))) )

@@ -1,1 +1,1 @@
-  $ ./mytester_run.exe
+$ ./mytester_run.exe

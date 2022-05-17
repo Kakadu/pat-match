@@ -23,14 +23,17 @@
  (preprocess
   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_expect))
  (flags (-rectypes))
- (libraries mtime.clock.os OCanren.tester OCanren GT))
+ (libraries mtime.clock.os OCanren.tester OCanren GT)
+ (inline_tests))
 
 (executable
  (name mytester_run)
  (modules mytester_run)
  (flags
   (:standard -rectypes))
- (libraries mytester))
+ (libraries mytester)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_expect)))
 
 (cram
  (deps ./mytester_run.exe))
