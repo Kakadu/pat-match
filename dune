@@ -1,14 +1,19 @@
 (env
  (dev
   (flags
-   (:standard -w -3-9-32-39 -warn-error -27))))
+   (:standard -w -3-9-32-33-39 -warn-error -27))))
 
 (library
  (name helper)
  (modules helper)
  (preprocess
-  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
- (flags (-rectypes))
+  (pps
+   OCanren-ppx.ppx_repr
+   OCanren-ppx.ppx_distrib
+   OCanren-ppx.ppx_fresh
+   GT.ppx_all))
+ (flags
+  (:standard -rectypes))
  (libraries OCanren unix))
 
 (library
@@ -42,16 +47,16 @@
  (action
   (run noCanren work.ml2mk.ml -o %{targets})))
 
-(executable
- (name main2)
- (modules main2 work)
- (flags (-rectypes))
- (libraries OCanren OCanren.tester helper)
- (preprocess
-  (pps
-   OCanren-ppx.ppx_repr
-   OCanren-ppx.ppx_fresh
-   GT.ppx
-   GT.syntax.map
-   GT.syntax.fmt
-   GT.syntax.compare)))
+; (executable
+;  (name main2)
+;  (modules main2 work)
+;  (flags (-rectypes))
+;  (libraries OCanren OCanren.tester helper)
+;  (preprocess
+;   (pps
+;    OCanren-ppx.ppx_repr
+;    OCanren-ppx.ppx_fresh
+;    GT.ppx
+;    GT.syntax.map
+;    GT.syntax.fmt
+;    GT.syntax.compare)))
