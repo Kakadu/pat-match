@@ -10,18 +10,18 @@ let () = Mybench.enable ~on:false
 type test_t = string * (module Main_inputs.ARG0)
 
 module EnabledTests = struct
-  type t = {mutable test : test_t list}
+  type t = { mutable test : test_t list }
 
   let use_cygus = ref false
   let is_sygus () = !use_cygus
-  let enabled_tests = {test = []}
-  let possible_tests = {test = []}
-  let addp x = possible_tests.test <- List.append possible_tests.test [x]
+  let enabled_tests = { test = [] }
+  let possible_tests = { test = [] }
+  let addp x = possible_tests.test <- List.append possible_tests.test [ x ]
   let disable_all () = enabled_tests.test <- []
 
   let adde ((key, _) as t) =
     let es = List.filter (fun (s, _) -> s <> key) enabled_tests.test in
-    enabled_tests.test <- List.append es [t]
+    enabled_tests.test <- List.append es [ t ]
 
   let set_sygus x = use_cygus := x
 
@@ -32,7 +32,8 @@ end
 
 let () =
   let t = ("truefalse", (module ArgTrueFalse : Main_inputs.ARG0)) in
-  EnabledTests.adde t; EnabledTests.addp t
+  EnabledTests.adde t;
+  EnabledTests.addp t
 
 let () =
   let t = ("pairtruefalse", (module ArgPairTrueFalse : Main_inputs.ARG0)) in
@@ -40,7 +41,8 @@ let () =
 
 let () =
   let t = ("triplebool", (module ArgTripleBool : Main_inputs.ARG0)) in
-  EnabledTests.adde t; EnabledTests.addp t
+  EnabledTests.adde t;
+  EnabledTests.addp t
 
 let () =
   let t = ("simplelist", (module ArgSimpleList : Main_inputs.ARG0)) in
@@ -58,18 +60,23 @@ let () =
   let cmds =
     List.concat_map
       (fun ((name, _m) as t) ->
-        [ ( "-" ^ name
-          , Arg.Unit (fun () -> EnabledTests.adde t)
-          , Format.sprintf "Enable the test %s" name )
-        ; ( "-no-" ^ name
-          , Arg.Unit (fun () -> EnabledTests.del name)
-          , Format.sprintf "Disable the test %s" name ) ] )
+        [
+          ( "-" ^ name,
+            Arg.Unit (fun () -> EnabledTests.adde t),
+            Format.sprintf "Enable the test %s" name );
+          ( "-no-" ^ name,
+            Arg.Unit (fun () -> EnabledTests.del name),
+            Format.sprintf "Disable the test %s" name );
+        ])
       EnabledTests.possible_tests.EnabledTests.test
-    @ [ ("-bench", Arg.Unit (fun () -> Mybench.enable ~on:true), "")
-      ; ("-nothing", Arg.Unit EnabledTests.disable_all, "Disable all tests")
-      ; ( "-sygus"
-        , Arg.Unit (fun () -> EnabledTests.set_sygus true)
-        , "run cvc4 instead of MK" ) ] in
+    @ [
+        ("-bench", Arg.Unit (fun () -> Mybench.enable ~on:true), "");
+        ("-nothing", Arg.Unit EnabledTests.disable_all, "Disable all tests");
+        ( "-sygus",
+          Arg.Unit (fun () -> EnabledTests.set_sygus true),
+          "run cvc4 instead of MK" );
+      ]
+  in
   Arg.parse cmds
     (fun _ -> print_endline "WTF")
     "Running without options start only the tests enabled by default"
@@ -87,8 +94,9 @@ let algo =
   match Sys.getenv "PAT_MATCH_ALGO" with
   | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
   | "fair" -> (module Algo_fair : Main_inputs.ALGO)
-  | exception Not_found -> (module Algo_wildcard : Main_inputs.ALGO)
-  | _ -> (module Algo_wildcard : Main_inputs.ALGO)
+  | _ -> failwith "Not impelemented"
+(* | exception Not_found -> (module Algo_wildcard : Main_inputs.ALGO) *)
+(* | _ -> (module Algo_wildcard : Main_inputs.ALGO) *)
 
 [%%define AB]
 [%%undef AB]
@@ -125,7 +133,7 @@ let () =
            let (module Algo) = algo in
            let (module Work) = work in
            let module M = Algo.Make (Work) (ArgMake (M)) in
-           M.test (-1) )
+           M.test (-1))
 
 let () = exit 0
 (* ************************************************************************** *)

@@ -70,11 +70,11 @@ let default_shortcut_tag etag constr_names rez =
       | [ lst ] -> (
           try
             let ground_list =
-              Std.List.prj_exn
+              Std.List.from_logic
                 (function Value x -> x | _ -> raise OCanren.Not_a_value)
                 lst
-              |> Std.List.to_list Fun.id
             in
+
             fresh () (OCanren.FD.domain etag ground_list)
           with OCanren.Not_a_value ->
             Format.eprintf "Not_a_value when reifying type names. Skip\n%!";
@@ -83,8 +83,8 @@ let default_shortcut_tag etag constr_names rez =
 
 let default_shortcut4 (t1 : Tag.injected) t2 rez =
   fresh flag
-    (debug_var (Triple.make t1 t2 rez)
-       (Triple.reify Tag.reify Tag.reify OCanren.reify) (function
+    (debug_var (Std.triple t1 t2 rez)
+       (Std.Triple.reify Tag.reify Tag.reify OCanren.reify) (function
       | [ Value (t1, t2, Var (n, _)) ] ->
           let __ _ =
             Format.printf "default_shortcut4 of (%s, %s, _.%d)\n%!"
@@ -100,14 +100,12 @@ let default_shortcut4 (t1 : Tag.injected) t2 rez =
        ])
 
 let run_int eta =
-  runR OCanren.reify (GT.show GT.int)
-    (GT.show OCanren.logic @@ GT.show GT.int)
-    eta
+  run_r OCanren.reify (GT.show OCanren.logic @@ GT.show GT.int) eta
 
 let run_ir eta =
   let show_int = GT.show GT.bool in
   let sl = GT.show OCanren.logic show_int in
-  runR IR.reify IR.show IR.show_logic eta
+  run_r IR.reify IR.show_logic eta
 
 (* *********************************************************** *)
 
@@ -209,9 +207,8 @@ let __ _ =
       (dirty_hack q (Std.some !!1) ir ~f:(fun _ rhs rez ->
            conde [ rhs === rez; rhs === rez ]))
   in
-  runR
+  run_r
     (Std.List.reify (Std.Pair.reify OCanren.reify OCanren.reify))
-    ([%show: (GT.string, GT.int) Std.Pair.ground Std.List.ground] ())
     ([%show:
        (GT.string OCanren.logic, GT.int OCanren.logic) Std.Pair.logic
        Std.List.logic] ())

@@ -350,11 +350,9 @@ let matchable_leq_nat m n q90 =
 let rec eval_m (s : Expr.injected) (typinfo0 : Typs.injected)
     (path0 : Matchable.injected)
     (q81 :
-      ( Expr.ground,
-        _,
+      ( Expr.injected,
         (* list of pairs: name * arity *)
-      (Tag.ground, N.ground) Pair.ground List.ground,
-        _ )
+      (Tag.injected, N.injected) Pair.injected List.injected )
       Std.Pair.groundi) =
   let rec helper path q69 =
     conde
@@ -529,7 +527,7 @@ let assert_list_tag_is_ground ts =
     | [] -> failwith "no available constructors"
     | _ -> assert false)
 
-let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
+let dirty_hack branches ~f:myeval (rez : int ilogic Option.groundi) ir0 =
   let rec helper branches ~ok_branches =
     conde
       [
@@ -549,14 +547,16 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                  (debug_int "unique: " temp)
                  (ok_branches === Std.pair btag brhs % br_tl)
                  (helper ~ok_branches:br_tl btl);
-               fresh () (ans === Unique.noanswer)
+               fresh ()
+                 (ans === Unique.noanswer ())
                  (debug_lino __FILE__ __LINE__)
                  (rez === Std.Option.none ())
                  (debug "  Testing a branch (expecting noanswer)")
                  (OCanren.Unique.unique_answers (myeval btag brhs) ans)
                  (debug "  After unique_answers call")
                  (helper ~ok_branches btl);
-               fresh () (ans === Unique.different)
+               fresh ()
+                 (ans === Unique.different ())
                  (debug_lino __FILE__ __LINE__)
                  failure;
              ]);
@@ -650,14 +650,14 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
       (conde
          [
            irrr === fail () &&& (inner_rez === none ());
-           fresh_ n
+           fresh n
              (debug_ir "unifying with literal" irrr)
              (irrr === lit n)
              (debug "done!")
              (inner_rez === some n)
              (debug_lino __FILE__ __LINE__)
              (debug_ir "root_ir" ir);
-           fresh_
+           fresh
              (m cases on_default is_forbidden sub_scru typ_info etag eargs
                 only_names new_cases)
              (irrr === switch m cases on_default)

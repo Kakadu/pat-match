@@ -12,7 +12,7 @@
   main_inputs
   unn_pre
   pats_tree
-  ; algo_fair
+  algo_fair
   work_manual
   work_matchable_kind
   algo_fair_manual

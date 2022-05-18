@@ -428,9 +428,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         let start = Mtime_clock.counter () in
         let open Mytester in
         let (_ : (IR.injected, IR.logic) Reifier.t) = IR.reify in
-        let (_ : int) =
-          run_r (IR.reify : (IR.injected, IR.logic) Reifier.t) on_logic n q qh
-        in
+
         run_r IR.reify on_logic n q qh
           ( info,
             fun (ideal_IR : IR.injected) ->
