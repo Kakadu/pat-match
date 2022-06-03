@@ -16,7 +16,7 @@
  (modules mytester)
  (public_name mytester)
  (preprocess
-  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all ppx_expect))
  (flags (-rectypes))
  (libraries mtime.clock.os OCanren))
 

@@ -542,7 +542,8 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                  (* TODO: What to pass as expected answer? *)
                  (rez === Std.Option.some temp)
                  (ans === Unique.unique temp)
-                 (debug "  Testing a branch (expecting unique)")
+                 (debug_int
+                    "  Testing a branch (expecting unique_answers): tmp = " temp)
                  (OCanren.Unique.unique_answers (myeval btag brhs) ans)
                  (debug "  After unique_answers call")
                  (debug_lino __FILE__ __LINE__)
@@ -750,6 +751,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                (tag === etag)
                (shortcut_history ())
                (inner next_histo test_list rhs (Std.some rrrr))
+               (debug_ir "   rhs" rhs)
                (debug_int "myeval: ENDED " rrrr))
            ir)
     in
@@ -860,3 +862,37 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
       (debug_option_int "test_list_rez" test_list_rez)
   in
   inner (nil ()) test_list ir q60
+
+(* let%expect_test " " =
+   let f tag (rhs : IR.injected) rrrr =
+     let shortcut0 _ _ _ _ = success in
+     let shortcut1 _ _ _ _ _ _ = success in
+     let shortcut_apply_domain _ _ _ = success in
+     let _shortcut_branch _ _ _ = success in
+     let max_height = Nat.(inj (of_int 2)) in
+
+     fresh (s tinfo)
+       (eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
+          _shortcut_branch rhs (Option.some rrrr))
+   in
+   let test ~f branches =
+     run q
+     (fun rr -> rr#reify (Std.Option.reify OCanren.reify))
+     (fun ans -> fresh tmp (dirty_hack branches ~f ans tmp))
+     |> Stream.take ~n:1
+     |> Stdlib.List.iter
+          (Format.printf "-- %a\n%!"
+             [%fmt: GT.int OCanren.logic Std.Option.logic])
+   in
+   (* test Std.(pair !!1 (IR.lit !!1) % !<(Std.pair !!2 (IR.lit !!1))) ~f; *)
+   test
+     Std.(pair !!1 (IR.lit !!0) % !<(Std.pair !!2 (IR.lit !!0)))
+     ~f:(fun tag _rhs rez ->
+       conde
+         [
+           fresh () (tag === !!1) (rez === !!1);
+           fresh () (tag === !!2) (conde [ rez === !!1; rez === !!1 ]);
+         ]);
+   [%expect {| |}] *)
+
+let%test _ = true

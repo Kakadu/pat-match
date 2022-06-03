@@ -92,3 +92,13 @@ let run_prjc reifier printer = run_gen
     let ans = func#prjc reifier in
     printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span ans)
   )
+
+let%expect_test _ =
+  runR
+    (OCanren.reify)
+    (fun ~span:_ -> GT.show GT.int)
+    (fun ~span:_ -> GT.show logic @@ GT.show GT.int)
+    1 q
+    (qh : (int -> string -> span:_ -> (GT.int, _) OCanren.reified -> _) -> _)
+    ("", fun (q : (int,_ ) injected) -> q === !!1)
+
