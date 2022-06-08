@@ -437,19 +437,20 @@ module Expr = struct
     in
     helper false
 
-  let rec show_logic (x : logic) : string =
-    let rec helper x =
-      match x with
+  let rec pp_logic ppf (x : logic) =
+    let rec helper ppf = function
       | EConstr (s, xs) when Std.List.is_finite_guaranteed xs ->
-          Printf.sprintf "(%s %s)" (GT.show Tag.logic s)
-            (GT.show Std.List.logic show_logic xs)
+          Format.fprintf ppf "(%a %a)" (GT.fmt Tag.logic) s
+            (GT.fmt Std.List.logic pp_logic)
+            xs
       | EConstr (s, xs) ->
-          Printf.sprintf "(%s (%s))" (GT.show Tag.logic s)
-            (GT.show Std.List.logic show_logic xs)
+          Format.fprintf ppf "(%a (%a))" (GT.fmt Tag.logic) s
+            (GT.fmt Std.List.logic pp_logic)
+            xs
     in
-    GT.show OCanren.logic helper x
+    GT.fmt OCanren.logic helper ppf x
 
-  let pp_logic ppf x = Format.fprintf ppf "%s" (show_logic x)
+  let show_logic = Format.asprintf "%a" pp_logic
 
   let rec reify env x =
     For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
