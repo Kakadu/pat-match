@@ -439,30 +439,15 @@ module Expr = struct
 
   let rec show_logic (x : logic) : string =
     let rec helper x =
-      let default s xs =
-        Printf.sprintf "EC (%s %s)" (GT.show Tag.logic s)
-          (GT.show Std.List.logic show_logic xs)
-      in
       match x with
-      | EConstr
-          ( (Value tag as s),
-            (Value
-               (Std.List.Cons
-                 ( _,
-                   Value
-                     (Std.List.Cons
-                       (_, Value (Std.List.Cons (_, Value Std.List.Nil)))) )) as
-            xs) )
-        when Tag.of_string_exn "pair" = tag ->
-          print_endline "SUSPICIOUS";
-          default s xs
-      | EConstr (s, xs) -> default s xs
+      | EConstr (s, xs) when Std.List.is_finite_guaranteed xs ->
+          Printf.sprintf "(%s %s)" (GT.show Tag.logic s)
+            (GT.show Std.List.logic show_logic xs)
+      | EConstr (s, xs) ->
+          Printf.sprintf "(%s (%s))" (GT.show Tag.logic s)
+            (GT.show Std.List.logic show_logic xs)
     in
-
-    let ans = GT.show OCanren.logic helper x in
-    (* if ans = "" then print_endline "FUCK"; *)
-    Format.printf "Expr.show_logic `%s`\n%!" ans;
-    ans
+    GT.show OCanren.logic helper x
 
   let pp_logic ppf x = Format.fprintf ppf "%s" (show_logic x)
 
