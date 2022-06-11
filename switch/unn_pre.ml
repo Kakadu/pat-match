@@ -893,6 +893,16 @@ module Typs = struct
              (fun (p, xs) ->
                (Tag.tag_of_string_exn p, Std.List.of_list construct xs))
              xs
+
+  let singletono typs rez =
+    let open OCanren.Std in
+    conde
+      [
+        fresh (name args)
+          (typs === t !<(t_item name args))
+          (rez === Std.some (Std.pair name args));
+        fresh () (typs =/= t !<(t_item __ __)) (rez === Std.none ());
+      ]
 end
 
 module Triple = struct

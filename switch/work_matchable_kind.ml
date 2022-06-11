@@ -663,6 +663,16 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                 only_names new_cases)
              (irrr === switch m cases on_default)
              (debug_ir "ir =" irrr) (debug_expr "scru = " s)
+             (fresh rez
+                (Typs.singletono tinfo rez)
+                (conde
+                   [
+                     rez === Std.none ();
+                     fresh (name argtyps eargs)
+                       (rez === Std.some (Std.pair name argtyps))
+                       (same_length argtyps eargs !!true)
+                       (s === Expr.constr name eargs);
+                   ]))
              (eval_m s tinfo m (pair sub_scru typ_info))
              (sub_scru === eConstr etag eargs)
              (*
