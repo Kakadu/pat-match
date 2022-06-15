@@ -706,7 +706,7 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
                     (debug_expr "after cutting off = " sub_scru);
                   fresh () (typ_info === __ % (__ % __));
                 ])
-             trace_diseq_constraints
+             trace_diseq_constraints debug_enriching_subst
              (* (debug_tag "sub_scru:etag 00000" etag) *)
              (shortcut0 m max_height cases is_forbidden)
              (* Next line fixes hangings *)
