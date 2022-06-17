@@ -544,7 +544,12 @@ let dirty_hack branches ~f:myeval (rez : (int option, _) OCanren.injected) ir0 =
                  (ans === Unique.unique temp)
                  (debug_int
                     "  Testing a branch (expecting unique_answers): tmp = " temp)
-                 (OCanren.Unique.unique_answers (myeval btag brhs) ans)
+                 (OCanren.Unique.unique_answers
+                    ~debug:
+                      (fresh ()
+                         (debug_ir ~color:91 "" ir0)
+                         (debug_ir ~color:91 "brhs" brhs))
+                    (myeval btag brhs) ans)
                  (debug "  After unique_answers call")
                  (debug_lino __FILE__ __LINE__)
                  (debug_int "unique: " temp)
@@ -654,6 +659,8 @@ let rec eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_apply_domain
            fresh_ n
              (debug_ir "unifying with literal" irrr)
              (irrr === lit n)
+             (* Dirty hack allows using only 2nd example in demo6 *)
+             (conde [ n === !!0; n === !!1; n === !!2 ])
              (debug "done!")
              (inner_rez === some n)
              (debug_lino __FILE__ __LINE__)
