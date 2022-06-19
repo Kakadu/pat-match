@@ -1,0 +1,27 @@
+% !TeX spellcheck = en_US
+% !TEX root = main.tex
+
+\section{Theory}
+\label{sec:theory}
+
+In this section we describe the essence of wildcard variables and how they interact with other features of \miniKanren{}.
+
+\subsection{Wildcard in Disequality}
+Checking and storing disequality constraints may be performed in clever manner~\cite{fasterMK}. But here we will describe na\"{i}ve implementation for simplicity. In standard implementation of disequality constraints are stored as a disjunction of conjunctions of pairs: a fresh variable and a term (or an another variable).
+
+
+\subsection{Unification}
+The primary usage of wildcard variables is in the context of disequality constraints. In the unification it is just a convenient syntax to avoid manual creation of fresh variable. 
+
+\begin{minipage}{7cm}
+\begin{lstlisting}{language=ocaml}
+let tlo xs tl = 
+  (xs === List.conso __ tl)
+\end{lstlisting}
+\end{minipage}
+\begin{minipage}{9.5cm}
+\begin{lstlisting}{language=ocaml}
+let tlo xs tl = 
+  fresh (h) (xs === List.conso h tl)
+\end{lstlisting}
+\end{minipage}
