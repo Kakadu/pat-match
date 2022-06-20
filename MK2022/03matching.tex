@@ -1,5 +1,53 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\section{Matching}
+\section{Synthesis of Pattern Matching}
 \label{sec:matching}
+
+In this section we briefly describe the task of synthesis of pattern matching compilation scheme~\cite{Kosarev2020} and how wildcard patterns may improve the situation. 
+
+The pattern matching expression match a scrutinee $v$ from a set of values $\mathcal{V}$ of algebraic data types with a finite set of patterns $\mathcal{P}$, and produces an integer -- index of the pattern, such that it matches provided scrutinee and the ones before it doesn't. For simplicity we suppose that the set patterns is exhaustive, i.e. it is impossible to provide the scrutinee which doesn't fit any pattern.
+
+\[
+ \begin{array}{rcll}
+    \mathcal{C} & = & \{ C_1^{k_1}, \dots, C_n^{k_n} \}\\
+    \mathcal{V} & = & \mathcal{C}\,\mathcal{V}^*\\  
+    \mathcal{P} & = & \_ \mid \mathcal{C}\,\mathcal{P}^*
+ \end{array}
+\]
+\[
+\setarrow{\xrightarrow}
+\trans{\inbr{v;\,p_1,\dots,p_k}}{}{i},\quad 1\leqslant i\leqslant k; v \in \mathcal{V}; p_1,\dots,p_k \in \mathcal{P}
+\]
+
+For every synthesis task the patterns and indexes are ground. Type information is also available. For every subvalue in scrutinee we know which constructors makes sense to match, it's arities and type information of constructors' arguments.
+
+The relation ``$\xrightarrow{}{}\!\!$'' gives us a \emph{declarative} semantics of pattern matching. Since we are interested in
+synthesizing implementations, we need a \emph{programmatical} view on the same problem. Thus, we introduce a language $\mathcal S$
+(the ``switch'' language) of test-and-branch constructs, and a evaluator ``$\xrightarrow{}{}_{\!\!\mathcal S}$'' that matches a scrutinee to an integer.
+
+\[
+\begin{array}{rccl}
+  \mathcal M & = &       & \bullet \\
+             &   & \mid  & \mathcal M\,[\mathbb{N}] \\
+  \ir        & = &       & \primi{return}\,\mathbb{N} \\
+             &   & \mid  & \primi{switch}\;\mathcal{M}\;\primi{with}\; [\mathcal{C}\; \primi{\rightarrow}\; \ir]^*\;\primi{otherwise}\;\ir
+\end{array}
+\]
+
+We can formulate the \emph{pattern matching synthesis problem} as follows: for a given ordered sequence of patterns $p_1,\dots,p_k$ find
+a switch program $\withenv{v}{\pi}$, such that
+
+\[
+\setarrow{\xrightarrow}
+\forall v\in \mathcal V,\; \forall 1\leqslant i\leqslant n: \trans{\inbr{v;\,p_1,\dots,p_n}}{}{i}\quad
+\Longleftrightarrow{\quad\setsubarrow{_{\mathcal S}}\withenv{v}{\trans{\pi}{}{i}}}\eqno{(\star)}
+\]
+
+\noindent The description above uses universal quantification, and can't be immediately transformed into relational specification, because \emph{recursive} data types may make $\mathcal{V}$ infinite. But there is another observation that make this synthesis problem representable in \miniKanren{}. For every synthesis task we have a ground set of patterns, and they check any scrutinee only into finite depth. This allows us to cut the set of possible scrutinees until certain depth and replace universal quantification by a finite conjunction. The downside of this encoding is an exponential blowup of search space:
+\begin{itemize}
+\item Increasing amount of constructors in types, increases amount of examples required, which hurts performance.
+\item Increasing depth of constructors hurts performance, but it is expected.
+\item Changing number of pattern while saving with the same maximum depth doesn't affect performance at all, and it is unexpected.
+\end{itemize}
+\todo{Now how wildcard variables could help us }

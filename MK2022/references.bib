@@ -1,17 +1,12 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-@book{CPDT,
-  author    = {Adam Chlipala},
-  title     = {Certified Programming with Dependent Types - {A} Pragmatic Introduction
-               to the Coq Proof Assistant},
-  publisher = {{MIT} Press},
-  year      = {2013},
-  url       = {http://mitpress.mit.edu/books/certified-programming-dependent-types},
-  isbn      = {978-0-262-02665-9},
-  timestamp = {Mon, 11 May 2015 16:37:23 +0200},
-  biburl    = {https://dblp.org/rec/bib/books/daglib/0035083},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+@online{fasterMK,
+  author    = {Ballantyne, M. and et al.},
+  title     = {\textsc{faster-miniKanren} implementation in \Scheme{}},
+  url       = {https://github.com/michaelballantyne/faster-minikanren},
+  year      = {2017},
+  date = {2022/06/20}
 }
 
 @book{Coq,
@@ -84,7 +79,7 @@ doi = {10.2140/pjm.1955.5.285}
 }
 
 @inproceedings{BottomAvoiding,
-  author = {Byrd, William E. and Friedman, Daniel P. and Kumar, Ramana and Near, Joseph P.},
+  author = {, William E. and Friedman, Daniel P. and Kumar, Ramana and Near, Joseph P.},
   title = {A Shallow Scheme Embedding of Bottom-Avoiding Streams},
   booktitle = {To appear in a special issue of Higher-Order and Symbolic Computation, in honor of Mitchell Wand's 60th birthday},
   year={}
@@ -173,8 +168,7 @@ doi = {10.2140/pjm.1955.5.285}
 }
 
 @article{OCanren,
-  author    = {Dmitry Kosarev and
-               Dmitry Boulytchev},
+  author    = {Kosarev, D. and Boulytchev, D.},
   title     = {Typed Embedding of a Relational Language in OCaml},
   booktitle = {Proceedings {ML} Family Workshop / OCaml Users and Developers workshops,
                {ML/OCAML} 2016, Nara, Japan, September 22-23, 2016},
@@ -186,6 +180,23 @@ doi = {10.2140/pjm.1955.5.285}
   biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1805-11006},
   bibsource = {dblp computer science bibliography, https://dblp.org}
 }
+
+@InProceedings{Kosarev2020,
+author="Kosarev, Dmitry
+and Lozov, Petr
+and Boulytchev, Dmitry",
+editor="Oliveira, Bruno C. d. S.",
+title="Relational Synthesis for Pattern Matching",
+booktitle="Programming Languages and Systems",
+year="2020",
+publisher="Springer International Publishing",
+address="Cham",
+pages="293--310",
+abstract="We present a completely declarative approach to synthesizing pattern matching construct implementations based on application of relational programming, a specific form of constraint logic programming. Our approach is based on relational representations of both the high-level semantics of pattern matching and the semantics of an intermediate-level implementation language. This choice makes our approach, in principle, very scalable as we only need to modify the high-level semantics in order to synthesize the implementation of a pattern matching new feature. Our evaluation on a set of small samples, partially taken from existing literature shows, that our framework is capable of synthesizing optimal implementations quickly. Our in-depth stress evaluation on a number of artificial benchmarks, however, has shown the need for future improvements.",
+isbn="978-3-030-64437-6"
+}
+
+
 
 @article{unified,
   author    = {William E. Byrd and
