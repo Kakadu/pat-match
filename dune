@@ -3,6 +3,8 @@
   (flags
    (:standard -w -3-9-32-33-39 -warn-error -27))))
 
+(data_only_dirs mini unn guards gadt aez-demo nonlinear alt-ergo-demo)
+
 (library
  (name helper)
  (modules helper)
@@ -46,19 +48,19 @@
  ;(flags      ())
  (libraries GT mtime.clock.os))
 
-(executable
- (name main)
- (modules main)
- (flags (-rectypes))
- (libraries ocanren)
- (preprocess
-  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all)))
+; (executable
+;  (name main)
+;  (modules main)
+;  (flags (-rectypes))
+;  (libraries OCanren)
+;  (preprocess
+;   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all)))
 
-(rule
- (targets work.ml)
- (deps work.ml2mk.ml)
- (action
-  (run noCanren work.ml2mk.ml -o %{targets})))
+; (rule
+;  (targets work.ml)
+;  (deps work.ml2mk.ml)
+;  (action
+;   (run noCanren work.ml2mk.ml -o %{targets})))
 
 ; (executable
 ;  (name main2)

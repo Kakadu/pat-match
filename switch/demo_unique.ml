@@ -10,9 +10,9 @@ let _ =
       (dirty_hack q (Std.some !!1) ir ~f:(fun _ rhs rez ->
            conde [ rhs === rez; rhs === rez ]))
   in
-  runR
+  run_r
     (Std.List.reify (Std.Pair.reify OCanren.reify OCanren.reify))
-    ([%show: (GT.string, GT.int) Std.Pair.ground Std.List.ground] ())
+    (* ([%show: (GT.string, GT.int) Std.Pair.ground Std.List.ground] ()) *)
     ([%show:
        (GT.string OCanren.logic, GT.int OCanren.logic) Std.Pair.logic
        Std.List.logic] ())

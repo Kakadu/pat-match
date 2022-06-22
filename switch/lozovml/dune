@@ -19,7 +19,7 @@
  (preprocess
   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
  (flags
-  (-open Work_base))
+  (-open Work_base -rectypes))
  (libraries work_base))
 
 (library
