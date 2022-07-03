@@ -1,0 +1,16 @@
+(library
+ (name asdf)
+ (libraries OCanren OCanren.tester)
+ (flags
+  (:standard -rectypes))
+ (preprocess
+  (pps
+   OCanren-ppx.ppx_distrib
+   OCanren-ppx.ppx_tester
+   OCanren-ppx.ppx_repr
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_wildcard
+   GT.ppx_all
+   ppx_expect
+   ppx_optcomp))
+ (inline_tests))
