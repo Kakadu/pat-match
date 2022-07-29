@@ -1,7 +1,14 @@
 (env
  (dev
   (flags
-   (:standard -w -3-9-32-33-39 -warn-error -27))))
+   (:standard
+    -w
+    -3-9-32-33-39
+    -warn-error
+    -27
+    ;
+    -warn-error
+    -69))))
 
 (data_only_dirs mini unn guards gadt aez-demo nonlinear alt-ergo-demo)
 

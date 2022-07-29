@@ -1,0 +1,25 @@
+(env
+ (dev
+  (flags
+   (:standard -rectypes -warn-error -26-34 -w -34))))
+
+(library
+ (name lib_ifs)
+ (modules synth pre inputs)
+ (libraries typs_rel mytester)
+ (preprocess
+  (pps
+   ppx_inline_test
+   ppx_expect
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_distrib
+   GT.ppx_all))
+ (inline_tests))
+
+(executable
+ (name main)
+ (modules main)
+ (libraries typs_rel lib_ifs))
+
+(cram
+ (deps ./main.exe))

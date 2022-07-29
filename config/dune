@@ -1,0 +1,17 @@
+(executable
+ (name discover)
+ (modules Discover)
+ (libraries str dune-configurator))
+
+(rule
+ (targets
+  path-GT.cfg
+  path-OCanren.cfg
+  ;path-Maybe.cfg
+  )
+ (deps
+  (package GT)
+  (package OCanren)
+  (package noCanren))
+ (action
+  (run ./discover.exe)))

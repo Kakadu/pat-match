@@ -1,0 +1,112 @@
+(env
+ (_
+  (flags
+   (:standard -w -27-8-39))))
+
+(library
+ (name aaaaa)
+ (modules typs work)
+ (preprocess
+  (pps ppx_inline_test))
+ (inline_tests))
+
+(library
+ (name typs_rel)
+ (modules typs_rel)
+ (libraries GT OCanren)
+ (preprocess
+  (pps ppx_inline_test OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx_all))
+ (flags
+  (:standard -rectypes))
+ (inline_tests))
+
+(rule
+ (targets typs_rel.ml)
+ (deps typs.ml)
+ (action
+  (run
+   noCanren
+   ;-old-ocanren
+   -w
+   -8
+   -I
+   %{read-lines:../../config/path-GT.cfg}
+   -high-order-mode
+   -useGT
+   -distribs
+   %{deps}
+   -o
+   %{targets}))
+ ; we expect that only types there so unesting and high-order will generate the same
+ )
+
+; (library
+;  (name work_ifs)
+;  (modules work)
+;  (preprocess
+;   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+;  (flags
+;   (-open Work_base -rectypes))
+;  (libraries work_base))
+
+; (library
+;  (name work_base_ifs_common)
+;  (modules work_base_common)
+;  (preprocess
+;   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+;  (flags (-rectypes))
+;  (libraries GT OCanren))
+
+; high order
+
+(library
+ (name work_ifs_ho)
+ (modules work_ho)
+ (preprocess
+  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+ (flags
+  (-rectypes -open Work_base_common))
+ (libraries work_base work_base_common GT OCanren))
+
+(rule
+ (targets work_ho.ml)
+ (deps
+  typs_rel.cma
+  (:main work.ml))
+ (action
+  (run
+   noCanren
+   %{main}
+   ;-old-ocanren
+   -w
+   -8
+   -rectypes
+   -useGT
+   -distribs
+   ;-new-ocanren
+   -open
+   Typs_rel
+   -I
+   .typs_rel.objs/byte
+   -o
+   %{targets})))
+
+; unnesting
+
+; (library
+;  (name work_ifs_unn)
+;  (modules work_unn)
+;  (preprocess
+;   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
+;  (flags
+;   (-rectypes -open Work_base_common))
+;  (libraries work_base GT OCanren work_base_common))
+
+; (rule
+;  (targets work_unn.ml)
+;  (deps
+;   work_base_common.cma
+;   (:main work.ml))
+;  (action
+;   (system
+;    "noCanren %{main} -w -8 -unnesting-mode -without-activate-tactics -open Work_base -I .work_base.objs/byte -show-result | ocamlformat --impl - > %{targets}")))
