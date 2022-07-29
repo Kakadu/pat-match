@@ -1,8 +1,11 @@
 [submodule "OCanren"]
 	path = OCanren
 	url = https://github.com/Kakadu/OCanren.git
-	branch = master-fd3
+	branch = wildcards-mk2022
 
 [submodule "noCanren"]
 	path = noCanren
-	url = git@github.com:Lozov-Petr/noCanren.git
+	url = https://github.com/Lozov-Petr/noCanren.git
+[submodule "GT"]
+	path = GT
+	url = https://github.com/JetBrains-Research/GT.git
