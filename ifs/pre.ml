@@ -405,6 +405,10 @@ module Expr = struct
   let econstr s xs = EConstr (Tag.tag_of_string_exn s, Std.List.of_list id xs)
   let eleaf s = econstr s []
   let pair a b = constr !!(Tag.inttag_of_string_exn "pair") Std.(a %< b)
+
+  let triple a b c =
+    constr !!(Tag.inttag_of_string_exn "triple") Std.(a % (b %< c))
+
   let true_ = constr !!(Tag.inttag_of_string_exn "true") Std.(nil ())
   let false_ = constr !!(Tag.inttag_of_string_exn "false") Std.(nil ())
 
@@ -668,6 +672,7 @@ module IR = struct
     let fmt_ocl f fmt x = GT.fmt OCanren.logic f fmt x in
     let rec helper fmt = function
       | Fail -> Format.fprintf fmt "fail"
+      | Lit (Value n) -> Format.fprintf fmt "%d" n
       | Lit ln ->
           Format.fprintf fmt "(Int %a) "
             (GT.fmt OCanren.logic (GT.fmt GT.int))
@@ -798,6 +803,7 @@ module Typ_info = struct
     (Tag.ground, ground Std.List.ground) Std.Pair.ground Std.List.ground t]
 
   let t eta = W.t eta
+  let unwrap : injected -> _ -> goal = fun info list -> info === W.t list
   let t_item name xs = Std.Pair.pair name xs
 
   let rec inject (e : ground) : injected =
@@ -809,7 +815,10 @@ module Typ_info = struct
     match e with
     | T xs -> t (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
 
-  let mkt xs : ground = T (Std.List.of_list id xs)
+  (* let rec mkt xs : ground =
+     T (Std.List.of_list (fun (tag, xs) -> (tag, Std.List.of_list mkt xs)) xs) *)
+
+  let mkt xs : ground = T (Std.List.of_list Fun.id xs)
 
   let get_names (T xs) =
     GT.foldl Std.List.ground
@@ -832,16 +841,16 @@ module Typ_info = struct
              (GT.show Tag.ground key) (GT.show ground typs))
     | Some x -> x
 
-  type pre_typ = (string * pre_typ list) list t
+  (* type pre_typ = (string * pre_typ list) list t
 
-  let rec construct (root : pre_typ) : ground =
-    match root with
-    | T xs ->
-        mkt
-        @@ List.map
-             (fun (p, xs) ->
-               (Tag.tag_of_string_exn p, Std.List.of_list construct xs))
-             xs
+     let rec construct (root : pre_typ) : ground =
+       match root with
+       | T xs ->
+           mkt
+           @@ List.map
+                (fun (p, xs) ->
+                  (Tag.tag_of_string_exn p, Std.List.of_list construct xs))
+                xs *)
 end
 
 (* module Triple = struct
