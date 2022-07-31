@@ -1,17 +1,39 @@
 % !TEX TS-program = pdflatex
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
-\documentclass[acmlarge
-  %, final
-  %, draft
-  , review
-  , nonacm=false]
-  {acmart}
+\documentclass
+  [sigplan
+  ,screen
+  ,review
+  ]{acmart}
+
 \usepackage[
     type={CC},           % your choice
     modifier={by-sa},    % your choice
     version={4.0},       % your choice
 ]{doclicense}            % your choice, see \doclicenseThis below
+
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
+\setcopyright{acmcopyright}
+\copyrightyear{2022}
+\acmYear{2022}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+%% These commands are for a PROCEEDINGS abstract or paper.
+\acmConference[miniKanren 2022]{The Fourth miniKanren and Relational Programming Workshop}{September 15, 2022}{Ljubljana, Slovenia}
+\acmPrice{15.00}
+\acmISBN{978-1-4503-XXXX-X/18/06}
+\acmMonth{9}
+\acmArticle{1} % your number in the order of presentations (between 1 and 11)
 
 \usepackage{lineno}
 %\linenumbers
@@ -143,12 +165,12 @@ We propose a new kind of logic variables -- wildcard variables -- as a limited f
 \input{01intro}
 \input{02theory}
 \input{03matching}
-
+%
 \input{05tech}
 \input{08related}
 \input{09conclusion}
 
-%\section{Appendix}
+\section{Appendix}
 %\input{lst}
 
 \begin{comment}
