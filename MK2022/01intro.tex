@@ -1,3 +1,4 @@
+% !TEX TS-program = pdflatex
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 \section{Introduction}
@@ -6,7 +7,7 @@
 Relational and logic programming are powerful techniques for enumerating the space of possible answers for a query. Constraints allow us to prune search space and to make path to there right answer short. Some constraints (for example, disequality~\cite{WillThesis}) are universally applicable, but it's OK to invent new special constraints for specific tasks. 
 
 The \miniKanren{} family of languages includes different implementations, both statically and dynamically types. There are some peculiarities in statically typed implementation \OCanren{}~\cite{ocanren} relatively to ``official'' implementation~\cite{fasterMK}. For example, the following result of the query is decent in languages like 
-\Scheme{}, but in statically typed \OCaml{} looks weird.
+\Scheme{}, but in statically typed \OCaml{} the result looks weird.
 
 \begin{minipage}{7cm}
 \begin{lstlisting}{language=scheme}
@@ -28,6 +29,11 @@ q=_.0 [=/= false; =/= true];
 
 The example above could be repaired by introduction of finite domain constraints~\cite{cKanren}, but in case of proper algebraic data types they doesn't help. Let's imagine that we want to express that \emph{a variable holds a list, but couldn't begin from a constructor \lstinline=Cons=}. The na\"{i}ve attempt in \OCanren{}, \lstinline|fresh (h tl) (q=/= cons h tl) | doesn't give us what we desire. It states that \empty{there are some} \lstinline|h| and \lstinline|tl| such that \lstinline|q| is not equal, but we expected that fact for any possible \lstinline|h| and \lstinline|tl|. This form of universal quantification is currently not expressible in \OCanren{}.
 
-% TODO: write about expressivity in Scheme ?
+Another example of algebraic data types are Peano numbers. Unification allows us to express that a peano number \lstinline|q| is greater or equal a constant: \lstinline|q === S(S(S _.10))|$\!\!$.
+But disequality constraints are not powerful enough to express that a number is \emph{less} than a constant.
 
-\todo{Write something}
+In this paper paper we introduce \emph{wildcard logic variables
+} (denoted as \lstinline|__|) which are able to solve problem like above. 
+The disequality \lstinline|q =/= S(S(S __))| states that two values are not equal not matter what we would substitute instead of \lstinline|__|, which will effectively filter out \lstinline| S(S(S Z))|, \lstinline| S(S(S(S Z)))|, i.e. all numbers greater or equal three.
+
+

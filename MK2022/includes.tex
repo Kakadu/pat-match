@@ -79,6 +79,7 @@ language=ocanren
 
 \newcommand{\OCaml}{\textsc{OCaml}}
 \newcommand{\OCanren}{\textsc{OCanren}}
+\newcommand{\noCanren}{\textsc{noCanren}}
 \newcommand{\miniKanren}{\textsc{miniKanren}}
 \newcommand{\Scheme}{\textsc{Scheme}}
 
@@ -133,3 +134,17 @@ language=ocanren
 \newtheorem{Observation}{Observation}
 
 \newcommand{\todo}[1]{\textcolor{blue}{#1}}
+
+\usepackage{enumitem}
+\newlist{todolist}{itemize}{2}
+\setlist[todolist]{label=$\square$}
+%\usepackage{pifont}
+%\newcommand{\cmark}{\color{blue}\ding{51}}%
+%\newcommand{\xmark}{\ding{55}}%
+%\newcommand{\wip}{\ding{119}}%
+%\newcommand{\done}{\rlap{$\square$}{\raisebox{2pt}{\large\hspace{1pt}\cmark}}%
+%\hspace{-2.5pt}}
+%\newcommand{\wontfix}{\rlap{$\square$}{\large\xmark}}
+\newcommand{\wip}{\faAdjust}
+\newcommand{\done}{\faCheck}
+\usepackage{fontawesome}

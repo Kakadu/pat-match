@@ -1,15 +1,34 @@
+% !TEX TS-program = pdflatex
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
+
 
 \section{Related works}
 \label{sec:related}
 
-\begin{itemize}
-\item Eigen 
-\item noCanren 
-\item Matching 
-\end{itemize}
+The described approach with wildcard logic variable
+strongly reminds a form of universal quantification. 
+Nowadays, the ``official'' implementation~\cite{fasterMK} of \miniKanren{} in \Scheme{} don't yet support any form of universal quantification. In this section we will observe two approaches two universal quantification, and two areas where our wildcard logic variables could be helpful.
 
+\subsection{Eigen}
 
+One of the form of universal quantification are eigen variables~\cite{eigen}. This approach allows to introduce new fresh named existential variables as usual, and new eigen named variables, which are unifiable with themselves and with fresh variables introduced in their scope. The primary purpose of eigen variables is synthesis a fixpoint combinator in combinatory logic, and this task is being solved without any usage of disequality or other constraints. The interaction between eigen variables and constraints is not handled by the implementation of eigen dialect of \miniKanren{}. During personal interactions over email we are told that the performance of current implementation of eigen and disequality constraints is troublesome, because it seems to be required to recheck possible equalities between all introduced logic variables and eigen variables. 
+
+The one could consider our approach a simplified form of eigen variables. We don't attach any names to our wildcard variables, so rechecking all possible pairs of inequalities doesn't make much sense. Also, our wildcard variables are obliged to be used in disequality constraints. Antagonistically, the implementation of eigen variables uses them in unifications. 
+
+The detailed comparison of expressivity of wildcards and eigen variables in disequality constraint requires further studying. 
+  
+\subsection{Universal Quantification and Implication}
+
+An interesting idea from \cite{universal2021} it to mine examples from the domain of universally quantified variable one by one, cut these points from the domain and wait until it becomes empty. This approach is promising for finite domains, but for recursively described ones it could lead to divergence. We are looking forward for upgraded implementations of the approach, to check it out for tasks that are important for us. 
+
+\subsection{\noCanren{}}
+
+Writing relational programs well requires gaining some skill. The tempting idea is to generate relational programs from functional ones. A subset of OCaml 
+could be automatically converted~\cite{RelConversion} to \OCanren{}, but current restrictions on a language make the usage of it inconvenient. For example, to have a decent semantics of a relation programs, it's required for every pattern matching in functional program that all it's branches are non-overlapping. This shortcoming exists because of normal disequality constraints are not powerful enough to express desired result, and the manual process of making pattern non-overlapping leads to exponential increasing of a number of patterns. We believe that adding wildcard variables will solve this embarrassment (section~\ref{sec:noCanren}).
+
+\subsection{Relational Synthesis of Pattern Matching}
+
+The state of art approach to compile pattern matching in \OCaml{} to intermediate representation is translation to backtracking automaton~\cite{maranget2001}. In theory we could implement a relational interpreter of intermediate representation, and synthesize a compilation scheme that behave on a pack of examples as we desire~\cite{Kosarev2020}. In practice, a number of examples is finite but large. It depends more on a number of inhabitants of scrutinee's type until certain depth, than on a number of patterns in pattern matching. Ideally, we want to have for exhaustive pattern matching as many examples as we have branches. The wildcard variables allow us to make a step in that direction. But they we are currently far away from finishing that task, because of hidden complications of the task. We describe our progress in section~\ref{sec:matching}.
 
 

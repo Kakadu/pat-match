@@ -2,8 +2,9 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 \documentclass
-  [sigplan
-  ,screen
+  [screen
+  %, sigplan
+  , acmlarge
   ,review
   ]{acmart}
 
@@ -165,6 +166,33 @@ We propose a new kind of logic variables -- wildcard variables -- as a limited f
 \thispagestyle{empty}
 
 \input{01intro}
+
+\section{TODO}
+  \begin{todolist}
+    \item[\done] Intro
+    \item[\wip] Theory
+        \begin{todolist}
+          \item Add many examples to appendix 
+        \end{todolist}
+    \item[\wip] Related 
+    \begin{todolist}
+      \item[\wip] Eigen 
+      \item[\wip] Universal quantification and implication (???)
+      \item[\wip] noCanren 
+      \item[\wip] Matching 
+    \end{todolist}
+    \item Application to noCanren 
+    \item Application to pattern matching 
+        \begin{todolist}
+          \item More formal description
+          \item Proposed encoding of pattern 
+          \item Why domains are important?
+          \item WTF it doesn't work
+        \end{todolist}
+     \item ``Technical meat''   
+     \item Conclusion
+  \end{todolist}
+  
 \input{02theory}
 \input{03related}
 \input{05noCanren}
@@ -175,7 +203,7 @@ We propose a new kind of logic variables -- wildcard variables -- as a limited f
 \input{09conclusion}
 
 \section{Appendix}
-%\input{lst}
+\input{10appendix}
 
 \begin{comment}
 %% Acknowledgments

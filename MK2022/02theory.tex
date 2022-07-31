@@ -8,17 +8,20 @@
 In this section we describe the essence of wildcard variables and how they interact with other features of \miniKanren{}.
 
 \subsection{Wildcards and Disequality Constraints}
-Checking and storing disequality constraints may be performed in clever manner~\cite{fasterMK}. But here we will use a na\"{i}ve implementation for simplicity. Disequality constraints are stored as a disjunction of conjunctions of pairs: a fresh variable and a term (or an another variable). While the search  progresses, new bindings are propagated to the constraints which allows simplification. For example, if one of the pair is impossible to be unified, then it is being removed from the conjunction clause. If last pair (in conjunction clause) becomes unifiable in any substitution, then this part of constraints couldn't provide an inequality and should be removed from a disjunction clause. If disjunction clause becomes empty, then constraints are violated and we should prune this branch of search tree. 
+Checking and storing disequality constraints may be performed in clever manner~\cite{fasterMK}. 
+%But here we will use a na\"{i}ve implementation for simplicity. 
+Disequality constraints are stored as a conjunction of disjunctions of pairs (CNF): a fresh variable and a term (or an another variable). While the search  progresses, new bindings are propagated to inequalities which allows simplification. For example, if one of the pair is impossible to be unified, then it is being removed from the disjunction clause. If whole disjunction  becomes non-unifiable, then it could be removed from CNF. If a disjunction clause becomes unifiable in any substitution, then it becomes violated and whole CNF too.
+%this part of constraints couldn't provide an inequality and should be removed from a disjunction clause. If disjunction clause becomes empty, then constraints are violated and we should prune this branch of search tree. 
 
 In our implementation wildcard variables may occur in program many times. But internally it is a single logic variable (predefined ``constant'' is some sense), that it treated in a special way. On creation of a disequality constraint we perform unification which gives an updated substitution and a list of recently introduced bindings. Our implementation of wildcard unification doesn't add anything to substitution, but adds new bindings as usual. Our disequality constraints implementation evaluates these bindings and stores in every conjunction clause not only pairs, but also a set of variables that should not be wildcards.
 
 Let's discuss details of checking disequality constraints in presence of wildcards using examples. Below we will use the mantra \emph{``It should be a way to make two values not equal, in spite of we could substitute anything instead of wildcard.''} to make decisions about simplification of constraints. We start from simple cases, and leave the complicated cases (a disequality between fresh variable and wildcard) to the end. 
 
-Consider the disequality \lstinline|(1 _.10)=/= (__ 2)| where either first components of pair should be not equal, or second ones. With first components we are going to consider worst case scenario and substitute a number 1 instead of wildcard. The constraint above simplifies to simple disequality between  \lstinline|_.10| and \lstinline|2|. All disequalities between ground values and wildcard variable will be simplified immediately.
+Consider the disequality \lstinline|(1 _.10)=/= (__ 2)| where either first components of pair should be not equal, or second ones. With first components we are going to consider worst case scenario and substitute a number 1 instead of wildcard. The constraint above simplifies to a shorter disequality between  \lstinline|_.10| and \lstinline|2|. All disequalities between ground values and wildcard variable will be simplified immediately.
 
 On disequality of two wildcard variables we again consider worst case scenario: we substitute, for example, \lstinline|42| instead of both and get a violation of disequality constraints.
 
-Disequality between wildcard and complex value, for example  \lstinline|cons 1 _.10=/= __|, could be also simplified. We consider a worst case scenario and use \lstinline|cons __ __| instead of wildcard.
+Disequality between wildcard and complex value, for example  \lstinline|cons 1 _.10=/= __|, could be also simplified. We consider a worst case scenario and use \lstinline|cons __ __| instead of wildcard. (But this simplification requires deep understanding of variable's domain, and currently not implemented.)
 
 Disequalities between fresh variables and complex values with wildcards inside are left as they are. Later, we could get more information  about fresh variable and simplify the constraint. For example, 
  \lstinline|(cons __ __ =/= _.10) & (cons _.11 _.12 === _.10)| simplifies to ``either\lstinline| _.11|  or \lstinline|_.12| is not wildcard''.
@@ -28,7 +31,9 @@ The case above leads us to the most complicated case: a disequality between fres
 
 
 \subsection{Unification}
-The primary usage of wildcard variables is in the context of disequality constraints. In the unification it is just a convenient syntax to avoid manual creation of fresh variable. 
+The primary usage of wildcard variables is in the context of disequality constraints. Despite there is only a single wildcard variable in runtime, we create need a special combinator (similar to \lstinline|call_fresh|) that creates wildcard variable. This is specific to \OCanren{} -- typed embedding of \miniKanren{} to \OCaml{} -- where we can unify only logic values of the same type. That's why we need many instances of differently typed wildcard variables. 
+
+We also support wildcard syntax \lstinline|__| in unification. This ``wildcards'' have a different semantics, they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementation of a relation that extract tail of the list: with wildcard syntax and without them. 
 
 \begin{minipage}{7cm}
 \begin{lstlisting}{language=ocaml}
