@@ -2,5 +2,107 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\section{noCanren}
+\section{\noCanren{}}
 \label{sec:noCanren}
+
+Translation of pattern matching from functional program to relational \lstinline|conde| clause could be non-trivial if a few branches overlap. In example from Fig.~\ref{fig:match-example-small} we could try to use the encoding with default disequality constraints and with wildcards (Fig.~\ref{fig:match-compilation-small}).
+
+We could try to run two compilation schemes on all possible (four) scrutinees. With wildcard scheme it gives us four expected results: if first element of pair is true, return 1; on false -- 2. Running naive compilation scheme will discover two answers more: pairs \lstinline|(true,false)| and \lstinline|(true,true)| may return 2. Indeed, two branches of conde are not ordered, and running this scrutinees will not fail a disequality constraint: it will be simplified to \lstinline|=/= true| and \lstinline|=/= false| respectively.
+
+\todo{conclusion? Existential variables are error-prone?}
+
+\begin{figure}[ht]
+\begin{subfigure}[t]{0.4\linewidth}
+\centering
+\begin{lstlisting}
+match x, y with
+| T, _ -> 1
+| _, _ -> 2
+\end{lstlisting}
+%\vskip18.5mm
+\caption{Pattern matching}
+%\label{fig:matching-example1}
+\end{subfigure}
+\hspace{.5cm}
+\begin{subfigure}[t]{0.5\linewidth}
+\centering
+\begin{lstlisting}
+if x 
+then 1 
+else 2
+\end{lstlisting}
+%\vskip8.5mm
+\caption{Optimal implementation}
+%\label{fig:matching-example3}
+\end{subfigure}
+\caption{111} 
+\label{fig:match-example-small}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{subfigure}[t]{1.0\linewidth}
+\centering
+\begin{lstlisting}
+let naive_rel q rez =
+  conde
+    [ fresh (tmp) 
+        (q === pair !!true tmp) 
+        (rez === !!1)
+    ; fresh (tmp l r) 
+        (q =/= pair !!true tmp) 
+        (q === pair l r)
+        (rez === !!2) ]
+\end{lstlisting}
+\caption{Naive compilation with disequality constraints}
+\end{subfigure}
+\begin{subfigure}[t]{1.0\linewidth}
+\centering
+\begin{lstlisting}
+let better_rel q rez =
+  conde
+    [ fresh () 
+        (q === pair !!true __) 
+        (rez === !!1)
+    ; fresh () 
+        (q =/= pair !!true __) 
+        (rez === !!2) ]
+\end{lstlisting}
+\caption{Better compilation with wildcards}
+%\label{fig:matching-example3}
+\end{subfigure}
+\caption{Pattern matching compilation example } 
+\label{fig:match-compilation-small}
+\end{figure}
+
+\begin{figure}[ht]
+\begin{subfigure}[t]{0.4\linewidth}
+\centering
+\begin{lstlisting}
+match x, y, z with
+| _, F, T -> 1
+| F, T, _ -> 2
+| _, _, F -> 3
+| _, _, T -> 4
+\end{lstlisting}
+%\vskip18.5mm
+\caption{Pattern matching}
+\label{fig:matching-example1}
+\end{subfigure}
+\hspace{0.2cm}
+\begin{subfigure}[t]{0.33\linewidth}
+\centering
+\begin{lstlisting}
+if y then
+  if x then
+    if z then 4 else 3
+  else 2
+else
+  if z then 1 else 3
+\end{lstlisting}
+%\vskip13.5mm
+\caption{Optimal implementation}
+\label{fig:matching-example3}
+\end{subfigure}
+\caption{Pattern matching compilation example (from~\cite{maranget2001})} 
+\label{fig:match-example}
+\end{figure}
