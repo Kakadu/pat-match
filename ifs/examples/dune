@@ -1,0 +1,14 @@
+(library
+ (name examples_ifs)
+ (modules bool_pair maranget mini_maranget)
+ (inline_tests)
+ (libraries lib_ifs)
+ (preprocess
+  (pps
+   ppx_inline_test
+   ppx_expect
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_distrib
+   OCanren-ppx.ppx_wildcard
+   OCanren-ppx.ppx_tester
+   GT.ppx_all)))

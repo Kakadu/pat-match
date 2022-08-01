@@ -677,6 +677,12 @@ module IR = struct
           Format.fprintf fmt "(Int %a) "
             (GT.fmt OCanren.logic (GT.fmt GT.int))
             ln
+      | ITE (m, Value t, th, el) when t = Tag.of_string_exn "true" ->
+          Format.fprintf fmt "(if %a then %a else %a)" (GT.fmt Matchable.logic)
+            m
+            (* (GT.fmt Tag.logic) tag *)
+            (fmt_ocl helper)
+            th (fmt_ocl helper) el
       | ITE (m, tag, th, el) ->
           Format.fprintf fmt "(if %a = %a then %a else %a)"
             (GT.fmt Matchable.logic) m (GT.fmt Tag.logic) tag (fmt_ocl helper)
