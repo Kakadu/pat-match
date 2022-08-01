@@ -2,4 +2,34 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\textbf{TODO: INSERT A TABLE WITH EXAMPLES }
+\section{Simple wildcard examples}
+\label{appendix:examples}
+%\textbf{TODO: INSERT A TABLE WITH EXAMPLES }
+
+%\noindent
+
+\begin{table}[H]
+  \caption{A few example of relational queries involving wildcard variables}
+  \small\centering
+  
+\begin{tabular}
+    %{  p{4.5cm} | p{4cm}  }
+    {c|c}
+Example query  & Result \\ \hline
+\lstinline|(__ =/= _.20)| &\lstinline|success| \\ \hline
+
+\lstinline|(1, __) =/= (__, 1)| &\lstinline|fail| \\ \hline
+
+\lstinline|(_.10, 2, __) =/= (1, __, 2)| &\lstinline|_.10 =/= 1| \\ \hline
+
+\lstinline|(_.10, _.11) =/= (1, __)| &\lstinline|_.10 =/= 1| \\\hline 
+\begin{lstlisting}
+fresh (a b)
+  (q === pair a b)
+  (q =/= pair !!1 __)
+  (q === pair __ !!1)
+\end{lstlisting} &\lstinline|q === (a [=/= 1], 1), b === 1| \\ \hline
+
+%\lstinline|(__ =/= _.20)| &\lstinline|success| \\
+\end{tabular} 
+\end{table}

@@ -2,31 +2,23 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\section{\noCanren{}}
-\label{sec:noCanren}
-
-Translation of pattern matching from functional program to relational \lstinline|conde| clause could be non-trivial if a few branches overlap. In example from Fig.~\ref{fig:match-example-small} we could try to use the encoding with default disequality constraints and with wildcards (Fig.~\ref{fig:match-compilation-small}).
-
-We could try to run two compilation schemes on all possible (four) scrutinees. With wildcard scheme it gives us four expected results: if first element of pair is true, return 1; on false -- 2. Running naive compilation scheme will discover two answers more: pairs \lstinline|(true,false)| and \lstinline|(true,true)| may return 2. Indeed, two branches of conde are not ordered, and running this scrutinees will not fail a disequality constraint: it will be simplified to \lstinline|=/= true| and \lstinline|=/= false| respectively.
-
-\todo{conclusion? Existential variables are error-prone?}
-
-\begin{figure}[ht]
+\begin{figure}[t]
+\centering
 \begin{subfigure}[t]{0.4\linewidth}
 \centering
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=.7cm,linewidth=3.5cm]
 match x, y with
 | T, _ -> 1
 | _, _ -> 2
 \end{lstlisting}
 %\vskip18.5mm
 \caption{Pattern matching}
-%\label{fig:matching-example1}
+\label{fig:match-example-small-functional}
 \end{subfigure}
 \hspace{.5cm}
 \begin{subfigure}[t]{0.5\linewidth}
 \centering
-\begin{lstlisting}
+\begin{lstlisting}[xleftmargin=1.7cm,linewidth=3.5cm]
 if x 
 then 1 
 else 2
@@ -35,11 +27,11 @@ else 2
 \caption{Optimal implementation}
 %\label{fig:matching-example3}
 \end{subfigure}
-\caption{111} 
+\caption{Simple patterns matching example} 
 \label{fig:match-example-small}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \begin{subfigure}[t]{1.0\linewidth}
 \centering
 \begin{lstlisting}
@@ -51,9 +43,11 @@ let naive_rel q rez =
     ; fresh (tmp l r) 
         (q =/= pair !!true tmp) 
         (q === pair l r)
-        (rez === !!2) ]
+        (rez === !!2) 
+    ]
 \end{lstlisting}
-\caption{Naive compilation with disequality constraints}
+\caption{Na\"{i}ve compilation with disequality constraints}
+\label{fig:match-compilation-small-diseq}
 \end{subfigure}
 \begin{subfigure}[t]{1.0\linewidth}
 \centering
@@ -65,16 +59,17 @@ let better_rel q rez =
         (rez === !!1)
     ; fresh () 
         (q =/= pair !!true __) 
-        (rez === !!2) ]
+        (rez === !!2) 
+    ]
 \end{lstlisting}
 \caption{Better compilation with wildcards}
-%\label{fig:matching-example3}
+\label{fig:match-compilation-small-wc}
 \end{subfigure}
 \caption{Pattern matching compilation example } 
 \label{fig:match-compilation-small}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \begin{subfigure}[t]{0.4\linewidth}
 \centering
 \begin{lstlisting}
@@ -84,12 +79,12 @@ match x, y, z with
 | _, _, F -> 3
 | _, _, T -> 4
 \end{lstlisting}
-%\vskip18.5mm
+\vskip4.5mm
 \caption{Pattern matching}
 \label{fig:matching-example1}
 \end{subfigure}
-\hspace{0.2cm}
-\begin{subfigure}[t]{0.33\linewidth}
+% \hspace{0.2cm}
+\begin{subfigure}[t]{0.5\linewidth}
 \centering
 \begin{lstlisting}
 if y then
@@ -101,8 +96,148 @@ else
 \end{lstlisting}
 %\vskip13.5mm
 \caption{Optimal implementation}
-\label{fig:matching-example3}
+\label{fig:matching-example2}
 \end{subfigure}
 \caption{Pattern matching compilation example (from~\cite{maranget2001})} 
 \label{fig:match-example}
 \end{figure}
+
+\begin{figure*}[t]
+%\centering
+\begin{subfigure}{0.49\textwidth}
+\begin{lstlisting}
+let enc_with_diseq q rez =
+  let _T = !!true in
+  let _F = !!false in
+  let w = Std.triple in 
+  conde
+    [ fresh (fresh1) (rez === !!1) 
+        (q === w fresh1 _F _T)
+    ; fresh (fresh1 x) (rez === !!2) 
+        (q === w _F _T fresh1) 
+        (q =/= w x _F _T)
+    ; fresh (fresh1 fresh2 x y z) (rez === !!3) 
+        (q === w fresh1 fresh2 _F) 
+        (q =/= w x _F _T) 
+        (q =/= w _F _T z)
+    ; fresh (x y z fresh1 fresh2) (rez === !!4)
+        (q =/= w x _F _T)
+        (q =/= w _F _T z)
+        (q =/= w x y _F)
+        (q === w fresh1 fresh2 _T) ]
+\end{lstlisting}
+\caption{With disequality constraints}
+\label{fig:matching-example3}
+\end{subfigure}
+%\vskip13.5mm
+\begin{subfigure}{0.49\textwidth}
+\begin{lstlisting}
+let enc_with_wc q rez =
+    let _T = !!true in
+    let _F = !!false in
+    let w = Std.triple in
+    conde
+      [ fresh () (rez === !!1) 
+          (q === w __ _F _T)
+      ; fresh () (rez === !!2) 
+          (q === w _F _T __) 
+          (q =/= w __ _F _T)
+      ; fresh () (rez === !!3) 
+          (q === w __ __ _F) 
+          (q =/= w __ _F _T) 
+          (q =/= w _F _T __)
+      ; fresh () (rez === !!4)
+          (q =/= w __ _F _T)
+          (q =/= w _F _T __)
+          (q =/= w __ __ _F)
+          (q === w __ __ _T) ]
+\end{lstlisting}
+\caption{With wildcards}
+%\label{fig:matching-example3}
+\end{subfigure}
+\caption{Two possible encodings of an example from Fig.~\ref{fig:match-example}}
+\label{fig:maranget-example-compilation}
+%\vskip13.5mm
+\end{figure*}
+
+\begin{figure*}[t!]
+%\centering
+\begin{subfigure}{0.49\textwidth}
+\begin{lstlisting}[escapechar=|,numbers=left]
+q=((_.13, false, true), 1);
+q=((false, true, _.15), 2);
+q=((_.13, _.14, false), 3);  |\label{line:three}|
+q=((_.13 [=/= false; =/= _.22], _.14, true), 4);
+q=((_.13 [=/= false], _.14, false), 3);
+q=((_.13 [=/= _.22], _.14, true), 4);
+q=((_.13, _.14 [=/= true], false), 3);
+q=((_.13 [=/= _.22], _.14 [=/= true], true), 4);        |\label{line:eight}|
+q=((_.13 [=/= false], _.14 [=/= false], true), 4);
+q=((_.13, _.14 [=/= false], true), 4);                  |\label{line:ten}|
+q=((_.13, _.14 [=/= false; =/= true], true), 4);
+\end{lstlisting}
+\caption{With disequality constraints}
+%\label{fig:matching-example3}
+\end{subfigure}
+%\vskip13.5mm
+\begin{subfigure}{0.49\textwidth}
+\begin{lstlisting}
+q=((_.13, false, true), 1);
+q=((false, true, _.15), 2);
+
+
+q=((_.13 [=/= false], _.14, false), 3);
+
+q=((_.13, _.14 [=/= true], false), 3);
+q=((_.13 [=/= false], _.14 [=/= false], true), 4);
+
+
+q=((_.13, _.14 [=/= false; =/= true], true), 4);
+\end{lstlisting}
+\caption{With wildcards}
+%\label{fig:matching-example3}
+\end{subfigure}
+\caption{The output of running two encodings from Figure~\ref{fig:maranget-example-compilation} where scrutinee is a triple of three fresh variables \lstinline|(_.13, _.14, _.15)|. One can observe that disequality constraints generate more (bogus) answers. Also, the last answer raises the idea that finite domain constraints may be useful for that example.}
+%\vskip13.5mm
+\label{fig:matching-maranget-compilation}
+\end{figure*}
+
+\section{\noCanren{}}
+\label{sec:noCanren}
+
+Translation of pattern matching from functional program to relational \lstinline|conde| clauses could be non-trivial if a few branches overlap. 
+For a functional program from Figure~\ref{fig:match-example-small-functional} one could try a straightforward encoding without any constraints:
+
+\begin{lstlisting}
+let straightforward q rez =
+  conde
+    [ fresh () 
+        (rez === !!1)
+        (q === Std.pair !!true __) 
+    ; fresh (l r)  
+        (rez === !!2)
+        (q === Std.pair l r)
+    ]
+\end{lstlisting}
+
+\noindent Unfortunately, this encoding to relational program will have a different semantics from functional one. If scrutinee is a pair of \lstinline|true|'s, the stream of answers will have both \lstinline|(rez===1)| and \lstinline|(rez===2)| from the first and the second branches of \lstinline|conde|, respectively. The first answer is expected, but the second one contradicts behaviour of the functional program: the second branch should not be tested if previous one fits the scrutinee.
+This issue appears only if branches overlap, and to get a proper semantics the approach of relational conversion~\cite{RelConversion} and associated tool\footnote{\url{https://github.com/Lozov-Petr/noCanren} (accessed: August 1st, 2022)} decided to forbid overlapping branches and not to use any constraints in generated code. 
+The developer needs to manually rewrite branches of pattern matching, which is annoying and could lead to exponential increasing of the number of branches.
+
+For an example shown in Figure~\ref{fig:match-example-small} we also provide encodings (Figure~\ref{fig:match-compilation-small}) with default disequality constraints and with wildcards.
+
+An execution of this pattern matching on four possible ground scrutinees, encoding using wildcards provides four expected results: if first element of pair is \lstinline{true}, return 1; on \lstinline{false} -- 2.
+Running na\"ive compilation scheme (Figure~\ref{fig:match-compilation-small-diseq}) discovers two more answers: pairs \lstinline|(true,false)| and \lstinline|(true,true)| may return 2.
+Indeed, two branches of conde are not ordered, and running this scrutinees will not fail a disequality constraint: it will be simplified to \lstinline|=/= true| and \lstinline|=/= false| respectively.
+From this example one could conclude that disequality constraints are not expressive enough to handle relational conversion of pattern matching.
+
+One also could try to encode a more complicated example from~\cite{maranget2001} with four branches and a scrutinee being a triple of booleans (Figure~\ref{fig:match-example}).
+In Figure~\ref{fig:maranget-example-compilation} one could observe relational encoding of this matching, 
+and in Figure~\ref{fig:matching-maranget-compilation} the result of querying where a scrutinee is a triple of three fresh variables.
+One could see that all answers returned by ``wildcardful'' relation are also returned by a relation with disequality constraints.
+Extra answers on the left should be considered bogus.
+For example, answer in line~\ref{line:three} about branch 3 is incorrect: the described scrutinee should be already matched by branch 2.
+Also, answers in lines~\ref{line:eight} and~\ref{line:ten} should subsume each other.
+Finally, the last answer demonstrates the need of finite domain constraints which allows considering disequality constraint containing ambivalent information such as \lstinline{[=/= false; =/= true]} violated.
+
+The above demonstrates how \emph{wildcard} usage allows one to compile pattern matching in a very elegant way without the need of disjoint \lstinline{conde}-s.

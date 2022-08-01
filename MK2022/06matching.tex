@@ -1,5 +1,23 @@
+% !TEX TS-program = pdflatex
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
+
+\begin{figure*}[t]
+\begin{lstlisting}[numbers=left]
+q=(if S[0] then 4 else (if S[2] then (if S[1] then 2 else 1) else 3));
+q=(if S[0] then 4 else (if S[2] then (if S[1] then 2 else 1) else (if S[1] then 3 else _.1494)));
+q=(if S[0] then 4 else (if S[2] then 1 else (if S[1] then 2 else 3)));
+q=(if S[0] then 4 else (if S[2] then (if S[1] then _.25863 else 1) else (if S[1] then 2 else 3)));
+q=(if S[0] then 4 else (if S[1] then (if S[2] then 2 else 3) else 1));
+q=(if S[0] then 4 else (if S[2] then (if S[1] then 2 else 1) else (if S[1] then _.1493 else 3)));
+q=(if S[0] then 4 else (if S[1] then (if S[2] then 2 else 3) else (if S[2] then 1 else _.35148)));
+q=(if S[0] then 4 else (if S[1] then 2 else (if S[2] then 1 else 3)));
+q=(if S[0] then (if S[1] then 4 else 3) else (if S[1] then 2 else 1));
+q=(if S[0] then (if S[1] then 4 else 3) else (if S[1] then 2 else (if S[2] then 1 else _.99286)));
+\end{lstlisting}
+\caption{First ten unexpected results while compiling pattern matching from Figure~\ref{fig:matching-example1}}
+\label{fig:matching-result-wierd}
+\end{figure*}
 
 \section{Synthesis of Pattern Matching}
 \label{sec:matching}
@@ -24,30 +42,72 @@ For every synthesis task the patterns and indexes are ground. Type information i
 
 The relation ``$\xrightarrow{}{}\!\!$'' gives us a \emph{declarative} semantics of pattern matching. Since we are interested in
 synthesizing implementations, we need a \emph{programmatical} view on the same problem. Thus, we introduce a language $\mathcal S$
-(the ``switch'' language) of test-and-branch constructs, and a evaluator ``$\xrightarrow{}{}_{\!\!\mathcal S}$'' that matches a scrutinee to an integer.
+(the ``switch'' language) of test-and-branch constructs, and a evaluator ``$\xrightarrow{}{}_{\!\!\mathcal S}$'' that matches a scrutinee to an integer. 
+In the original paper~\cite{Kosarev2020} this language has built-in $\primi{switch}$ construction that distinguishes tags (integers) of algebraic constructors. But for now we are only testing our approach on tuples of booleans, so we have only if-then-else construction in our language $\mathcal{S}$, despite that fact that $\primi{switch}$ supercedes $\primi{if-then-else}$.
 
 \[
 \begin{array}{rccl}
   \mathcal M & = &       & \bullet \\
              &   & \mid  & \mathcal M\,[\mathbb{N}] \\
-  \ir        & = &       & \primi{return}\,\mathbb{N} \\
-             &   & \mid  & \primi{switch}\;\mathcal{M}\;\primi{with}\; [\mathcal{C}\; \primi{\rightarrow}\; \ir]^*\;\primi{otherwise}\;\ir
+  \ir        & = &       & \primi{return}\;\mathbb{N} \\
+             &   & \mid  & \primi{switch}\;\mathcal{M}\;\primi{with}\; [\mathcal{C}\; \primi{\rightarrow}\; \ir]^*\;\primi{otherwise}\;\ir\\
+             &   & \mid  & \primi{if}\;\mathcal{M}\;\primi{starts with}\;\mathcal{C}\;\primi{then}\; \ir\;\primi{else}\;\ir
 \end{array}
 \]
 
 We can formulate the \emph{pattern matching synthesis problem} as follows: for a given ordered sequence of patterns $p_1,\dots,p_k$ find
 a switch program $\withenv{v}{\pi}$, such that
 
-\[
-\setarrow{\xrightarrow}
-\forall v\in \mathcal V,\; \forall 1\leqslant i\leqslant n: \trans{\inbr{v;\,p_1,\dots,p_n}}{}{i}\quad
-\Longleftrightarrow{\quad\setsubarrow{_{\mathcal S}}\withenv{v}{\trans{\pi}{}{i}}}\eqno{(\star)}
-\]
+\begin{center}
+$\setarrow{\xrightarrow}
+\forall v\in \mathcal V,\; \forall 1\leqslant i\leqslant n: \trans{\inbr{v;\,p_1,\dots,p_n}}{}{i}$\\
+$\Longleftrightarrow$ \\ 
+$\setsubarrow{_{\mathcal S}}\withenv{v}{\trans{\pi}{}{i}}$ \\
+\end{center}
 
-\noindent The description above uses universal quantification, and can't be immediately transformed into relational specification, because \emph{recursive} data types may make $\mathcal{V}$ infinite. But there is another observation that make this synthesis problem representable in \miniKanren{}. For every synthesis task we have a ground set of patterns, and they check any scrutinee only into finite depth. This allows us to cut the set of possible scrutinees until certain depth and replace universal quantification by a finite conjunction. The downside of this encoding is an exponential blowup of search space:
+\noindent The description above uses universal quantification, and can't be immediately transformed into relational specification, because \emph{recursive} data types may make $\mathcal{V}$ infinite.
+But there is another observation that makes this synthesis problem representable in \miniKanren{}.
+For every synthesis task we have a ground set of patterns, and they check any scrutinee only into finite depth.
+This allows one to cut the set of possible scrutinees until certain depth and replace universal quantification by a finite conjunction.
+The downside of this encoding is an exponential blowup of search space:
 \begin{itemize}
 \item Increasing amount of constructors in types, increases amount of examples required, which hurts performance.
 \item Increasing depth of constructors hurts performance, but it is expected.
-\item Changing number of pattern while saving with the same maximum depth doesn't affect performance at all, and it is unexpected.
+\item Changing number of patterns while preserving the same maximum depth doesn't affect performance at all. This is unexpected.
 \end{itemize}
-\todo{Now how wildcard variables could help us }
+
+%\todo{Now how wildcard variables could help us }. 
+To reduce the number of required examples, we are going to use wildcard variables to say that scrutinee doesn't fit previous branches. In other words, every branch of pattern matching have a single corresponding example. 
+That example will state via unification that scrutinee fits current branch, and also will state 
+%using 
+via disequality constraints with wildcards that scrutinee doesn't fit previous branches. 
+
+During the search \OCanren{} accumulates inequalities between sub parts of scrutinee. 
+More precisely, every $\primi{if-then-else}$ may introduce disequality between tags of algebraic constructors. It's rather easy to get into situation described in section~\ref{sec:intro}, where boolean constructor is not equal both \lstinline|true| and \lstinline|false|. 
+To get rid of these bogus answers we enhance \OCanren{} by finite domain constraints using \Zthree{}~\cite{Zthree} under the hood. 
+Adding this constraints complicates implementation of relational engine, because we can't no longer say two values are not equal because of their corresponding sub values are not equal (the inequality of sub values may contradict finite domain constraints). 
+We speculate that in presence of finite domain constraints it may be better to store disequality constraints as DNF instead of CNF, but for now we use traditional\footnote{The recommended efficient way to represent disequality constraints is available online~\cite{fasterMK}} implementation.
+
+%\todo{how we encode branches}
+
+%\todo{domains}
+
+Unfortunately, wildcards can't solve the pattern matching synthesis problem themselves in a way one can expect.
+The result of pattern matching synthesis for program in Figure~\ref{fig:matching-example1} is shown in Figure~\ref{fig:matching-result-wierd}. We do believe that the expected reference answer corresponding to one from Figure~\ref{fig:matching-example2} will be eventually found by \OCanren{} but it is definitely far from being the first.
+We will demonstrate the main source of such a behaviour by example below.
+
+Consider pattern matching with the only branch \lstinline{__, false, true -> 1}.
+The first answer produced by the interpreter on this example is \lstinline{q = 1}.
+This is absolutely correct answer since on all scrutinees having \lstinline{false} as the second element and \lstinline{true} as the third element of a triple it produces 1.
+In other words, the produced answer should have the same or bigger domain than the expected reference answer.
+This can be seen as an analog of conservative approximation of the reference answer.
+Further interpretation of other branches will make the answer produced on the previous step more precise but still conservative.
+
+Processing the next example the interpreter will figure out \emph{some} scrutinee that satisfies disequality constraints and unifications from the given example.
+Then it will change the program being synthesized to handle this particular scrutinee.
+In other words, each interpreter step is some conservative approximation of the reference answer.
+Thus, it is able to produce the reference answer iff on each step the approximation is precise.
+This means that the reference answer should be eventually produced by the interpreter but after an unpredictable amount of time.
+
+Finally, the interpreter ends up with a stream of answers (see Figure~\ref{fig:matching-result-wierd}) with each answer being in some sense a conservative approximation of the reference one.
+

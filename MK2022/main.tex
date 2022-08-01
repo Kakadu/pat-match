@@ -5,7 +5,8 @@
   [screen
   , sigplan
   %, acmlarge
-  ,review
+  %, draft
+  , review
   ]{acmart}
 
 \usepackage[
@@ -58,7 +59,7 @@
 \setcopyright{rightsretained}
 
 
-\acmConference[miniKanren 2022]{The Fourth miniKanren and Relational Programming Workshop}{September 15 2022}{Online}
+\acmConference[miniKanren 2022]{The Fourth miniKanren and Relational Programming Workshop}{September 15 2022}{Ljubljana, Slovenia}
 
 \acmMonth{8}
 \acmArticle{8} % your number in the order of presentations (between 1 and 11)
@@ -85,7 +86,7 @@
 \begin{document}
 
 \title{Wildcard Logic Variables\\
-  \large  How to say in \miniKanren{} that natural number is less than 5? }
+  \large How to say in \miniKanren{} that natural number is less than 5? }
 
 
 %\titlenote{This work was partially supported by the grant 18-01-00380 from The Russian Foundation for Basic Research} %% \titlenote is optional;
@@ -125,7 +126,8 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We propose a new kind of logic variables -- wildcard variables -- as a limited form of universal quantification. Combined with disequality constraints they extend the expressivity of \OCanren{} -- typed dialect of \miniKanren{}. We also report out progress on applying this idea to a task of synthesizing pattern matching compilation scheme.
+We propose a new kind of logic variables -- wildcard variables -- as a limited form of universal quantification.
+Combined with disequality constraints they extend the expressive power of \OCanren{} -- typed dialect of \miniKanren{}, and enrich subset of \OCaml{} programs that could be automatically converted to relational ones. We also report our progress on applying this idea to a task of synthesizing pattern matching compilation scheme.
 \end{abstract}
 
 
@@ -153,7 +155,8 @@ We propose a new kind of logic variables -- wildcard variables -- as a limited f
 
 %% Keywords
 %% comma separated list
-\keywords{relational programming, relational interpreters, pattern matching}  %% \keywords are mandatory in final camera-ready submission
+\keywords{relational programming, relational interpreters, pattern matching, constraint programming}  
+%% \keywords are mandatory in final camera-ready submission
 
 
 %% \maketitle
@@ -167,62 +170,45 @@ We propose a new kind of logic variables -- wildcard variables -- as a limited f
 
 \input{01intro}
 
-\section{TODO}
-  \begin{todolist}
-    \item[\done] Intro
-    \item[\wip] Theory
-        \begin{todolist}
-          \item Add many examples to appendix 
-        \end{todolist}
-    \item[\wip] Related 
-    \begin{todolist}
-      \item[\wip] Eigen 
-      \item[\wip] Universal quantification and implication (???)
-      \item[\wip] noCanren 
-      \item[\wip] Matching 
-    \end{todolist}
-    \item Application to noCanren 
-    \item Application to pattern matching 
-        \begin{todolist}
-          \item More formal description
-          \item Proposed encoding of pattern 
-          \item Why domains are important?
-          \item WTF it doesn't work
-        \end{todolist}
-     \item ``Technical meat''   
-     \item Conclusion
-  \end{todolist}
+% \section{TODO}
+%   \begin{todolist}
+%     \item[\done] Intro
+%     \item[\wip] Theory
+%         \begin{todolist}
+%           \item Add many examples to appendix 
+%         \end{todolist}
+%     \item[\wip] Related 
+%     \begin{todolist}
+%       \item[\wip] Eigen 
+%         \begin{itemize}
+%           \item Add  examples for comparison
+%         \end{itemize}
+%       \item[\wip] Universal quantification and implication (???)
+%       \item[\wip] noCanren 
+%       \item[\wip] Matching 
+%     \end{todolist}
+%     \item[\done] Application to noCanren 
+%     \item Application to pattern matching 
+%         \begin{todolist}
+%           \item More formal description
+%           \item Proposed encoding of pattern 
+%           \item Why domains are important?
+%           \item WTF it doesn't work
+%         \end{todolist}
+%      \item ``Technical meat''   
+%      \item Conclusion
+%   \end{todolist}
   
 \input{02theory}
 \input{03related}
 \input{05noCanren}
 \input{06matching}
 %
-\input{05tech}
-
 \input{09conclusion}
 
-\section{Appendix}
-\input{10appendix}
-
-\begin{comment}
-%% Acknowledgments
-\begin{acks}                            %% acks environment is optional
-                                        %% contents suppressed with 'anonymous'
-  %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
-  %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
-  %% acknowledge financial support and will be used by metadata
-  %% extraction tools.
-  This material is based upon work supported by the
-  \grantsponsor{GS100000001}{Russian Foundation for Basic Research}{https://www.rfbr.ru/rffi/eng} under Grant
-  No.~\grantnum{GS100000001}{18-01-00380} and by the grant from JetBrains Research.
-  %Any opinions, findings, and
-  %conclusions or recommendations expressed in this material are those
-  %of the author and do not necessarily reflect the views of the
-  %National Science Foundation.
-\end{acks}
-\end{comment}
-
 \bibliography{references}
+\appendix
+
+\input{10appendix}
 
 \end{document}
