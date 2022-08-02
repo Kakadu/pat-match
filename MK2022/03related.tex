@@ -7,51 +7,53 @@
 \label{sec:related}
 
 The described approach with wildcard logic variable
-strongly reminds a form of universal quantification. 
+strongly reminds a form of universal quantification.
 Nowadays, the ``official'' implementation~\cite{fasterMK} of \miniKanren{} in \Scheme{} don't yet support any form of universal quantification. In this section we will observe two approaches two universal quantification, and two areas where our wildcard logic variables could be helpful.
 
 \subsection{Eigen}
 
-One of the form of universal quantification are eigen variables~\cite{eigen}. This approach allows to introduce new fresh named existential variables as usual, and new eigen named variables, which are unifiable with themselves and with fresh variables introduced in their scope. The primary purpose of eigen variables is synthesis a fixpoint combinator in combinatory logic, and this task is being solved without any usage of disequality or other constraints. The interaction between eigen variables and constraints is not handled by the implementation of eigen dialect of \miniKanren{}. During personal interactions over email we are told that the performance of current implementation of eigen and disequality constraints is troublesome, because it seems to be required to recheck possible equalities between all introduced logic variables and eigen variables. 
+One of the form of universal quantification are eigen variables~\cite{eigen}. This approach allows to introduce new fresh named existential variables as usual, and new eigen named variables, which are unifiable with themselves and with fresh variables introduced in their scope. The primary purpose of eigen variables is synthesis a fixpoint combinator in combinatory logic, and this task is being solved without any usage of disequality or other constraints. The interaction between eigen variables and constraints is not handled by the implementation of eigen dialect of \miniKanren{}. During personal interactions over email we are told that the performance of current implementation of eigen and disequality constraints is troublesome, because it seems to be required to recheck possible equalities between all introduced logic variables and eigen variables.
 
-The one could consider our approach a simplified form of eigen variables. 
+The one could consider our approach as a simplified form of eigen variables.
 We don't attach any names to our wildcard variables, so rechecking all possible pairs of inequalities doesn't make much sense.
-This makes out approach less expressive than eigen but definitely improves search termination.  
+This makes out approach less expressive than eigen but definitely improves search termination.
 Say, from one point of view the following goal can't be expressed via wildcard variables.
 \begin{lstlisting}[language=ocanren]
-(run 1 (q) (fresh (a b) (eigen (x) 
+(run 1 (q) (fresh (a b) (eigen (x)
     (=/= `(,x ,x) `(,a ,b))) (== a 7) (== b 7)))
 \end{lstlisting}
 From another point of view, this goal diverges since it calculation collects all disequality constraints and then simplifies process them once.
 
 Next, eigen variable may occur before fresh variables while it is not the case with wildcards.
-Consider the following example with eigen variable: 
+Consider the following example with eigen variable:
 \begin{lstlisting}[xleftmargin=0.5cm]
 (run 1 (q) (eigen (x) (fresh (y) (=/= x y))))
 \end{lstlisting}
 It succeeds since whatever for any given \lstinline{x}, one can choose a \lstinline{y} distinct from \lstinline{x}.
 %that's different than it.
-While wildcarded expression 
+While wildcarded expression
 \begin{lstlisting}[xleftmargin=1cm]
 (run 1 (q) (fresh (y) (__ =/= y)))
 \end{lstlisting}
-fails as well as its eigen equivalent 
+fails as well as its eigen equivalent
 \begin{lstlisting}[xleftmargin=0.5cm]
 (run 1 (q) (fresh (y) (eigen (x) (=/= x y))).
 \end{lstlisting}
 
 Also, our wildcard variables should be used in disequality constraints.
-Antagonistically, the implementation of eigen variables uses them in unifications. 
-The detailed comparison of expressiveness of wildcards and eigen variables in disequality constraint requires further studying. 
-  
+Antagonistically, the implementation of eigen variables uses them in unifications.
+The detailed comparison of expressiveness of wildcards and eigen variables in disequality constraint requires further studying.
+
 \subsection{Universal Quantification and Implication}
 
-An interesting idea from \cite{universal2021} it to mine examples from the domain of universally quantified variable one by one, cut these points from the domain and wait until it becomes empty. This approach is promising for finite domains, but for recursively described ones it could lead to divergence. We are looking forward for upgraded implementations of the approach, to check it out for tasks that are important for us. 
+An interesting idea from \cite{universal2021} is to mine examples from the domain of universally quantified variable one by one, cut these points from the domain and wait until it becomes empty. This approach is promising for finite domains, but for recursively described ones it could lead to divergence. We are looking forward for upgraded implementations of the approach, to check it out for tasks that are important for us.
 
 \subsection{\noCanren{}}
 
-Writing relational programs well requires gaining some skill. The tempting idea is to generate relational programs from functional ones. 
-A subset of OCaml could be automatically converted~\cite{RelConversion} to \OCanren{}, but current restrictions on a language make the usage of it inconvenient. For example, to have a decent semantics of a relation programs, it's required for every pattern matching in functional program that all it's branches are non-overlapping. This shortcoming exists because of normal disequality constraints are not powerful enough to express desired result, and the manual process of making pattern non-overlapping leads to exponential increasing of a number of patterns. We believe that adding wildcard variables will solve this embarrassment (section~\ref{sec:noCanren}).
+Writing relational programs well requires gaining some skill. The tempting idea is to generate relational programs from functional ones.
+A subset of OCaml could be automatically converted~\cite{RelConversion} to \OCanren{}, but current language restrictions make the usage of it inconvenient. For example, to have a decent semantics of a relation programs, it's required for every pattern matching in functional program that all it's branches are non-overlapping.
+This shortcoming exists because of normal disequality constraints are not powerful enough to express desired result, and the manual process of making pattern non-overlapping leads to exponential increasing of a number of patterns.
+We believe that adding wildcards is a step to solve this embarrassment (section~\ref{sec:noCanren}).
 
 \subsection{Relational Synthesis of Pattern Matching}
 
