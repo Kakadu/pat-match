@@ -39,14 +39,11 @@ The primary usage of wildcard variables is in the context of disequality constra
 
 We also support wildcard syntax \lstinline|__| in unification. This ``wildcards'' have a different semantics, they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementation of a relation that extract tail of the list: with wildcard syntax and without them.
 
-\begin{minipage}{7cm}
+\begin{minipage}{\linewidth}
 \begin{lstlisting}{language=ocaml}
 let tlo xs tl =
   (xs === List.conso __ tl)
-\end{lstlisting}
-\end{minipage}
-\begin{minipage}{9.5cm}
-\begin{lstlisting}{language=ocaml}
+
 let tlo xs tl =
   fresh (h) (xs === List.conso h tl)
 \end{lstlisting}
