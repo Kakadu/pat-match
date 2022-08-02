@@ -5,9 +5,22 @@
 \section{Conclusion and Future Work}
 
 In  the paper we introduced a new kind of logic variables: \emph{wildcard} logic variables.
-For some extend they could be seen as a rework to eigen variables designed to fit with disequality constraints. 
+For some extend they could be seen as a rework to eigen variables designed to fit with disequality constraints.
 
-Wildcards allow a nice opportunity to represent answer on queries like ``a peano number that is less than constant $N$'' as a single answer with a constraints, instead of enumerating of $N$ answers. Although, this particular use case may be expressed with eigen variables, which requires further investigation. Also, wildcard variables allow to relax restrictions of pattern matching when we do relational conversion from functional programs to relational ones. 
-In the paper we also studied potential application of wildcards to relational compilation of pattern matching. The goal is to significantly reduce a number of required examples for synthesis, but complete solving of this task is an ongoing work. 
+Wildcards allow a nice opportunity to represent answer on queries like ``a peano number that is less than constant $N$'' as a single answer with a constraints, instead of enumerating of $N$ answers. Although, this particular use case may be expressed with eigen variables, which requires further investigation. Also, wildcard variables allow to relax restrictions of pattern matching when we do relational conversion from functional programs to relational ones.
+In the paper we also studied potential application of wildcards to relational compilation of pattern matching. The goal is to significantly reduce a number of required examples for synthesis, but complete solving of this task is an ongoing work.
 
 Experiments with wildcards involve reasoning about domains of logic variables, which should require adding constraints on  domains of variables. For now, we only have finite domain constraints implemented via \Zthree{}, but on this stage it's not obvious how to implement a  careful description of algebraic data types domains. We also haven't yet tried yet to measure or optimize the performance of relational search with wildcard variables.
+
+While working on implementation of synthesis we came up with idea, that overspecifying existential variables in scrutinee could be overcomed by forbidding matching on these subparts of scrutinee for a concrete example.
+When relational interpreter meets $\primi{if-then-else}$ on a forbidden value, it ignores the value of a condition, and expects that  branches $\primi{then}$ and $\primi{else}$ should either fail or return the same answer.
+It's not obvious for us how to do it relationally, but we couldn't manage to implement it in a non-relational manner anyway. We believe that this idea is worth spending some extra time.
+
+
+
+
+
+
+
+
+
