@@ -2,39 +2,78 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\begin{figure}[t]
-\centering
-\begin{subfigure}[t]{0.4\linewidth}
-\centering
-\begin{lstlisting}[xleftmargin=.7cm,linewidth=3.5cm]
+\begin{figure*}[t!]
+  \begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \begin{subfigure}{0.4\linewidth}
+      \centering
+      \renewcommand\thesubfigure{\alph{subfigure}1}
+      \begin{lstlisting}[xleftmargin=.7cm,linewidth=3.5cm]
 match x, y with
 | T, _ -> 1
 | _, _ -> 2
-\end{lstlisting}
-%\vskip18.5mm
-\caption{Pattern matching}
-\label{fig:match-example-small-functional}
-\end{subfigure}
-\hspace{.5cm}
-\begin{subfigure}[t]{0.5\linewidth}
-\centering
-\begin{lstlisting}[xleftmargin=1.7cm,linewidth=3.5cm]
+      \end{lstlisting}
+      %\vskip18.5mm
+      \caption{Pattern matching}
+      \label{fig:match-example-small-functional}
+    \end{subfigure}
+    \hspace{.5cm}
+    \begin{subfigure}{0.5\linewidth}
+      \centering
+      \addtocounter{subfigure}{-1}
+      \renewcommand\thesubfigure{\alph{subfigure}2}
+      \begin{lstlisting}[xleftmargin=1.7cm,linewidth=3.5cm]
 if x 
 then 1 
 else 2
-\end{lstlisting}
-%\vskip8.5mm
-\caption{Optimal implementation}
-%\label{fig:matching-example3}
-\end{subfigure}
-\caption{Simple patterns matching example} 
-\label{fig:match-example-small}
-\end{figure}
-
-\begin{figure}[t]
-\begin{subfigure}[t]{1.0\linewidth}
-\centering
-\begin{lstlisting}
+      \end{lstlisting}
+      %\vskip8.5mm
+      \caption{Optimal implementation}
+      %\label{fig:matching-example3}
+    \end{subfigure}
+    \addtocounter{subfigure}{-1}
+    \caption{Simple patterns matching example} 
+    \label{fig:match-example-small}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.48\textwidth}
+    \begin{subfigure}{0.4\linewidth}
+      \centering
+      \renewcommand\thesubfigure{\alph{subfigure}1}
+      \begin{lstlisting}
+match x, y, z with
+| _, F, T -> 1
+| F, T, _ -> 2
+| _, _, F -> 3
+| _, _, T -> 4
+      \end{lstlisting}
+      \vskip4.5mm
+      \caption{Pattern matching}
+      \label{fig:matching-example1}
+    \end{subfigure}
+% \hspace{0.2cm}
+    \begin{subfigure}{0.5\linewidth}
+      \centering
+      \addtocounter{subfigure}{-1}
+      \renewcommand\thesubfigure{\alph{subfigure}2}
+      \begin{lstlisting}
+if y then
+  if x then
+    if z then 4 else 3
+  else 2
+else
+  if z then 1 else 3
+      \end{lstlisting}
+      %\vskip13.5mm
+      \caption{Optimal implementation}
+      \label{fig:matching-example2}
+    \end{subfigure}
+    \addtocounter{subfigure}{-1}
+    \caption{Pattern matching compilation example (from~\cite{maranget2001})} 
+    \label{fig:match-example}
+  \end{subfigure}
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \begin{lstlisting}
 let naive_rel q rez =
   conde
     [ fresh (tmp) 
@@ -45,13 +84,13 @@ let naive_rel q rez =
         (q === pair l r)
         (rez === !!2) 
     ]
-\end{lstlisting}
-\caption{Na\"{i}ve compilation with disequality constraints}
-\label{fig:match-compilation-small-diseq}
-\end{subfigure}
-\begin{subfigure}[t]{1.0\linewidth}
-\centering
-\begin{lstlisting}
+    \end{lstlisting}
+    \caption{Na\"{i}ve compilation with disequality constraints}
+    \label{fig:match-compilation-small-diseq}
+  \end{subfigure}
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \begin{lstlisting}
 let better_rel q rez =
   conde
     [ fresh () 
@@ -61,46 +100,13 @@ let better_rel q rez =
         (q =/= pair !!true __) 
         (rez === !!2) 
     ]
-\end{lstlisting}
-\caption{Better compilation with wildcards}
-\label{fig:match-compilation-small-wc}
-\end{subfigure}
-\caption{Pattern matching compilation example } 
-\label{fig:match-compilation-small}
-\end{figure}
-
-\begin{figure}[t]
-\begin{subfigure}[t]{0.4\linewidth}
-\centering
-\begin{lstlisting}
-match x, y, z with
-| _, F, T -> 1
-| F, T, _ -> 2
-| _, _, F -> 3
-| _, _, T -> 4
-\end{lstlisting}
-\vskip4.5mm
-\caption{Pattern matching}
-\label{fig:matching-example1}
-\end{subfigure}
-% \hspace{0.2cm}
-\begin{subfigure}[t]{0.5\linewidth}
-\centering
-\begin{lstlisting}
-if y then
-  if x then
-    if z then 4 else 3
-  else 2
-else
-  if z then 1 else 3
-\end{lstlisting}
-%\vskip13.5mm
-\caption{Optimal implementation}
-\label{fig:matching-example2}
-\end{subfigure}
-\caption{Pattern matching compilation example (from~\cite{maranget2001})} 
-\label{fig:match-example}
-\end{figure}
+    \end{lstlisting}
+    \caption{Better compilation with wildcards}
+    \label{fig:match-compilation-small-wc}
+  \end{subfigure}
+  \caption{Pattern matching compilation example } 
+  \label{fig:match-compilation-small}
+\end{figure*}
 
 \begin{figure*}[t]
 %\centering
