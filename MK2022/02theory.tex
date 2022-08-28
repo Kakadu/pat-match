@@ -2,7 +2,7 @@
 % !TeX spellcheck = en_US
 % !TEX root = main.tex
 
-\section{Theory}
+\section{Informal Description}
 \label{sec:theory}
 
 In this section we describe the essence of wildcard variables and how they interact with other features of \miniKanren{}.
@@ -35,9 +35,11 @@ The case above leads us to the most complicated case: a disequality between fres
 
 
 \subsection{Unification}
-The primary usage of wildcard variables is in the context of disequality constraints. Despite there is only a single wildcard variable in runtime, we create need a special combinator (similar to \lstinline|call_fresh|) that creates wildcard variable. This is specific to \OCanren{} -- typed embedding of \miniKanren{} to \OCaml{} -- where we can unify only logic values of the same type. That's why we need many instances of differently typed wildcard variables.
+The primary usage of wildcard variables is in the context of disequality constraints. 
+Despite there is only a single wildcard variable in runtime, we  need a special combinator (similar to \lstinline|call_fresh|) that creates wildcard variable. 
+This is specific to \OCanren{} -- typed embedding of \miniKanren{} to \OCaml{} -- where we can unify only logic values of the same type. That's why we need many instances of differently typed wildcard variables.
 
-We also support wildcard syntax \lstinline|__| in unification. This ``wildcards'' have a different semantics, they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementation of a relation that extract tail of the list: with wildcard syntax and without them.
+The proposed wildcard variables are not designed to be used in unification, but we decided to allow wildcard syntax \lstinline|__| in unification anyway. This ``wildcards'' have a different semantics, they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementation of a relation that extract tail of the list: with wildcard syntax and without them.
 
 \begin{minipage}{\linewidth}
 \begin{lstlisting}{language=ocaml}

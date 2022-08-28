@@ -33,8 +33,9 @@ The example above could be repaired by introduction of finite domain constraints
 Another example of algebraic data types are Peano numbers. Unification allows us to express that a peano number \lstinline|q| is greater or equal a constant: \lstinline|q === S(S(S _.10))|$\!\!$.
 But disequality constraints are not powerful enough to express that a number is \emph{less} than a constant.
 
-In this paper paper we introduce \emph{wildcard logic variables
+In this paper we introduce \emph{wildcard logic variables
 } (denoted as \lstinline|__|) which are able to solve problem like above. 
-The disequality \lstinline|q =/= S(S(S __))| states that two values are not equal not matter what we would substitute instead of \lstinline|__|, which will effectively filter out \lstinline|S(S(S Z))|, \lstinline|S(S(S(S Z)))|, i.e. all numbers greater or equal three. This \emph{single} disequality is an only constraint that is required  to describe  finitely ``a peano number is less then constant N''.
+The disequality \lstinline|q =/= S(S(S __))| states that two values are not equal no matter what we would substitute instead of \lstinline|__|, which will effectively filter out \lstinline|S(S(S Z))|, \lstinline|S(S(S(S Z)))|, i.e. all numbers greater or equal three. This \emph{single} disequality is an only constraint that is required  to describe  finitely ``a peano number is less then constant N''.
+In default implementations of \miniKanren{} we could write a disjunction of three cases but this will hurt performance of the search.
 
 
