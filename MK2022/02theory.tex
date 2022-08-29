@@ -35,12 +35,12 @@ The case above leads us to the most complicated case: a disequality between fres
 
 
 \subsection{Unification}
-The primary usage of wildcard variables is in the context of disequality constraints. 
-Despite there is only a single wildcard variable in runtime, we  need a special combinator (similar to \lstinline|call_fresh|) that creates wildcard variable. 
+The primary usage of wildcard variables is in the context of disequality constraints.
+Despite there is only a single wildcard variable in runtime, we  need a special combinator (similar to \lstinline|call_fresh|) that creates wildcard variable.
 This is specific to \OCanren{} -- typed embedding of \miniKanren{} to \OCaml{} -- where we can unify only logic values of the same type. That's why we need many instances of differently typed wildcard variables.
 
-The proposed wildcard variables are not designed to be used in unification, but we decided to allow wildcard syntax \lstinline|__| in unification anyway. 
-This ``wildcards'' have a different semantics, they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementation of a relation that extract tail of the list: with wildcard syntax and without them.
+The proposed wildcard variables are not designed to be used in unification, but we decided to allow wildcard syntax \lstinline|__| in unification anyway.
+This ``wildcards'' have a different semantics from proposed in this paper, they looks resembles more traditional wildcards from pattern matching in \OCaml{}: they are just a convenient syntax to avoid manual creation of fresh variables. In the example below we demonstrate two implementations of a relation that extract tail of the list: with wildcard syntax and without them. All occurrences of \lstinline|__| are translated to calls of primitive combinators by a macro expansion.
 
 \begin{minipage}{\linewidth}
 \begin{lstlisting}{language=ocaml}
@@ -51,3 +51,5 @@ let tlo xs tl =
   fresh (h) (xs === List.conso h tl)
 \end{lstlisting}
 \end{minipage}
+
+\noindent The macro expansion is responsible for insertion of wildcard variables into right places, but end user could create meaningless \OCanren{} expression bypassing macro expansion. Right now we don't defend against that. But it should be doable if we add for every logic variable a phantom type variable\footnote{\href{https://kcsrk.info/ocaml/types/2016/06/30/behavioural-types/}{Behavioural types} by KC Sivaramakrishnan (accessed: August 29, 2022)} which says whether logic variable can be used in unification, disequality or both.
