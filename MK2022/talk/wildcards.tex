@@ -1,0 +1,349 @@
+% !TEX TS-program = xelatex
+% !TeX spellcheck = en_US
+% !TEX root = wildcards.tex
+\documentclass[aspectratio=169
+  , xcolor={svgnames}
+  , hyperref=
+      { colorlinks
+      , urlcolor=DarkBlue
+      }
+  , russian  % This line affects translation of theorem titles
+  ]{beamer}
+\usepackage[svgnames]{xcolor}
+\usetheme{CambridgeUS}
+\usefonttheme{professionalfonts}
+
+
+\input{heading}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Wildcards Logic Variables}
+
+\date{  Thu 15 Sep 2022}
+
+\author{\textbf{Dmitrii Kosarev}$^1$, Daniil Berezun$^2$, Peter Lozov$^1$}
+\institute{St. Petersbur State University, Russia$^1$ \and JetBrains Research, The Netherlands$^2$}
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Оглавление}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+\newcommand{\verbatimfont}[1]{\def\verbatim@font{#1}}
+\usepackage{verbatimbox}
+
+%\setbeamertemplate{section in toc}{\inserttocsectionnumber.~\inserttocsection}
+\begin{document}
+\maketitle
+
+% For every picture that defines or uses external nodes, you'll have to
+% apply the 'remember picture' style. To avoid some typing, we'll apply
+% the style to all pictures.
+%\tikzstyle{every picture}+=[remember picture]
+
+% By default all math in TikZ nodes are set in inline mode. Change this to
+% displaystyle so that we don't get small fractions.
+\everymath{\displaystyle}
+
+% Uncomment these lines for an automatically generated outline.
+\begin{frame}{В этих слайдах}
+
+
+\begin{itemize}
+  \item Interpeters, deseq in Scheme
+  \item diseq in OCanren
+  \item How wildcards work
+  \item Peano example
+  \item noCanren example
+  \item mathcing example
+
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile]{Положение ФП в мире}
+
+\begin{minted}{scheme}
+(define eval-exp-o
+ (lambda (exp env val)
+  (conde
+     ...
+     (== `(quote ,v) exp)
+     ...
+     (== `(list . ,a*) exp)
+     ...
+     (== `(,rator ,rand) exp)
+     ...
+     (== `(lambda (,x ) ,body) exp)
+     ...
+\end{minted}
+
+
+\footnote{William E. Byrd, Eric Holk, and Daniel P. Friedman.
+  miniKanren, Live and Untagged: Quine Generation via Relational Interpreters (Programming Pearl). 2012}
+\end{frame}
+
+
+
+\begin{frame}[fragile]{23}
+
+1
+
+
+\end{frame}
+
+\begin{frame}{Хотя на самом деле нужно рисовать вот так}
+%\begin{center}
+%\begin{tikzpicture}
+% \node (n1)    at ( 0, 0) {C/C++};
+% \node (n2)    at ( 6.5,-2.5) {C\#, Java, ...};
+% \node (n3)    at ( 4,-3.5) {отстой};
+% \node (n2)    at ( 10.34, 0) { OCaml, Haskell, и т.д. };
+%  \node     at ( 8, -1) { Rust ? };
+% \node [align=left]    at (10,1.5) { \parbox[l]{4cm}{Языки с зависимыми типами: Coq, Agda, и т.п. }};
+% \draw (.2,-.2) .. controls (4,-4) .. (9, .8);
+% \draw [stealth-stealth,line width=1.1pt](-3,-4) -- (10,-4);
+%       \node   at (8.2,-4.5) {более high-level};
+%       \node   at (-2,-4.5) {менее high-level};
+%\end{tikzpicture}
+%\end{center}
+\end{frame}
+
+\section{Синтаксис вызова функций}
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Алгебраические типы данных}
+
+\begin{frame}[fragile]{Алгебраические типы данных}
+Алгебраические типы данных -- это скрещивание enum'ов и структур из Си.
+\begin{block}{Пример: список значений типа \mlinline{'a}}
+Связный список -- это структура данных, которая представляет собой \emph{\underline{или}}
+пустой список (nil), \emph{\underline{или}} элемент списка (cons), который \emph{\underline{состоит из}} элемента типа \mlinline{'a}, хранящегося в списке, \emph{\underline{и}} ещё одного списка (хвоста).
+\end{block}
+\vspace{1em}
+
+\begin{minipage}{0.45\linewidth}
+\begin{minted}{ocaml}
+type 'a list  =
+  | Nil
+  | Cons of 'a * 'a list
+\end{minted}
+(Полиморфный) тип \mlinline{'a list} списков значений типа \mlinline{'a}
+\end{minipage}\hspace{1cm}
+\begin{minipage}{0.45\linewidth}
+\mlinline{Nil} и  \mlinline{Cons} -- \emph{конструкторы} типа \mlinline{'a list}\\
+
+У конструктора  \mlinline{Nil} нет аргументов.\\
+
+У конструктора  \mlinline{Cons} два  аргумента с типами \mlinline{'a} и  \mlinline{'a list}.\\
+%\begin{minted}{ocaml}
+%let make : a -> b -> c = fun a b -> ...
+%let make2 : b -> c =
+%  let a : a = ... in
+%  make a
+%\end{minted}
+%Из функции \mlinline{make2} вернули частично примененную функцию, а аргумент хранится в \emph{замыкании (closure)}
+\end{minipage}
+\end{frame}
+
+
+\begin{frame}[fragile]{Пример: (односвязные) списки с синтаксический сахар для них}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{minted}{ocaml}
+type 'a list =
+  | Nil
+  | Cons of 'a * 'a list
+\end{minted}
+\parbox[][40pt][t]{\linewidth}{
+\vspace{1em}
+Вот так будете писать большинство своих типов данных
+}
+\vspace{1em}
+\begin{minted}{ocaml}
+Nil : 'a list
+Cons (1, Nil) : int list
+
+Cons (2, Cons (1, Nil)) : int list
+
+\end{minted}
+\end{minipage}\hspace{1cm}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{minted}{ocaml}
+type 'a list =
+  | []
+  | (::) of 'a * 'a list
+\end{minted}
+\parbox[][40pt][t]{\linewidth}{
+\vspace{1em}
+Здесь специально выбранный конструктор, чтобы он был инфиксным и право ассоциативным
+}
+\vspace{1em}
+\begin{minted}{ocaml}
+[]       : 'a list
+1::[]    : int list
+[1]      : int list
+1::2::[] : int list
+[1;2]    : int list
+\end{minted}
+\end{minipage}
+\end{frame}
+
+\defverbatim[colored]{\demoOption}{
+\begin{minted}{ocaml}
+let run_on_two x y f =
+  match x with
+  | None -> ()
+  | Some x ->
+      match y with
+      | None -> ()
+      | Some y -> f x y
+
+(* somewhere in .mli file *)
+val run_on_two:
+  'a option ->
+  'b option ->
+  ('a -> 'b -> unit) ->
+  unit
+\end{minted}
+}
+
+\defverbatim[colored]{\optionDefinition}{
+\begin{minted}{ocaml}
+type 'a option =
+  | None
+  | Some of 'a
+\end{minted}
+}
+
+
+\begin{frame}{Пример: тип option}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{minipage}[t]{0.45\linewidth}
+\optionDefinition
+\end{minipage}
+\vspace{1em}
+
+Либо нет значения (\mlinline=None=), либо какое-то есть (\mlinline=Some=)\\
+
+Аналог nullptr, только его нельзя случайно разименовать\footnote{См. Tony Hoare ``Null References: The Billion Dollar Mistake``}
+\end{minipage}\hspace{1cm}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{minipage}[t]{0.45\linewidth}
+\demoOption{}
+\end{minipage}
+\end{minipage}
+\end{frame}
+
+
+\defverbatim[colored]{\demoBoolean}{
+\begin{minted}{ocaml}
+(* Встроенный в OCaml *)
+true : bool
+
+(* Но можно описать свой *)
+type boolean = True | False
+
+(* И потом использовать *)
+match ... with
+| true ->
+| false ->
+
+if (* condition: bool *)
+then ...
+else ...
+\end{minted}
+}
+
+\defverbatim[colored]{\booleanBlindness}{
+\begin{minted}{ocaml}
+val is_admin : user -> bool
+val is_red : node -> true
+val list_filter: ('a -> bool) ->
+                 'a list -> 'a list
+
+(*  Лучше как ниже *)
+type role = Admin | User
+val get_role : user -> role
+val color = Red | Black
+val get_color : node -> color
+
+type filter = Keep | Remove
+val list_filter: ('a -> filter) ->
+                 'a list -> 'a list
+\end{minted}
+}
+
+\begin{frame}{Пример: тип bool и ``Boolean blindness``}
+\vspace{-1em}
+\begin{minipage}[t]{0.45\linewidth}
+\begin{minipage}[t]{0.35\linewidth}
+\demoBoolean
+\end{minipage}
+\end{minipage}\hspace{.1cm}
+\begin{minipage}[t]{0.35\linewidth}
+\begin{minipage}[t]{0.5\linewidth}
+\booleanBlindness{}
+\end{minipage}
+\end{minipage}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\Large{Почему алгебраические типы данных (язык Hope, 1980) называются "алгебраическими"?}
+\vspace{5em}
+
+%\tiny{(Вспоминаем понятие алгебраической структуры...)}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{Итоги}
+Новые понятия
+\begin{enumerate}
+\item каррированные функции
+\item вложенные функции
+\item сопоставление с образцом и wildcard
+\item хвостовая рекурсия
+\item автоматический вывод типов
+\item разделение на файлы интерфейса и реализации
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[allowframebreaks]
+\frametitle<presentation>{Ссылки}
+\begin{thebibliography}{10}
+  \bibitem{blow}
+    Предотвращая коллапс цивилизации (Preventing the Collapse of Civilization), 2019 (in English)
+    \newblock {\em Jonathan Blow}
+    \newblock\href{https://youtu.be/pW-SOdj4Kkk}{YouTube}
+  \bibitem{cheatsheets}
+    Шпаргалки по синтаксису OCaml
+    \newblock {\em OCamlPro}
+    \newblock\href{https://ocaml.org/docs/cheat_sheets.html}{4 PDF online}
+  \bibitem{rwo}
+    Книга Real World OCaml издания 2.0 (есть русский перевод издания 1.0)
+    \newblock\href{https://dev.realworldocaml.org/toc.html}{online}
+  \bibitem{javaTuringComplete}
+    Java Generics are Turing Complete
+    \newblock {\em Radu Grigore}
+    \newblock\href{https://arxiv.org/pdf/1605.05274}{online}
+  \bibitem{algDThistory}
+    A Brief History of Algebraic Data Types
+    \newblock {\em Li-yao Xia}
+    \newblock\href{https://docs.google.com/presentation/d/131_CYsd9mEL-0XqXMyV7JeahWgtNCUV_JwjH7WqYFcI/edit}{online}
+\end{thebibliography}
+\end{frame}
+
+
+\end{document}
