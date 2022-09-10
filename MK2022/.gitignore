@@ -1,5 +1,10 @@
-/*.out
+*.out
+*.nav 
+*.snm 
+*.toc
+*.vrb
 *.bak
+_minted*
 main.pdf
 
 acmart-primary.zip

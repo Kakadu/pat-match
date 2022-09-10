@@ -21,8 +21,10 @@
 
 \date{  Thu 15 Sep 2022}
 
-\author{\textbf{Dmitrii Kosarev}$^1$, Daniil Berezun$^2$, Peter Lozov$^1$}
-\institute{St. Petersbur State University, Russia$^1$ \and JetBrains Research, The Netherlands$^2$}
+\author
+  [\textbf{Dmitrii Kosarev}, Daniil Berezun, Peter Lozov]
+  {\textbf{Dmitrii Kosarev}$^1$, Daniil Berezun$^2$, Peter Lozov$^1$}
+\institute[]{St. Petersbur State University, Russia$^1$ \and JetBrains Research, The Netherlands$^2$}
 
 
 \AtBeginSection[]
@@ -60,15 +62,12 @@
   \item Peano example
   \item noCanren example
   \item mathcing example
-
 \end{itemize}
-
-
 \end{frame}
 
-\begin{frame}[fragile]{Положение ФП в мире}
-
+\defverbatim[colored]{\schemeInterpreter}{
 \begin{minted}{scheme}
+; Scheme
 (define eval-exp-o
  (lambda (exp env val)
   (conde
@@ -82,230 +81,286 @@
      (== `(lambda (,x ) ,body) exp)
      ...
 \end{minted}
-
-
-\footnote{William E. Byrd, Eric Holk, and Daniel P. Friedman.
-  miniKanren, Live and Untagged: Quine Generation via Relational Interpreters (Programming Pearl). 2012}
-\end{frame}
-
-
-
-\begin{frame}[fragile]{23}
-
-1
-
-
-\end{frame}
-
-\begin{frame}{Хотя на самом деле нужно рисовать вот так}
-%\begin{center}
-%\begin{tikzpicture}
-% \node (n1)    at ( 0, 0) {C/C++};
-% \node (n2)    at ( 6.5,-2.5) {C\#, Java, ...};
-% \node (n3)    at ( 4,-3.5) {отстой};
-% \node (n2)    at ( 10.34, 0) { OCaml, Haskell, и т.д. };
-%  \node     at ( 8, -1) { Rust ? };
-% \node [align=left]    at (10,1.5) { \parbox[l]{4cm}{Языки с зависимыми типами: Coq, Agda, и т.п. }};
-% \draw (.2,-.2) .. controls (4,-4) .. (9, .8);
-% \draw [stealth-stealth,line width=1.1pt](-3,-4) -- (10,-4);
-%       \node   at (8.2,-4.5) {более high-level};
-%       \node   at (-2,-4.5) {менее high-level};
-%\end{tikzpicture}
-%\end{center}
-\end{frame}
-
-\section{Синтаксис вызова функций}
-
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Алгебраические типы данных}
-
-\begin{frame}[fragile]{Алгебраические типы данных}
-Алгебраические типы данных -- это скрещивание enum'ов и структур из Си.
-\begin{block}{Пример: список значений типа \mlinline{'a}}
-Связный список -- это структура данных, которая представляет собой \emph{\underline{или}}
-пустой список (nil), \emph{\underline{или}} элемент списка (cons), который \emph{\underline{состоит из}} элемента типа \mlinline{'a}, хранящегося в списке, \emph{\underline{и}} ещё одного списка (хвоста).
-\end{block}
-\vspace{1em}
-
-\begin{minipage}{0.45\linewidth}
-\begin{minted}{ocaml}
-type 'a list  =
-  | Nil
-  | Cons of 'a * 'a list
-\end{minted}
-(Полиморфный) тип \mlinline{'a list} списков значений типа \mlinline{'a}
-\end{minipage}\hspace{1cm}
-\begin{minipage}{0.45\linewidth}
-\mlinline{Nil} и  \mlinline{Cons} -- \emph{конструкторы} типа \mlinline{'a list}\\
-
-У конструктора  \mlinline{Nil} нет аргументов.\\
-
-У конструктора  \mlinline{Cons} два  аргумента с типами \mlinline{'a} и  \mlinline{'a list}.\\
-%\begin{minted}{ocaml}
-%let make : a -> b -> c = fun a b -> ...
-%let make2 : b -> c =
-%  let a : a = ... in
-%  make a
-%\end{minted}
-%Из функции \mlinline{make2} вернули частично примененную функцию, а аргумент хранится в \emph{замыкании (closure)}
-\end{minipage}
-\end{frame}
-
-
-\begin{frame}[fragile]{Пример: (односвязные) списки с синтаксический сахар для них}
-\begin{minipage}[t]{0.45\linewidth}
-\begin{minted}{ocaml}
-type 'a list =
-  | Nil
-  | Cons of 'a * 'a list
-\end{minted}
-\parbox[][40pt][t]{\linewidth}{
-\vspace{1em}
-Вот так будете писать большинство своих типов данных
-}
-\vspace{1em}
-\begin{minted}{ocaml}
-Nil : 'a list
-Cons (1, Nil) : int list
-
-Cons (2, Cons (1, Nil)) : int list
-
-\end{minted}
-\end{minipage}\hspace{1cm}
-\begin{minipage}[t]{0.45\linewidth}
-\begin{minted}{ocaml}
-type 'a list =
-  | []
-  | (::) of 'a * 'a list
-\end{minted}
-\parbox[][40pt][t]{\linewidth}{
-\vspace{1em}
-Здесь специально выбранный конструктор, чтобы он был инфиксным и право ассоциативным
-}
-\vspace{1em}
-\begin{minted}{ocaml}
-[]       : 'a list
-1::[]    : int list
-[1]      : int list
-1::2::[] : int list
-[1;2]    : int list
-\end{minted}
-\end{minipage}
-\end{frame}
-
-\defverbatim[colored]{\demoOption}{
-\begin{minted}{ocaml}
-let run_on_two x y f =
-  match x with
-  | None -> ()
-  | Some x ->
-      match y with
-      | None -> ()
-      | Some y -> f x y
-
-(* somewhere in .mli file *)
-val run_on_two:
-  'a option ->
-  'b option ->
-  ('a -> 'b -> unit) ->
-  unit
-\end{minted}
 }
 
-\defverbatim[colored]{\optionDefinition}{
-\begin{minted}{ocaml}
-type 'a option =
-  | None
-  | Some of 'a
-\end{minted}
-}
-
-
-\begin{frame}{Пример: тип option}
-\begin{minipage}[t]{0.45\linewidth}
-\begin{minipage}[t]{0.45\linewidth}
-\optionDefinition
+\begin{frame}{A reminder of relational interpeters...}
+\framesubtitle{William E. Byrd et al. \miniKanren{}, Live and Untagged: Quine Generation via Relational Interpreters. 2012}
+\begin{figure}[t]
+\begin{subfigure}{.49\textwidth}
+\begin{minipage}{.4\textwidth}
+\schemeInterpreter
 \end{minipage}
-\vspace{1em}
+\end{subfigure}
+\hskip1em
+\begin{subfigure}[ht]{.4\textwidth}
+Question: how to say that expression \mintinline{scheme}|q| doesn't fit the first case (is not a quote expression)? 
+\begin{itemize}
+\item \mintinline{scheme}|fresh (v) (=/= q `(quote , v))|
+\end{itemize}
 
-Либо нет значения (\mlinline=None=), либо какое-то есть (\mlinline=Some=)\\
-
-Аналог nullptr, только его нельзя случайно разименовать\footnote{См. Tony Hoare ``Null References: The Billion Dollar Mistake``}
-\end{minipage}\hspace{1cm}
-\begin{minipage}[t]{0.45\linewidth}
-\begin{minipage}[t]{0.45\linewidth}
-\demoOption{}
-\end{minipage}
-\end{minipage}
+It's possible because data representation specifies 
+\begin{itemize}
+\item arity first 
+\item fillment of a list later
+\end{itemize}
+\end{subfigure}
+\end{figure}
+\footnote{}
 \end{frame}
 
-
-\defverbatim[colored]{\demoBoolean}{
+\defverbatim[colored]{\XXX}{
 \begin{minted}{ocaml}
-(* Встроенный в OCaml *)
-true : bool
-
-(* Но можно описать свой *)
-type boolean = True | False
-
-(* И потом использовать *)
-match ... with
-| true ->
-| false ->
-
-if (* condition: bool *)
-then ...
-else ...
+(* very much simplified *)
+type exp = 
+  | Quote of exp
+  | List of exp list 
+  | Appl of exp * exp
+  | Lam of var * exp * exp
+  | ...
 \end{minted}
 }
-
-\defverbatim[colored]{\booleanBlindness}{
+\defverbatim[colored]{\BuggyIneq}{
 \begin{minted}{ocaml}
-val is_admin : user -> bool
-val is_red : node -> true
-val list_filter: ('a -> bool) ->
-                 'a list -> 'a list
-
-(*  Лучше как ниже *)
-type role = Admin | User
-val get_role : user -> role
-val color = Red | Black
-val get_color : node -> color
-
-type filter = Keep | Remove
-val list_filter: ('a -> filter) ->
-                 'a list -> 'a list
+(* not quite a solution*)
+fresh (v) (q =/= quote v)
 \end{minted}
 }
-
-\begin{frame}{Пример: тип bool и ``Boolean blindness``}
-\vspace{-1em}
-\begin{minipage}[t]{0.45\linewidth}
-\begin{minipage}[t]{0.35\linewidth}
-\demoBoolean
+\begin{frame}{\OCanren{} uses different representation of values}
+\begin{figure}[ht]
+\begin{subfigure}[t]{.45\textwidth}
+\begin{minipage}{.4\textwidth}
+\XXX
 \end{minipage}
-\end{minipage}\hspace{.1cm}
-\begin{minipage}[t]{0.35\linewidth}
-\begin{minipage}[t]{0.5\linewidth}
-\booleanBlindness{}
-\end{minipage}
-\end{minipage}
+In \OCanren{} we specify constructor \emph{first} and arity and args \emph{later}
+\end{subfigure}\hskip2em
+\begin{subfigure}[ht]{.49\textwidth}
+  Question: how to say that expression \mintinline{scheme}|q| doesn't fit the first case (is not a quote expression)? 
+  \begin{itemize}
+  \item \begin{minipage}{.4\textwidth}
+        \BuggyIneq
+        \end{minipage}
+  \end{itemize}
+        We said: exists v that q is not quote v 
+        
+        We wanted q is not quote v for any possible v 
+        
+        In other words: $\forall$ v: \mlinline{q =/= quote v}
+\end{subfigure}
+\end{figure}
+\footnote{}
 \end{frame}
 
 \begin{frame}
-\begin{center}
-\Large{Почему алгебраические типы данных (язык Hope, 1980) называются "алгебраическими"?}
-\vspace{5em}
+\begin{itemize}
+\item It may look like too specific for relational interpreters...
+\item ... or to \OCanren{} itself
+\item But we managed to found an example, that make sense bot for \Scheme{} \miniKanren{} and \OCanren{} implemented in \OCaml{}
+\end{itemize}
 
-%\tiny{(Вспоминаем понятие алгебраической структуры...)}
-\end{center}
+TODO: contributions?
 \end{frame}
+
+\begin{frame}{Example with Peano numbers}
+
+What would be solutions for q, that is not equal \mintinline{scheme}{(s (s (s ,v))))} for any possible v?
+
+\begin{itemize}
+\item[\faGood] \mintinline{scheme}{z}
+\item[\faGood] \mintinline{scheme}{(s z)}
+\item[\faGood] \mintinline{scheme}{(s (s z))}
+\item[\faBad] \mintinline{scheme}{(s (s (s z)))}
+\item[\faBad] \mintinline{scheme}{(s (s (s (s z))))}
+\item[\faBad] \mintinline{scheme}{(s (s (s (s (s z)))))}
+\item ...
+\item All peano numbers less than three fit, others doesn't.
+\end{itemize}
+
+\end{frame}
+\begin{frame}{Contributions}
+\begin{enumerate}
+
+
+\item Wildcard Logic Variables
+\begin{itemize}
+\item Are able to express "Peano number \emph{less} than constant N"
+\item Previously, we could only do "Peano number \emph{greater} than constant N"
+\end{itemize}
+\item An application to \noCanren{} -- more expressivity
+\item Work in progress application to pattern-matching synthesis.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Implementation Sketch}
+We introduce a special \emph{wildcard variables} (denoted by two underscores: \mlinline{__}) and 
+
+\begin{itemize}
+\item \emph{modify unification}: wildcards unify with everything but don't extend current substitution
+\item disequality constraints doesn't change significantly
+\end{itemize} 
+%\begin{figure}[ht]
+%\begin{subfigure}[t]{.45\textwidth}
+%
+%\end{subfigure}\hskip1em
+%\begin{subfigure}[t]{.45\textwidth}
+\vskip1em
+Examples:
+\begin{itemize}
+\item  \mlinline{(1 _.10) =/= (__ 2)} $\rightsquigarrow$
+  \mlinline{_.10 =/= 2}
+\item \mlinline{cons __  __  =/= _.10 &&} \mlinline{cons _.11 _.12 === _.10   } 
+$\rightsquigarrow$ fail
+\item A fresh variable \mlinline{_.10 =/= __}. \\
+If a variable has non-empty domain, it should fail. For empty domain -- success
+\end{itemize}
+
+%\begin{itemize}
+%\item \emph{modify unification}: wildcards unify with everything but don't extend current substitution
+%\item disequality constraints doesn't change significantly
+%\end{itemize}
+
+%\end{subfigure}
+%\end{figure}
+
+
+\end{frame}
+
+
+\begin{frame}{Related Works}
+\begin{enumerate}
+\item Eigen variables\footnote{1}
+\begin{itemize}
+\item Universal quantifier inside unification, disequality constraints support is shaky
+\end{itemize}
+\item Universal Quantification and Implication\footnote{2}
+%\begin{itemize}
+%\item Looks promising 
+%\end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{An application: \noCanren}
+\begin{itemize}
+\item [\faBad] \miniKanren{} requires some time to study (as any language/DSL)
+\item An idea: synthesize relational code from a subset of general purpose language (for example, \OCaml{})\footnote{Lozov 2017}
+\begin{itemize}
+\item[\faGood] Typechecker for free
+\item[\faGood] Convenient \OCaml{}-like syntax  for free (at least it should be  )
+\item Semantics preserving transformation to miniKanren is proved on paper
+\end{itemize}
+\item  Restrictions on subset of \OCaml{} are quite strong
+\begin{itemize}
+\item Some langauge features are not avaialble (pattern matching guards)
+\item Some \OCaml{} best practices hurt performance
+\item Overlapping patterns in pattern matching are banished\\
+But wildcard variables will help with that \faGood
+
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\defverbatim[colored]{\lozovMLexOne}{
+\begin{minted}{ocaml}
+(* LozovML *)
+match x, y with
+| T, _ -> 1
+| _, _ -> 2
+\end{minted}
+}
+\defverbatim[colored]{\straightforwardCompilation}{
+\begin{minted}{ocaml}
+(* OCanren *)
+let straightforward q rez =
+  conde
+    [ fresh ()
+        (rez === !!1)
+        (q === Std.pair !!true __)
+    ; fresh (l r)
+        (rez === !!2)
+        (q === Std.pair l r)
+    ]
+\end{minted}
+}
+\defverbatim[colored]{\naiveCompilation}{
+\begin{minted}{ocaml}
+(* OCanren *)
+let naive_rel q rez =
+  conde
+    [ fresh (tmp)
+        (q === pair !!true tmp)
+        (rez === !!1)
+    ; fresh (tmp l r)
+        (q =/= pair !!true tmp)
+        (q === pair l r)
+        (rez === !!2)
+    ]
+\end{minted}
+}
+
+\defverbatim[colored]{\betterCompilation}{
+\begin{minted}{ocaml}
+(* OCanren *)
+let better_rel q rez =
+  conde
+    [ fresh ()
+        (q === pair !!true __)
+        (rez === !!1)
+    ; fresh ()
+        (q =/= pair !!true __)
+        (rez === !!2)
+    ]
+\end{minted}
+}
+
+\begin{frame}[fragile]{ }
+\begin{figure}[ht]
+\begin{subfigure}[t]{.25\textwidth}
+  \begin{minipage}{1\textwidth}
+  Overlapping patterns are banned, let's see what could go wrong...
+  \lozovMLexOne
+  \end{minipage}
+\end{subfigure}\hskip3em
+\begin{subfigure}[t]{.55\textwidth}
+\only<1>{
+  \begin{minipage}{.55\textwidth}
+  \straightforwardCompilation
+  \end{minipage}
+  \begin{itemize}
+  \item [\faBad] no restrictions between matching branches, can ``return'' for \mlinline{(q===Std.pair !!true !!true)} both 1 and 2
+  \end{itemize}  
+}
+\only<2>{
+  \begin{minipage}{.45\textwidth}
+  \naiveCompilation
+  \end{minipage}
+  \begin{itemize}
+  \item [\faBad] Restrictions established by default disequality constraints are not powerful enough\\
+  
+  For \mlinline{fresh (v) (q === Std.pair !!true v)} both 1 and 2m because variable \mlinline{tmp} is existential
+    \end{itemize}
+}
+\only<3>{
+  \begin{minipage}{.45\textwidth}
+  \betterCompilation
+  \end{minipage}
+  \begin{itemize}
+  \item [\faGood] if \mlinline{fresh (v) (q === Std.pair !!true v)} it gives 1 and doesn't give 2 (which is expected)
+    \end{itemize}
+}
+\end{subfigure}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Something about Pattern matching}
+content
+\end{frame}
+
+
+
+\begin{frame}{}
+Some technical details about typing and wildcards in unification
+\end{frame}
+
 
 
 \begin{frame}{Итоги}
