@@ -162,7 +162,7 @@ TODO: contributions?
 
 \begin{frame}{Example with Peano numbers}
 
-What would be solutions for q, that is not equal \mintinline{scheme}{(s (s (s ,v))))} for any possible v?
+What would be solutions for \mintinline{scheme}{q}, that is not equal \mintinline{scheme}{(s (s (s ,v))))} for any possible v?
 
 \begin{itemize}
 \item[\faGood] \mintinline{scheme}{z}
@@ -182,8 +182,8 @@ What would be solutions for q, that is not equal \mintinline{scheme}{(s (s (s ,v
 
 \item Wildcard Logic Variables
 \begin{itemize}
-\item Are able to express "Peano number \emph{less} than constant N"
-\item Previously, we could only do "Peano number \emph{greater} than constant N"
+\item Are able to express ``Peano number that is \emph{less} than constant N''
+\item Previously, we could only do ``Peano number that is  \emph{greater} than constant N''
 \end{itemize}
 \item An application to \noCanren{} -- more expressivity
 \item Work in progress application to pattern-matching synthesis.
@@ -227,24 +227,28 @@ If a variable has non-empty domain, it should fail. For empty domain -- success
 
 \begin{frame}{Related Works}
 \begin{enumerate}
-\item Eigen variables\footnote{1}
+\item Eigen variables
 \begin{itemize}
-\item Universal quantifier inside unification, disequality constraints support is shaky
+\item Universal quantifier inside unification, disequality constraints support is shaky\footnotemark
 \end{itemize}
-\item Universal Quantification and Implication\footnote{2}
+\item Universal Quantification and Implication\footnotemark
 %\begin{itemize}
 %\item Looks promising 
 %\end{itemize}
 \end{enumerate}
+\footnotetext[1]{W. E. Byrd. 2013. Relational Synthesis of Programs.}
+\footnotetext[2]{Jin, G. Rosenblatt, M. Might, and Zhang L. 2021. Universal Quantification
+and Implication in \miniKanren{}.}
+%\footnote[frame,3]{Here is a footnote}
 \end{frame}
 
 \begin{frame}{An application: \noCanren}
 \begin{itemize}
 \item [\faBad] \miniKanren{} requires some time to study (as any language/DSL)
-\item An idea: synthesize relational code from a subset of general purpose language (for example, \OCaml{})\footnote{Lozov 2017}
+\item An idea: synthesize relational code from a subset of general purpose language (for example, \OCaml{})\footnote{P. Lozov, A. Vyatkin, and D. Boulytchev. 2018. Typed Relational Conversion.}
 \begin{itemize}
 \item[\faGood] Typechecker for free
-\item[\faGood] Convenient \OCaml{}-like syntax  for free (at least it should be  )
+\item[\faGood] Convenient \OCaml{}-like syntax  for free (at least it should be)
 \item Semantics preserving transformation to miniKanren is proved on paper
 \end{itemize}
 \item  Restrictions on subset of \OCaml{} are quite strong
@@ -268,8 +272,7 @@ match x, y with
 }
 \defverbatim[colored]{\straightforwardCompilation}{
 \begin{minted}{ocaml}
-(* OCanren *)
-let straightforward q rez =
+let straightforward q rez =       (* OCanren *)
   conde
     [ fresh ()
         (rez === !!1)
@@ -282,8 +285,7 @@ let straightforward q rez =
 }
 \defverbatim[colored]{\naiveCompilation}{
 \begin{minted}{ocaml}
-(* OCanren *)
-let naive_rel q rez =
+let naive_rel q rez =      (* OCanren *)
   conde
     [ fresh (tmp)
         (q === pair !!true tmp)
@@ -298,8 +300,7 @@ let naive_rel q rez =
 
 \defverbatim[colored]{\betterCompilation}{
 \begin{minted}{ocaml}
-(* OCanren *)
-let better_rel q rez =
+let better_rel q rez =   (* OCanren *)
   conde
     [ fresh ()
         (q === pair !!true __)
@@ -311,15 +312,21 @@ let better_rel q rez =
 \end{minted}
 }
 
-\begin{frame}[fragile]{ }
+\begin{frame}{\noCanren{} example 
+  \only<1>{1}\only<2>{2}\only<3>{3}/3:
+  \only<1>{no constraints at all}
+  \only<2>{default disequality constrains}
+  \only<3>{disequality with wildcard variables}
+  }
 \begin{figure}[ht]
 \begin{subfigure}[t]{.25\textwidth}
   \begin{minipage}{1\textwidth}
   Overlapping patterns are banned, let's see what could go wrong...
+  \vspace{1em}
   \lozovMLexOne
   \end{minipage}
 \end{subfigure}\hskip3em
-\begin{subfigure}[t]{.55\textwidth}
+\begin{subfigure}[t]{.65\textwidth}
 \only<1>{
   \begin{minipage}{.55\textwidth}
   \straightforwardCompilation
@@ -329,14 +336,15 @@ let better_rel q rez =
   \end{itemize}  
 }
 \only<2>{
+  %\vskip{-0.1em}
   \begin{minipage}{.45\textwidth}
   \naiveCompilation
   \end{minipage}
   \begin{itemize}
-  \item [\faBad] Restrictions established by default disequality constraints are not powerful enough\\
+  \item [\faBad] For \mlinline{fresh (v) (q === Std.pair !!true v)} both 1 and 2m because variable \mlinline{tmp} is existential.
   
-  For \mlinline{fresh (v) (q === Std.pair !!true v)} both 1 and 2m because variable \mlinline{tmp} is existential
-    \end{itemize}
+   Restrictions established by default disequality constraints are not powerful enough    
+  \end{itemize}
 }
 \only<3>{
   \begin{minipage}{.45\textwidth}
@@ -344,18 +352,61 @@ let better_rel q rez =
   \end{minipage}
   \begin{itemize}
   \item [\faGood] if \mlinline{fresh (v) (q === Std.pair !!true v)} it gives 1 and doesn't give 2 (which is expected)
-    \end{itemize}
+  \end{itemize}
 }
 \end{subfigure}
 \end{figure}
-
 \end{frame}
 
-\begin{frame}{Something about Pattern matching}
-content
+\begin{frame}{Application to Pattern Matching Synthesis}
+
+\begin{figure}[ht]
+\begin{subfigure}[t]{.49\textwidth}
+Input language:
+\[
+ \begin{array}{rcll}
+    \mathcal{C} & = & \{ C_1^{k_1}, \dots, C_n^{k_n} \}\\
+    \mathcal{V} & = & \mathcal{C}\,\mathcal{V}^*\\  
+    \mathcal{P} & = & \_ \mid \mathcal{C}\,\mathcal{P}^*
+ \end{array}
+\]
+Declarative semantics  $\trans{}{}{}$:
+\[
+\setarrow{\xrightarrow}
+ \begin{array}{rcl}
+    &\trans{\inbr{v;\,p_1,\dots,p_k}}{}{i} &   \\
+    &1\leqslant i\leqslant k \\  
+    & v \in \mathcal{V}  \\  
+    & p_1,\dots,p_k \in \mathcal{P} &
+ \end{array}
+\]
+\end{subfigure}
+\begin{subfigure}[t]{.49\textwidth}
+Language of compiled representation (semantics denoted as  $\setsubarrow{_{\mathcal S}}\trans{}{}{}$)
+\[
+\begin{array}{rcl}
+  \mathcal M & =        & \bullet \\
+             &    \mid  & \mathcal M\,[\mathbb{N}] \\
+  \ir        & =        & \primi{return}\;\mathbb{N} \\
+             &    \mid  & \primi{if}\;\mathcal{M}\;\primi{starts with}\;\mathcal{C}\;\primi{then}\; \ir\;\primi{else}\;\ir
+\end{array}
+\]
+Synthesis task:
+\begin{center}
+$\setarrow{\xrightarrow}
+\forall v\in \mathcal V,\; \forall 1\leqslant i\leqslant n: $\\
+$\trans{\inbr{v;\,p_1,\dots,p_n}}{}{i}$\\
+$\Longleftrightarrow$ \\
+$\setsubarrow{_{\mathcal S}}\withenv{v}{\trans{\pi}{}{i}}$ \\
+\end{center}
+
+\end{subfigure}
+\end{figure}
 \end{frame}
 
-
+\begin{frame}
+1 more slide about matching
+\end{frame}
 
 \begin{frame}{}
 Some technical details about typing and wildcards in unification
