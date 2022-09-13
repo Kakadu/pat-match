@@ -90,7 +90,7 @@ fresh (v)
 \end{minted}
 }
 
-\begin{frame}{A reminder of relational interpreters...}
+\begin{frame}{A Reminder of Relational Interpreters...}
 \framesubtitle{}
 \begin{figure}[t]
 \begin{subfigure}{.49\textwidth}
@@ -183,12 +183,10 @@ What would be solutions for \mintinline{scheme}{q}, that is not equal \mintinlin
 \item ...
 \item All peano numbers less than three fit, others doesn't.
 \end{itemize}
-
 \end{frame}
+
 \begin{frame}{Contributions}
 \begin{enumerate}
-
-
 \item Wildcard Logic Variables
 \begin{itemize}
 \item Are able to express ``Peano number that is \emph{less} than constant N''
@@ -276,10 +274,10 @@ let straightforward q rez = (* OCanren syntax *)
   conde
     [ fresh ()
         (rez === !!1)
-        (q === Std.pair !!true __)
+        (q === pair !!true __)
     ; fresh (l r)
         (rez === !!2)
-        (q === Std.pair l r)
+        (q === pair l r)
     ]
 \end{minted}
 }
@@ -342,7 +340,7 @@ let better_rel q rez = (* OCanren syntax *)
   \straightforwardCompilation
   \end{minipage}
   \begin{itemize}
-  \item [\faBad] no restrictions between matching branches, can ``return'' for \mlinline{(q===Std.pair !!true !!true)} both 1 and 2
+  \item [\faBad] no restrictions between matching branches, can ``return''  both 1 and 2 for \mlinline{fresh (v) (q === pair !!true v)}
   \end{itemize}
 }
 \only<2>{
@@ -431,44 +429,75 @@ and we can replace $\forall$ by a finite conjunction of ground examples of scrut
 Long-term plan: replace a large finite conjunction by something smaller
 \end{frame}
 
-
-\begin{frame}[fragile]{An Attempt of encoding of Pattern Matching Synthesis with Wildcards }
-\begin{figure}[ht]
-  \begin{subfigure}[t]{.35\textwidth}
-    \begin{minted}{ocaml}
+\defverbatim[colored]{\MarangetExample}{
+\begin{minted}{ocaml}
 match x, y, z with
 | _, F, T -> 1
 | F, T, _ -> 2
 | _, _, F -> 3
 | _, _, T -> 4
-    \end{minted}
+\end{minted}
+}
 
+\defverbatim[colored]{\PartialEnc}{
+\begin{minted}{ocaml}
+(* Branch 1 in OCanren *)
+fresh (tmp1)
+  (rez === 1)
+  (scru === triple tmp1 F T)
+  
+(* Branch 2 in OCanren *)  
+fresh (tmp1)
+  (rez === 1)
+  (scru === triple F T tmp1)
+  (scru =/= triple __ F T)
+(* etc... *)
+\end{minted}
+}
+
+\begin{frame}[fragile]{An Attempt of Encoding of Pattern Matching Synthesis with Wildcards }
+\vspace{-1em}
+\begin{figure}[t]
+  \begin{subfigure}[ht]{.35\textwidth}
+  \begin{minipage}{.1\textwidth}
+\MarangetExample
+  \end{minipage}
+%    \begin{minted}{ocaml}
+%match x, y, z with
+%| _, F, T -> 1
+%| F, T, _ -> 2
+%| _, _, F -> 3
+%| _, _, T -> 4
+%    \end{minted}
   \end{subfigure}
   \begin{subfigure}[t]{.49\textwidth}
-    Branch 1
-    \begin{minted}{ocaml}
-     fresh (tmp1)
-       (rez === 1)
-       (scru === triple tmp1 F T)
-   \end{minted}
-    Branch 2
-    \begin{minted}{ocaml}
-    fresh (tmp1)
-      (rez === 1)
-      (scru === triple F T tmp1)
-      (scru =/= triple __ F T)
-    \end{minted}
-    etc...
+  \begin{minipage}{.1\textwidth}
+\PartialEnc
+  \end{minipage}
+%    Branch 1
+%    \begin{minted}{ocaml}
+%     fresh (tmp1)
+%       (rez === 1)
+%       (scru === triple tmp1 F T)
+%   \end{minted}
+%    Branch 2
+%    \begin{minted}{ocaml}
+%    fresh (tmp1)
+%      (rez === 1)
+%      (scru === triple F T tmp1)
+%      (scru =/= triple __ F T)
+%    (* etc... *)
+%    \end{minted}
   \end{subfigure}
 \end{figure}
 \begin{itemize}
+%\vskip1em
 \item [\faGood] We managed in current branch to ``ban'' previous branches (by adding negative information)
 \item [\faBad] Unifications (positive information) have existential holes which allows synthesizer to give undesired answers (in paper we call it ``conservative approximation of scrutinee'' )
 \end{itemize}
-
 \end{frame}
 
-\begin{frame}{Technical remark 1}
+\begin{frame}{Technical Remark 1}
 
 \[
 \begin{array}{rcl}
@@ -478,24 +507,92 @@ match x, y, z with
   &    \mid  & \primi{if}\;\mathcal{M}\;\primi{starts with}\;\mathcal{C}\;\primi{then}\; \ir\;\primi{else}\;\ir
 \end{array}
 \]
-While evaluating \textbf{if} expression above disequality constraints maybe give empty domain
+While evaluating \textbf{if} expression above disequality constraints may give empty domain...\\
+
+For example we can easily get in the answer \mlinline{_.10 { =/= true; =/= false }}.\\
+
+We implemented finite domain constraints (based on Z3) to workaround that.
 \end{frame}
 
-\begin{frame}{}
-Some technical details about typing and wildcards in unification
+
+\defverbatim[colored]{\LowerWildcardUnif}{
+\begin{minted}{ocaml}
+fresh (x) 
+  (q === triple x true false)
+(* OCanren *)    
+\end{minted}
+}
+
+\begin{frame}{Technical Remark 2: What About Wildcards in Unification?}
+\begin{figure}[ht]
+\begin{subfigure}[ht]{.4\textwidth}
+Our wildcard variables are designed to work combined with disequality constraints
+\vskip2em
+We also supported ``wildcards'' in unification with completely different semantics
+\end{subfigure}
+\hskip2cm
+\begin{subfigure}[ht]{.4\textwidth}
+\begin{minipage}{\textwidth}
+\mlinline{q === triple __ true false}
+\vspace{-0.5em}
+\[
+\Updownarrow
+\]
+\vspace{-0.5em}
+\LowerWildcardUnif
+\end{minipage}
+
+\end{subfigure}
+\end{figure}
 \end{frame}
 
 
+
+\defverbatim[colored]{\ExpandWC}{
+\begin{minted}{ocaml}
+(* OCanren *)
+q === cons __ __
+ 
+(* is translated to *)    
+call_wc (fun temp1 -> 
+  call_wc (fun temp2 -> 
+    (q === cons temp1 temp2)))
+\end{minted}
+}
+
+\begin{frame}{Technical Remark 3: Typing of wildcards?}
+Occurrences of wildcards may have different type, for example a list: \mlinline{cons __ __}.
+
+During macro expansion every wildcard is translated to a specific call of \mlinline{call_wc}
+\begin{center}
+
+
+\begin{minipage}{\linewidth}
+\ExpandWC
+\end{minipage}
+\end{center}
+
+But \emph{internally we have a single wildcard} variable.
+\end{frame}
 
 \begin{frame}{Results}
-
 \begin{enumerate}
-\item blah
-\item blah
-\item blah
-\item blah
-
+\item[\faCheckGreen] Wildcard Logic Variables
+\begin{itemize}
+\item Are able to express ``Peano number that is \emph{less} than constant N''
+\item Previously, we could only do ``Peano number that is  \emph{greater} than constant N''
+\end{itemize}
+\item[\faCheckGreen] An application to \noCanren{} -- more expressivity
+\item[\faSpinner] Work in progress application to pattern-matching synthesis
 \end{enumerate}
+\vskip4em
+\uncover<2->{
+\begin{center}
+{\Huge Questions?}
+\end{center}
+}
+\vskip4em
+\href{https://github.com/Kakadu/OCanren/tree/wildcards-mk2022}{\faGithubAlt https://github.com/Kakadu/OCanren/tree/wildcards-mk2022}
 \end{frame}
 
 \begin{comment}

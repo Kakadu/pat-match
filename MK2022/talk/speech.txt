@@ -1,0 +1,95 @@
+% !TeX spellcheck = en_US
+% !TEX root = wildcards.tex
+##### Title 
+
+Hello, my name is ... and my talk is about wildcards logic variables.
+
+##### 2 
+
+For motivational example I'm asking you to remember a paper about synthesizing quines in miniKanren. On the left there is a piece of code from that paper and there we match our expression by several cases: a quote, a list, application and lambda abstraction. I want to ask a quiestion: how would we express the fact that expression is not a quote expresion? 
+
+On the right we can see an easy solution: a disequality and fresh variable to fill the gap. It's possible because in Scheme we describe a shape of list first, and fill the contents later.  But not every implementation of OCanren does the same. 
+
+##### 3 
+
+We are working on OCanren: typed embedding of relational language to OCaml. And there we are designing our relational values using algebraic data types: we specify constructor first, and each constructor specifies arity and types of its' arguments.
+
+The same question in OCanren becomes more complicated. The straightforward attempt to do this doesn't give desired result. We expressed that *there is* an argument `v` of quote that our variable q is not equal to. But we wanted this for any possible `v`. In other words: for any possible `v` the `q` is not equal to `quote v`.
+
+##### 4 
+
+You may think that this issue is somehow related to relational interpreters but in fact it can happen with all algebraic data types in OCanren. The good news is that we managed to find an example of this issue that make sense both in Scheme and OCanren. 
+
+##### 5 
+
+What a solutions for Peano number `q` such `q` is not equal to three applications of constructore `s` to v, for any possible `v`? Zero fits, one and two fit too. Three doesn't because can substitute `v` equal `zed` and disequality will be violated. The same for other natural numbers. What we described is a constraint, that says that variable `q` is less then number 3.
+
+##### 6 
+
+Contributions. We introduce wildcard logic variable which are able to express, for example, that peano number is less than a constant. Previously we could only say that number is larger than a constant using unification. 
+
+We apply approach to noCanren to increase its expressivity and we are working on application to synthesis of pattern matching. 
+
+
+##### 7 
+
+An implementation sketch. We introduce wildcard variables denoted by two underscores. And we modify unificaton: wildcard variables are unifiable with everything but this bindings don't get into a substitution. Disequality constraints in minimal implementation works as before.  
+
+A few examples.
+if we unify two pairs one and logic variable with wildcard and number two, we could assume worst case and substitute number 1 instead of wildcard. The first components of pairs will become the same and disequality will be simplified to disequality of 2nd components.
+In the 2nd example we have a constraint that variable with index 10 is not a pair of two wildcards. If we later would unify this variable with two fresh variables, unification of pair will give an empty substitution, and disequality constraint will be considered violated. 
+The 3rd example is about disequality between wildcard and fresh variable. In this case we can assume that domain of fresh variable is always non-empty, and we can always find a worst case candidate that fresh variables is equal to, but shouldn't. So, constraint is violated. But for empty domain of variable -- it should be a success.
+
+##### 8 
+
+Related works. Eigen variables is a form of universal quantification too, and in the original paper they are used with fresh variables in unification. They were not meant to be used with disequality constraints, but our wildcard variables suit only for disequality constraints and can't be used in unifications. 
+There is another recent paper from previous miniKanren workshop, but last time we checked it is not directly applicable to our tasks. 
+
+##### 9 
+
+miniKanren right now is a form of Domain Specific Language and all DSLs have an issue that new developer in a project should know not only Scheme, but also subtlties of a specific DSLs we are using. Because of that and idea has appeared, that we shouldn't write in miniKanren (or OCanren) but generate miniKanren from widely used general purpose language (let's say OCaml). It would give us type checker for free, convenient familiar syntax, and semantics preserving transformation.
+
+The idea has been implemented in a tool noCanren, which translated a subset of OCaml (I call it LozovML) to OCanren. But this subset is too restrictive, some features are not supported, some OCaml best practives actually hurt and we are obliged to write long non-overlapping pattern matching for correct semantics. The last issue we are going to overcome with wildcard variables. 
+
+##### 10 
+
+There we have an example on the left with overlapping patterns in pattern mathcing. The straightforward translation without disequality constraints is on the right. It doesn't specify a restriction that if branch of mathcing fits, next should not be tested, so realtional program gives too many answers for a pair of true and fresh variable. 
+
+The encoding using only disequality constraints places existential variables instead of wildcards in patterns mathcing, which is also wrong. The disequality with existential variable doesn't shrink the search space at all and again two branches can fire. 
+
+The 3rd encoding with our wildcards logic variables succeedes only in the first branch when scrutinee is a pair of true and fresh variable. Which is correct.
+
+##### 11
+
+We also attempted to apply wildcards variables to synthesis of pattern matching which was presented in miniKanren workshop two years ago. In this task we have a language with algebraic constructors and pattern matching and we want to compile it simple languge with if-expressions in the most compact way. We expect that orignal matching with declarative semantics behaves the same as compiled for on all possible scrutinees, meaning for every scrutinee that fits, both programs should continue execution in the branches with the same index.
+The annoying  part is an universal quantifier over scrutinee, which can be workarounded. 
+
+##### 12 
+
+If we observe that for every concrete patterns matching it looks inside the scrutinee up to certaing depth, and our scrutinees have a specific shap defined by scrutinee's type, we can replace universaly quantifier by a finite conjuction where two programs behave the same on ground scrutinees. Now it is expressable in miniKanren, but number of examples grows exponentially and it works very slow. It would be great to replace a list of all scrutinees up to ceratain depth by somehting smaller. 
+
+
+##### 13 
+
+We were very optimistic about applying wildcard logic variables for a long time, and tryed the following encoding. For every pattern we encode this pattern as positive information, and add inequality to previous patterns (via disequality constraints and wildcards) as negative information. With this encoding we managed to specify order of pattern mathcing, but another issue has appeared, which was not presented before because all examples were ground. We have an existential variables in the positive information and relational interpreter trying ot overspecify provided examples in the existential place. As a result it tries to investigate parts of scrutinee that we didn't wanted him to. Strictly speaking, it does exactly what we specified and we observed how it gives expected answer very late, which is totally undesirable. 
+
+We believe that we should invent another kind of relational interpreter to overcome this, but it is a future works. 
+
+##### 14 
+
+Some technical remarks. During synthesis of pattern matching we eveluate if-then-else expressions, where disequality constraints may shrink the domain of logic variable to empty set.  For example, we observed that boolean logic variable has constraints not being true and not being false at the same time. We implemented a finite domain constraints using Z3 under the hood, but this constraint complicates implementation ofwildcard variables (if you remember my example about disequality between wildcard and fresh variables, we based our decision on non-emptyness of a domain of logic variable)
+
+##### 15 
+
+We also want to say again that our wildcard variables should be used only in disequality constraints. In unification we implemented a completely different semantics, they are just a syntactic sugar that allows us not to write extra fresh fillers when we want to extract a subvalue using unification. We beleive that this for of a macro could be useful in the untyped world of Scheme-based miniKanren.
+
+##### 16
+
+The last remark is about types again. Our macro expansion inserts a call to `call_wc` primitive to every occurence of wildcard. (The name of this primitive is inspired by `call_fresh` from microKanren.)  We need to do this, because in different contexts our wildcard variables could have different conflicting types.  But internally in relational engine we have only a single wildcard variable.
+
+###### 17 
+
+Results. We proposed wildcard logic variables as a form of universal quantification for negative information. It allows us to implement a single constraint ``Peano number is lesser than a constant''. Before we could only do ``larger than a constant''. 
+We applied that to noCanren and increased expressivity of LozovML subset of OCaml. 
+And we have a work-in-progress attempt to apply them to the task of synthesis of pattern matching. 
+
