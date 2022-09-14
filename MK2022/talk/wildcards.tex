@@ -109,7 +109,7 @@ Question: how to say that expression \mintinline{scheme}|q| doesn't fit the firs
 It's possible because data representation specifies
 \begin{itemize}
 \item arity first
-\item content of a list later
+\item contents of a list later
 \end{itemize}
 \end{subfigure}
 \end{figure}
@@ -135,7 +135,7 @@ fresh (v) (q =/= quote v)
 }
 \begin{frame}{\OCanren{} Uses Different Representation of Values}
 \begin{figure}[ht]
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[ht]{.45\textwidth}
 \begin{minipage}{.4\textwidth}
 \XXX
 \end{minipage}
@@ -169,19 +169,19 @@ In \OCanren{} we specify constructor \emph{first} and arity and arguments \emph{
 
 \end{frame}
 
-\begin{frame}{Example with Peano numbers}
+\begin{frame}{Example with Peano Numbers}
 
 What would be solutions for \mintinline{scheme}{q}, that is not equal \mintinline{scheme}{(s (s (s ,v))))} for any possible \mintinline{scheme}{v}?
 
 \begin{itemize}
-\item[\faGood] \mintinline{scheme}{z}
-\item[\faGood] \mintinline{scheme}{(s z)}
-\item[\faGood] \mintinline{scheme}{(s (s z))}
-\item[\faBad] \mintinline{scheme}{(s (s (s z)))}
-\item[\faBad] \mintinline{scheme}{(s (s (s (s z))))}
-\item[\faBad] \mintinline{scheme}{(s (s (s (s (s z)))))}
+\item[\faGood] 0 $\Leftrightarrow$ \mintinline{scheme}{z}
+\item[\faGood] 1 $\Leftrightarrow$ \mintinline{scheme}{(s z)}
+\item[\faGood] 2 $\Leftrightarrow$ \mintinline{scheme}{(s (s z))}
+\item[\faBad]  3 $\Leftrightarrow$ \mintinline{scheme}{(s (s (s z)))}
+\item[\faBad]  4 $\Leftrightarrow$ \mintinline{scheme}{(s (s (s (s z))))}
+\item[\faBad]  5 $\Leftrightarrow$ \mintinline{scheme}{(s (s (s (s (s z)))))}
 \item ...
-\item All peano numbers less than three fit, others doesn't.
+\item All Peano numbers less than three fit, others doesn't
 \end{itemize}
 \end{frame}
 
@@ -214,7 +214,7 @@ Examples (\Scheme{}-like syntax):
 \begin{itemize}
 \item  \mlinline{(=/= (1 _.10)  (__ 2))} $\rightsquigarrow$
   \mlinline{(=/= _.10 2)}
-\item \mlinline{(=/= (__  __) _.10)} \mlinline{(=== (_.11 _.12)  _.10)}
+\item \mlinline{(=/= _.10 (__  __) )} $\wedge$ \mlinline{(=== _.10 (_.11 _.12))}
 $\rightsquigarrow$ fail
 \item A fresh variable \mlinline{(=/= _.10  __)}. \\
 If a variable has non-empty domain, $\rightsquigarrow$ fail.\\
@@ -227,12 +227,13 @@ For empty domain $\rightsquigarrow$ success
 \begin{enumerate}
 \item Eigen variables
 \begin{itemize}
-\item Universal quantifier inside unification, disequality constraints support is shaky\footnotemark
+\item Universal quantifier inside unification
+\item Disequality constraints are not required\footnotemark
 \end{itemize}
 \item Universal Quantification and Implication\footnotemark
-%\begin{itemize}
-%\item Looks promising
-%\end{itemize}
+\begin{itemize}
+\item Needs more polishing
+\end{itemize}
 \end{enumerate}
 \footnotetext[1]{W. E. Byrd. 2013. Relational Synthesis of Programs.}
 \footnotetext[2]{E. Jin, G. Rosenblatt, M. Might, and Zhang L. 2021. Universal Quantification
@@ -240,19 +241,20 @@ and Implication in \miniKanren{}.}
 %\footnote[frame,3]{Here is a footnote}
 \end{frame}
 
-\begin{frame}{An application: \noCanren}
+\begin{frame}{An application: \noCanren{} -- \OCaml{} to \OCanren{} translator}
 \begin{itemize}
 \item [\faBad] \miniKanren{} requires some time to study (as any language/DSL)
 \item An idea: synthesize relational code from a subset of general purpose language (for example, \OCaml{})\footnote{P. Lozov, A. Vyatkin, and D. Boulytchev. 2018. Typed Relational Conversion.}
 \begin{itemize}
+	\item Joint work of P.Lozov and others in our group
 \item[\faGood] Type checker for free
 \item[\faGood] Convenient \OCaml{}-like syntax  for free (at least it should be)
 \item Semantics preserving transformation to \miniKanren{} is proved on paper
 \end{itemize}
-\item  Restrictions on subset of \OCaml{} are quite strong
+\item  Restrictions on subset of \OCaml{} (LozovML) are quite strong
 \begin{itemize}
-\item Some language features are not available (pattern matching guards)
 \item Some \OCaml{} best practices hurt performance
+\item Some language features are not available (pattern matching guards)
 \item Overlapping patterns in pattern matching are banished\\
 But wildcard variables will help with that \faGood
 
@@ -312,9 +314,9 @@ let better_rel q rez = (* OCanren syntax *)
 
 \begin{frame}{\noCanren{} example
   \only<1>{1}\only<2>{2}\only<3>{3}/3:
-  \only<1>{no constraints at all}
-  \only<2>{default disequality constrains}
-  \only<3>{disequality with wildcard variables}
+  \only<1>{No Constraints At All}
+  \only<2>{Default Disequality Constrains}
+  \only<3>{Disequality With Wildcard Variables}
   }
 \begin{figure}[ht]
 \begin{subfigure}[t]{.25\textwidth}
@@ -445,8 +447,8 @@ match x, y, z with
 fresh (tmp1)
   (rez === 1)
   (scru === triple tmp1 F T)
-  
-(* Branch 2 in OCanren *)  
+
+(* Branch 2 in OCanren *)
 fresh (tmp1)
   (rez === 1)
   (scru === triple F T tmp1)
@@ -497,84 +499,6 @@ fresh (tmp1)
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Technical Remark 1}
-
-\[
-\begin{array}{rcl}
-  \mathcal M & =        & \bullet \\
-  &    \mid  & \mathcal M\,[\mathbb{N}] \\
-  \ir        & =        & \primi{return}\;\mathbb{N} \\
-  &    \mid  & \primi{if}\;\mathcal{M}\;\primi{starts with}\;\mathcal{C}\;\primi{then}\; \ir\;\primi{else}\;\ir
-\end{array}
-\]
-While evaluating \textbf{if} expression above disequality constraints may give empty domain...\\
-
-For example we can easily get in the answer \mlinline{_.10 { =/= true; =/= false }}.\\
-
-We implemented finite domain constraints (based on Z3) to workaround that.
-\end{frame}
-
-
-\defverbatim[colored]{\LowerWildcardUnif}{
-\begin{minted}{ocaml}
-fresh (x) 
-  (q === triple x true false)
-(* OCanren *)    
-\end{minted}
-}
-
-\begin{frame}{Technical Remark 2: What About Wildcards in Unification?}
-\begin{figure}[ht]
-\begin{subfigure}[ht]{.4\textwidth}
-Our wildcard variables are designed to work combined with disequality constraints
-\vskip2em
-We also supported ``wildcards'' in unification with completely different semantics
-\end{subfigure}
-\hskip2cm
-\begin{subfigure}[ht]{.4\textwidth}
-\begin{minipage}{\textwidth}
-\mlinline{q === triple __ true false}
-\vspace{-0.5em}
-\[
-\Updownarrow
-\]
-\vspace{-0.5em}
-\LowerWildcardUnif
-\end{minipage}
-
-\end{subfigure}
-\end{figure}
-\end{frame}
-
-
-
-\defverbatim[colored]{\ExpandWC}{
-\begin{minted}{ocaml}
-(* OCanren *)
-q === cons __ __
- 
-(* is translated to *)    
-call_wc (fun temp1 -> 
-  call_wc (fun temp2 -> 
-    (q === cons temp1 temp2)))
-\end{minted}
-}
-
-\begin{frame}{Technical Remark 3: Typing of wildcards?}
-Occurrences of wildcards may have different type, for example a list: \mlinline{cons __ __}.
-
-During macro expansion every wildcard is translated to a specific call of \mlinline{call_wc}
-\begin{center}
-
-
-\begin{minipage}{\linewidth}
-\ExpandWC
-\end{minipage}
-\end{center}
-
-But \emph{internally we have a single wildcard} variable.
-\end{frame}
-
 \begin{frame}{Results}
 \begin{enumerate}
 \item[\faCheckGreen] Wildcard Logic Variables
@@ -595,33 +519,84 @@ But \emph{internally we have a single wildcard} variable.
 \href{https://github.com/Kakadu/OCanren/tree/wildcards-mk2022}{\faGithubAlt https://github.com/Kakadu/OCanren/tree/wildcards-mk2022}
 \end{frame}
 
-\begin{comment}
 
+\begin{frame}{Technical Remark 1: Motivation for Finite Domain Constraints}
+	\[
+	\begin{array}{rcl}
+		\mathcal M & =        & \bullet \\
+		&    \mid  & \mathcal M\,[\mathbb{N}] \\
+		\ir        & =        & \primi{return}\;\mathbb{N} \\
+		&    \mid  & \primi{if}\;\mathcal{M}\;\primi{starts with}\;\mathcal{C}\;\primi{then}\; \ir\;\primi{else}\;\ir
+	\end{array}
+	\]
+	While evaluating \textbf{if} expression above disequality constraints may give empty domain...\\
 
-\begin{frame}[allowframebreaks]
-\frametitle<presentation>{Ссылки}
-\begin{thebibliography}{10}
-  \bibitem{blow}
-    Предотвращая коллапс цивилизации (Preventing the Collapse of Civilization), 2019 (in English)
-    \newblock {\em Jonathan Blow}
-    \newblock\href{https://youtu.be/pW-SOdj4Kkk}{YouTube}
-  \bibitem{cheatsheets}
-    Шпаргалки по синтаксису OCaml
-    \newblock {\em OCamlPro}
-    \newblock\href{https://ocaml.org/docs/cheat_sheets.html}{4 PDF online}
-  \bibitem{rwo}
-    Книга Real World OCaml издания 2.0 (есть русский перевод издания 1.0)
-    \newblock\href{https://dev.realworldocaml.org/toc.html}{online}
-  \bibitem{javaTuringComplete}
-    Java Generics are Turing Complete
-    \newblock {\em Radu Grigore}
-    \newblock\href{https://arxiv.org/pdf/1605.05274}{online}
-  \bibitem{algDThistory}
-    A Brief History of Algebraic Data Types
-    \newblock {\em Li-yao Xia}
-    \newblock\href{https://docs.google.com/presentation/d/131_CYsd9mEL-0XqXMyV7JeahWgtNCUV_JwjH7WqYFcI/edit}{online}
-\end{thebibliography}
+	For example we can easily get in the answer \mlinline{_.10 { =/= true; =/= false }}.\\
+
+	We implemented finite domain constraints (based on Z3) to workaround that.
 \end{frame}
-\end{comment}
+
+
+\defverbatim[colored]{\LowerWildcardUnif}{
+\begin{minted}{ocaml}
+fresh (x)
+  (q === triple x true false)
+
+(* OCanren *)
+\end{minted}
+}
+
+\begin{frame}{Technical Remark 2: What About Wildcards in Unification?}
+	\begin{figure}[ht]
+		\begin{subfigure}[ht]{.4\textwidth}
+			Our wildcard variables are designed to work combined with disequality constraints
+			\vskip2em
+			We also supported ``wildcards'' in unification with completely different semantics
+		\end{subfigure}
+		\hskip2cm
+		\begin{subfigure}[ht]{.4\textwidth}
+			\begin{minipage}{\textwidth}
+				\mlinline{q === triple __ true false}
+				\vspace{-0.5em}
+				\[
+				\Updownarrow
+				\]
+				\vspace{-0.5em}
+				\LowerWildcardUnif
+			\end{minipage}
+
+		\end{subfigure}
+	\end{figure}
+\end{frame}
+
+
+
+\defverbatim[colored]{\ExpandWC}{
+\begin{minted}{ocaml}
+(* OCanren *)
+q === cons __ __
+
+(* is translated to *)
+call_wc (fun temp1 ->
+  call_wc (fun temp2 ->
+    (q === cons temp1 temp2)))
+\end{minted}
+}
+
+\begin{frame}{Technical Remark 3: Typing of wildcards?}
+	Occurrences of wildcards may have different type, for example a list: \mlinline{cons __ __}.
+
+	During macro expansion every wildcard is translated to a specific call of \mlinline{call_wc}
+	\begin{center}
+
+
+		\begin{minipage}{\linewidth}
+			\ExpandWC
+		\end{minipage}
+	\end{center}
+
+	But \emph{internally we have a single wildcard} variable.
+\end{frame}
+
 
 \end{document}
