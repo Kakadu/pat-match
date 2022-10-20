@@ -61,15 +61,19 @@ let default_shortcut0 good_matchables m max_height cases rez =
                   Format.printf "default_shortcut0 on matchable %s\n%!"
                     ((GT.show GT.list) Matchable.show_logic ms);
                   failwith "too many answers" *)
-           match Matchable.to_ground ms with
-           | None ->
-               Format.printf "non-ground matchable is %a\n%!"
-                 (GT.fmt Matchable.logic) ms;
-               success
-           | Some Matchable.Scru -> failure
-           | Some m when List.mem m good_matchables ->
-               rez === MatchableKind.good
-           | Some _m -> rez === MatchableKind.miss_example))
+           let temp =
+             match Matchable.to_ground ms with
+             | None ->
+                 Format.printf "non-ground matchable is %a\n%!"
+                   (GT.fmt Matchable.logic) ms;
+                 success
+             | Some Matchable.Scru -> failure
+             | Some m when List.mem m good_matchables ->
+                 rez === MatchableKind.good
+             | Some _m -> rez === MatchableKind.miss_example
+           in
+           Format.eprintf "default_shortcut0 end \n%!";
+           temp))
 
 let default_shortcut _etag m _cases history _typs _rez =
   let open OCanren in
@@ -95,6 +99,7 @@ let default_shortcut_tag etag constr_names rez =
       | _ -> assert false))
 
 let default_shortcut4 (t1 : Tag.injected) t2 rez =
+  Format.eprintf "default_shortcut4\n%!";
   fresh flag
     (debug_var (Std.triple t1 t2 rez)
        (Std.Triple.reify Tag.reify Tag.reify OCanren.reify) (function
@@ -215,12 +220,13 @@ module Pairs1 = struct
     run_ir 1 q qh
       (REPR
          (fun ir ->
+           let init = fresh () success (ir === IR.switch __ __ __) in
            List.fold_left
              (fun acc (rhs, desc, fields) ->
                fresh (scru rez)
                  (rez === Std.Option.some !!rhs)
                  acc (desc scru)
                  (eval_ir_pairs ~fields scru ir rez))
-             success
-             [ List.nth examples 0; List.nth examples 1 ]))
+             init
+             [ (* List.nth examples 0;  *) List.nth examples 1 ]))
 end
