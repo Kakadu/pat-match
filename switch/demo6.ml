@@ -327,7 +327,7 @@ module PairsVerySimple = struct
                     success)
                 success
                 [
-                  (* List.nth examples 0 *)
+                  List.nth examples 0;
                   List.nth examples 1 (* List.nth examples 2; *);
                 ])))
 end
