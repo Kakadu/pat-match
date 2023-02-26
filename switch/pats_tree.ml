@@ -48,7 +48,7 @@ include (struct
   let pp fmt t =
     t |> Trie.iter (fun k set ->
       Format.fprintf fmt "\tS";
-      List.iter (fun n -> Format.fprintf fmt "[%a]" (GT.fmt GT.int) (Unn_pre.N.to_int n)) k;
+      Stdlib.List.iter (fun n -> Format.fprintf fmt "[%a]" (GT.fmt GT.int) (Unn_pre.N.to_int n)) k;
       Format.fprintf fmt " -> %a\n%!"
         (GT.fmt GT.list @@ (fun fmt tag ->
           let n = Tag.to_int tag in

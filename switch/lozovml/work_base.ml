@@ -1,3 +1,9 @@
+(* open Peano
+open List
+ *)
+
+(* open OCanren.Std *)
+
 type nat = Z | S of nat
 
 type pattern =
@@ -32,7 +38,7 @@ let well_typed_expr_height height default e typs =
     | [],[] -> true
     | (_::_,[]) -> false
     | ([], _::_) -> false
-  in  
+  in
   let rec helper height e typs =
     match height with
     | Z -> (e=default)

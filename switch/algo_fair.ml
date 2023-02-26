@@ -160,7 +160,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                 let max_cases = Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr) in
 
                 let new_seen =
-                  if chk_history && (List.mem m seen)
+                  if chk_history && (Stdlib.List.mem m seen)
                   then raise FilteredOutByForm;
                   m :: seen
                 in
@@ -289,7 +289,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
     let injected_typs = Typs.inject Arg.typs in
     let injected_exprs =
       let demo_exprs =
-        run one Arg.inhabit (fun r -> r#prjc Expr.prjc)
+        run one Arg.inhabit (fun r -> r#reify Expr.prj_exn)
         |> OCanren.Stream.take ~n:(-1)
       in
 
@@ -334,7 +334,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
       let () =
         if print_examples then
-        demo_exprs |> List.iter (fun (e,rez) ->
+        demo_exprs |> Stdlib.List.iter (fun (e,rez) ->
           Format.printf "  %s ~~> %!" (Expr.show e);
           Format.printf "%s\n%!" @@
                       (GT.show Std.Option.logic IR.show_logic (rez));
@@ -491,5 +491,3 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       ~prunes_period
     else ()
 end
-
-
