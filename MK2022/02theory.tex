@@ -21,7 +21,7 @@ In our implementation wildcard variables may occur in program many times. But in
 
 Let's discuss details of checking disequality constraints in presence of wildcards using examples. Below we will use the mantra \emph{``It should be a way to make two values not equal, in spite of we could substitute anything instead of wildcard.''} to make decisions about simplification of constraints. We start from simple cases, and leave the complicated cases (a disequality between fresh variable and wildcard) to the end.
 
-Consider the disequality \lstinline|(1 _.10)=/= (__ 2)| where either first components of pair should be not equal, or second ones. With first components we are going to consider worst case scenario and substitute a number 1 instead of wildcard. The constraint above simplifies to a shorter disequality between  \lstinline|_.10| and \lstinline|2|. All disequalities between ground values and wildcard variable will be simplified immediately.
+Consider the disequality \lstinline|(1 _.10)=/= (__ 2)| where either first components of pairs should be not equal, or second ones. With first components we are going to consider worst case scenario and substitute a number 1 instead of wildcard. The constraint above simplifies to a shorter disequality between  \lstinline|_.10| and \lstinline|2|. All disequalities between ground values and wildcard variable are simplified immediately.
 
 On disequality of two wildcard variables we again consider worst case scenario: we substitute, for example, \lstinline|42| instead of both and get a violation of disequality constraints.
 

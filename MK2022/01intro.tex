@@ -4,9 +4,9 @@
 \section{Introduction}
 \label{sec:intro}
 
-Relational and logic programming are powerful techniques for enumerating the space of possible answers for a query. Constraints allow us to prune search space and to make path to there right answer short. Some constraints (for example, disequality~\cite{WillThesis}) are universally applicable, but it's OK to invent new special constraints for specific tasks. 
+Relational and logic programming are powerful techniques for enumerating the space of possible answers for a query. Constraints allow us to prune search space and to make path to there right answer short. Some constraints (for example, disequality~\cite{WillThesis}) are universally applicable, but it's OK to invent new special constraints for specific tasks.
 
-The \miniKanren{} family of languages includes different implementations, both statically and dynamically types. There are some peculiarities in statically typed implementation \OCanren{}~\cite{ocanren} relatively to ``official'' implementation~\cite{fasterMK}. For example, the following result of the query is decent in languages like 
+The \miniKanren{} family of languages includes different implementations, both statically and dynamically typed. There are some peculiarities in statically typed implementation \OCanren{}~\cite{ocanren} relatively to ``official'' implementation~\cite{fasterMK}. For example, the following result of the query is decent in languages like
 \Scheme{}, but in statically typed \OCaml{} the result looks weird.
 
 \begin{minipage}{7cm}
@@ -25,7 +25,7 @@ q=_.0 [=/= false; =/= true];
 \end{lstlisting}
 \end{minipage}
 
-\noindent Indeed, in \Scheme{} there are infinitely many possible values for variables that are neither \lstinline[]=#t=, nor 
+\noindent Indeed, in \Scheme{} there are infinitely many possible values for variables that are neither \lstinline[]=#t=, nor
 \lstinline[]=#f=. But in \OCanren{} the compiler prohibits unification of variables with non-unifiable types, so variable \verb=q= could be bound in a substitution only to \lstinline=true=, \lstinline=false= or another fresh variable; and expected result of the query is empty stream.
 
 The example above could be repaired by introduction of finite domain constraints~\cite{cKanren}, but in case of proper algebraic data types they doesn't help. Let's imagine that we want to express that \emph{a variable holds a list, but couldn't begin from a constructor \lstinline=Cons=}. The na\"{i}ve attempt in \OCanren{}, \lstinline|fresh (h tl) (q=/= cons h tl) | doesn't give us what we desire. It states that \empty{there are some} \lstinline|h| and \lstinline|tl| such that \lstinline|q| is not equal, but we expected that fact for any possible \lstinline|h| and \lstinline|tl|. This form of universal quantification is currently not expressible in \OCanren{}.
@@ -34,7 +34,7 @@ Another example of algebraic data types are Peano numbers. Unification allows us
 But disequality constraints are not powerful enough to express that a number is \emph{less} than a constant.
 
 In this paper we introduce \emph{wildcard logic variables
-} (denoted as \lstinline|__|) which are able to solve problem like above. 
+} (denoted as \lstinline|__|) which are able to solve problem like above.
 The disequality \lstinline|q =/= S(S(S __))| states that two values are not equal no matter what we would substitute instead of \lstinline|__|, which will effectively filter out \lstinline|S(S(S Z))|, \lstinline|S(S(S(S Z)))|, i.e. all numbers greater or equal three. This \emph{single} disequality is an only constraint that is required  to describe  finitely ``a peano number is less then constant N''.
 In default implementations of \miniKanren{} we could write a disjunction of three cases but this will hurt performance of the search.
 

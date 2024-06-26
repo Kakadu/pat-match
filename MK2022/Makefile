@@ -7,13 +7,16 @@ all: $(MAIN).pdf
 
 OCANREN_TEX=$(MAIN).tex
 
-COMPILER=pdflatex -interaction=nonstopmode
+COMPILER=pdflatex #-interaction=nonstopmode
 
-$(MAIN).pdf: $(OCANREN_TEX)
-	$(COMPILER) $<
+$(MAIN).fmt: $(wildcard $(MAIN).tex)
+	$(COMPILER) -ini -jobname="$(@:.fmt=)" "&$(COMPILER)" mylatexformat.ltx $<
+
+$(MAIN).pdf: $(OCANREN_TEX) $(MAIN).fmt
+	$(COMPILER) -fmt=$(MAIN).fmt -interaction=nonstopmode $<
 	bibtex $(MAIN).aux
-	$(COMPILER) $<
-	$(COMPILER) $<
+	$(COMPILER) -fmt=$(MAIN).fmt -interaction=nonstopmode $<
+	$(COMPILER) -fmt=$(MAIN).fmt -interaction=nonstopmode $<
 
 celan: clean
 clean:

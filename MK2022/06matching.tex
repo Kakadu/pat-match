@@ -22,14 +22,14 @@ q=(if S[0] then (if S[1] then 4 else 3) else (if S[1] then 2 else (if S[2] then 
 \section{Synthesis of Pattern Matching}
 \label{sec:matching}
 
-In this section we briefly describe the task of synthesis of pattern matching compilation scheme~\cite{Kosarev2020} and how wildcard patterns may improve the situation. 
+In this section we briefly describe the task of synthesis of pattern matching compilation scheme~\cite{Kosarev2020} and how wildcard patterns may improve the situation.
 
 The pattern matching expression match a scrutinee $v$ from a set of values $\mathcal{V}$ of algebraic data types with a finite set of patterns $\mathcal{P}$, and produces an integer -- index of the pattern, such that it matches provided scrutinee and the ones before it doesn't. For simplicity we suppose that the set patterns is exhaustive, i.e. it is impossible to provide the scrutinee which doesn't fit any pattern.
 
 \[
  \begin{array}{rcll}
     \mathcal{C} & = & \{ C_1^{k_1}, \dots, C_n^{k_n} \}\\
-    \mathcal{V} & = & \mathcal{C}\,\mathcal{V}^*\\  
+    \mathcal{V} & = & \mathcal{C}\,\mathcal{V}^*\\
     \mathcal{P} & = & \_ \mid \mathcal{C}\,\mathcal{P}^*
  \end{array}
 \]
@@ -42,7 +42,7 @@ For every synthesis task the patterns and indexes are ground. Type information i
 
 The relation ``$\xrightarrow{}{}\!\!$'' gives us a \emph{declarative} semantics of pattern matching. Since we are interested in
 synthesizing implementations, we need a \emph{programmatical} view on the same problem. Thus, we introduce a language $\mathcal S$
-(the ``switch'' language) of test-and-branch constructs, and a evaluator ``$\xrightarrow{}{}_{\!\!\mathcal S}$'' that matches a scrutinee to an integer. 
+(the ``switch'' language) of test-and-branch constructs, and a evaluator ``$\xrightarrow{}{}_{\!\!\mathcal S}$'' that matches a scrutinee to an integer.
 In the original paper~\cite{Kosarev2020} this language has built-in $\primi{switch}$ construction that distinguishes tags (integers) of algebraic constructors. But for now we are only testing our approach on tuples of booleans, so we have only if-then-else construction in our language $\mathcal{S}$, despite that fact that $\primi{switch}$ supercedes $\primi{if-then-else}$.
 
 \[
@@ -61,7 +61,7 @@ a switch program $\withenv{v}{\pi}$, such that
 \begin{center}
 $\setarrow{\xrightarrow}
 \forall v\in \mathcal V,\; \forall 1\leqslant i\leqslant n: \trans{\inbr{v;\,p_1,\dots,p_n}}{}{i}$\\
-$\Longleftrightarrow$ \\ 
+$\Longleftrightarrow$ \\
 $\setsubarrow{_{\mathcal S}}\withenv{v}{\trans{\pi}{}{i}}$ \\
 \end{center}
 
@@ -76,16 +76,16 @@ The downside of this encoding is an exponential blowup of search space:
 \item Changing number of patterns while preserving the same maximum depth doesn't affect performance at all. This is unexpected.
 \end{itemize}
 
-%\todo{Now how wildcard variables could help us }. 
-To reduce the number of required examples, we are going to use wildcard variables to say that scrutinee doesn't fit previous branches. In other words, every branch of pattern matching have a single corresponding example. 
-That example will state via unification that scrutinee fits current branch, and also will state 
-%using 
-via disequality constraints with wildcards that scrutinee doesn't fit previous branches. 
+%\todo{Now how wildcard variables could help us }.
+To reduce the number of required examples, we are going to use wildcard variables to say that scrutinee doesn't fit previous branches. In other words, every branch of pattern matching have a single corresponding example.
+That example will state via unification that scrutinee fits current branch, and also will state
+%using
+via disequality constraints with wildcards that scrutinee doesn't fit previous branches.
 
-During the search \OCanren{} accumulates inequalities between sub parts of scrutinee. 
-More precisely, every $\primi{if-then-else}$ may introduce disequality between tags of algebraic constructors. It's rather easy to get into situation described in section~\ref{sec:intro}, where boolean constructor is not equal both \lstinline|true| and \lstinline|false|. 
-To get rid of these bogus answers we enhance \OCanren{} by finite domain constraints using \Zthree{}~\cite{Zthree} under the hood. 
-Adding this constraints complicates implementation of relational engine, because we can't no longer say two values are not equal because of their corresponding sub values are not equal (the inequality of sub values may contradict finite domain constraints). 
+During the search \OCanren{} accumulates inequalities between sub parts of scrutinee.
+More precisely, every $\primi{if-then-else}$ may introduce disequality between tags of algebraic constructors. It's rather easy to get into situation described in section~\ref{sec:intro}, where boolean constructor is not equal both \lstinline|true| and \lstinline|false|.
+To get rid of these bogus answers we enhance \OCanren{} by finite domain constraints using \Zthree{}~\cite{Zthree} under the hood.
+Adding this constraints complicates implementation of relational engine, because we can't no longer say two values are not equal because of their corresponding sub values are not equal (the inequality of sub values may contradict finite domain constraints).
 We speculate that in presence of finite domain constraints it may be better to store disequality constraints as DNF instead of CNF, but for now we use traditional\footnote{The recommended efficient way to represent disequality constraints is available online~\cite{fasterMK}} implementation.
 
 %\todo{how we encode branches}
@@ -94,11 +94,11 @@ We speculate that in presence of finite domain constraints it may be better to s
 
 Unfortunately, wildcards can't solve the pattern matching synthesis problem themselves in a way one can expect.
 The result of pattern matching synthesis for program in Figure~\ref{fig:matching-example1} is shown in Figure~\ref{fig:matching-result-wierd}. We do believe that the expected reference answer corresponding to one from Figure~\ref{fig:matching-example2} will be eventually found by \OCanren{} but it is definitely far from being the first.
-We will demonstrate the main source of such a behaviour by example below.
+We will demonstrate the main source of such a behavior by example below.
 
-Consider pattern matching with the only branch \lstinline{__, false, true -> 1}.
-The first answer produced by the interpreter on this example is \lstinline{q = 1}.
-This is absolutely correct answer since on all scrutinees having \lstinline{false} as the second element and \lstinline{true} as the third element of a triple it produces 1.
+Consider pattern matching with the only branch \lstinline|__, false, true -> 1|.
+The first answer produced by the interpreter on this example is \lstinline|q = 1|.
+This is absolutely correct answer since on all scrutinees having \lstinline|false| as the second element and \lstinline|true| as the third element of a triple it produces 1.
 In other words, the produced answer should have the same or bigger domain than the expected reference answer.
 This can be seen as an analog of conservative approximation of the reference answer.
 Further interpretation of other branches will make the answer produced on the previous step more precise but still conservative.

@@ -15,6 +15,7 @@
     version={4.0},       % your choice
 ]{doclicense}            % your choice, see \doclicenseThis below
 
+\input{includes.tex}
 
 \AtBeginDocument{%
   \providecommand\BibTeX{{%
@@ -39,7 +40,7 @@
 
 \usepackage{lineno}
 %\linenumbers
-\input{includes.tex}
+
 %\geometry{
 %     top=18pt, bottom=14pt, inner=21pt, outer=21pt,
 %     paperwidth=5.5in, paperheight=8.5in,
@@ -154,7 +155,7 @@ Combined with disequality constraints they extend the expressive power of \OCanr
 
 %% Keywords
 %% comma separated list
-\keywords{relational programming, relational interpreters, pattern matching, constraint programming}  
+\keywords{relational programming, relational interpreters, pattern matching, constraint programming}
 %% \keywords are mandatory in final camera-ready submission
 
 
@@ -174,30 +175,30 @@ Combined with disequality constraints they extend the expressive power of \OCanr
 %     \item[\done] Intro
 %     \item[\wip] Theory
 %         \begin{todolist}
-%           \item Add many examples to appendix 
+%           \item Add many examples to appendix
 %         \end{todolist}
-%     \item[\wip] Related 
+%     \item[\wip] Related
 %     \begin{todolist}
-%       \item[\wip] Eigen 
+%       \item[\wip] Eigen
 %         \begin{itemize}
 %           \item Add  examples for comparison
 %         \end{itemize}
 %       \item[\wip] Universal quantification and implication (???)
-%       \item[\wip] noCanren 
-%       \item[\wip] Matching 
+%       \item[\wip] noCanren
+%       \item[\wip] Matching
 %     \end{todolist}
-%     \item[\done] Application to noCanren 
-%     \item Application to pattern matching 
+%     \item[\done] Application to noCanren
+%     \item Application to pattern matching
 %         \begin{todolist}
 %           \item More formal description
-%           \item Proposed encoding of pattern 
+%           \item Proposed encoding of pattern
 %           \item Why domains are important?
 %           \item WTF it doesn't work
 %         \end{todolist}
-%      \item ``Technical meat''   
+%      \item ``Technical meat''
 %      \item Conclusion
 %   \end{todolist}
-  
+
 \input{02theory}
 \input{03related}
 \input{05noCanren}
