@@ -1,17 +1,22 @@
 (env
  (dev
   (flags
-   (-strict-sequence -short-paths -strict-formats -short-paths -keep-locs -w
-     -3-9-32))))
+   (-strict-sequence
+    -short-paths
+    -strict-formats
+    -short-paths
+    -keep-locs
+    -w
+    -3-9-32))))
 
 (library
  (name helper)
  (public_name helper)
  (modules helper)
  (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
- (flags (-rectypes))
+  (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
+ (flags
+  (:standard -rectypes))
  (libraries OCanren unix))
 
 (library

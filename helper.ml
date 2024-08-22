@@ -7,7 +7,7 @@ let inhabit_bool r = conde [ r=== !!false; r === !!true ]
 
 (* ********************************************************************** *)
 module Info = struct
-  [%%ocanren
+  [%%ocanren_inject
   type nonrec ('string, 'xs) t = Complex of 'string * 'xs
     [@@deriving gt ~options:{gmap; fmt}]
 

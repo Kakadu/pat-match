@@ -6,9 +6,9 @@ open OCanren
 (** {3 Helper functions to provide names for top-level variables } *)
 
 let print_span span =
-  let ms = Mtime.Span.to_ms span in
-  if ms > 10000.0
-  then printf "%10.0fs \n%!" (Mtime.Span.to_s span)
+  let ms = Mtime.Span.to_float_ns span /. 1e6 in
+  if ms > 10000.
+  then printf "%10.0fs \n%!" (ms /. 1e3)
   else printf "%10.0fms\n%!" ms
 
 let wrap ~span onOK onFree i (name, x) =

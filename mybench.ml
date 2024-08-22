@@ -42,7 +42,7 @@ module Runs = struct
   let make span = [span]
   let avg_ms t =
     assert (count t = iterations_count);
-    let s = List.fold_left (fun acc span -> acc +. (Mtime.Span.to_ms span)) 0.0 t in
+    let s = List.fold_left (fun acc span -> acc +. (Mtime.Span.to_float_ns span /. 1e6)) 0.0 t in
     s /. (float_of_int (count t))
   let avg_s t =
     assert (count t = iterations_count);
