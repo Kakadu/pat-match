@@ -25,14 +25,29 @@
  (modules work_base_common)
  ;(preprocess  (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx))
  (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+  (pps OCanren-ppx.ppx_fresh))
  (flags
   (:standard -rectypes -open OCanren.Std))
  (libraries GT OCanren))
 
 (rule
  (targets work_base_common.ml)
+ (deps work_base_common.raw)
+ (mode
+  (promote (until-clean)))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run
+    ocamlformat
+    --impl
+    --enable-outside-detected-project
+    --profile=ocamlformat
+    --margin=100
+    %{deps}))))
+
+(rule
+ (targets work_base_common.raw)
  (deps
   work_base.ml
   (package noCanren))
@@ -120,3 +135,13 @@
    -8
    -o
    work_unn.ml)))
+
+(library
+ (name tests)
+ (modules tests)
+ (libraries main_lib)
+ (inline_tests)
+ (flags
+  (:standard -rectypes))
+ (preprocess
+  (pps OCanren-ppx.ppx_fresh ppx_expect)))

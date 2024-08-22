@@ -1,3 +1,10 @@
 [submodule "noCanren"]
 	path = noCanren
-	url = https://github.com/Lozov-Petr/noCanren.git
+	url = https://github.com/PLTools/noCanren.git
+	shallow = true
+
+[submodule "OCanren"]
+	path = OCanren
+	url = https://github.com/PLTools/OCanren.git
+	shallow = true
+
