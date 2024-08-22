@@ -1,3 +1,17 @@
-(lang dune 1.11)
+(lang dune 2.7)
 
-;(allow_approximate_merlin)
+(name pat-match)
+
+(generate_opam_files)
+
+(package
+ (name pat-match)
+ (depends
+  lazy-trie
+  ocamlgraph
+  ppx_optcomp
+  ppx_expect
+  (mtime
+   (= 2.0.0))
+  (dune :build)
+  (ocamlformat :build)))

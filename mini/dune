@@ -1,9 +1,0 @@
-(env
-  (dev
-    (flags (-strict-sequence -strict-formats -short-paths -keep-locs -w -3-9-32))))
-
-(executable
-  (name minirun)
-  (modules minirun mini)
-  (flags (-rectypes))
-)

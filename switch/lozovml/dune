@@ -5,19 +5,13 @@
  (modules work_base)
  (libraries noCanren.List noCanren.Peano)
  (flags
-  (:standard -rectypes))
- (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file}))))
+  (:standard -rectypes)))
 
 (library
  (name work)
  (modules work)
- (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
  (flags
-  (-open Work_base))
+  (:standard -open Work_base))
  (libraries work_base))
 
 (library
@@ -79,9 +73,6 @@
 (library
  (name work_ho)
  (modules work_ho)
- ;(preprocess
- ; (action
- ;  (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
  (preprocess
   (pps OCanren-ppx.ppx_fresh))
  (flags
@@ -111,10 +102,9 @@
  (name work_unn)
  (modules work_unn)
  (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+  (pps OCanren-ppx.ppx_fresh))
  (flags
-  (-rectypes -open Work_base_common -open OCanren.Std))
+  (:standard -rectypes -open Work_base_common -open OCanren.Std))
  (libraries work_base GT OCanren work_base_common))
 
 (rule
