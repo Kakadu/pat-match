@@ -24,7 +24,7 @@ let inhabit_by typs cond =
   in
   let is_good_m m ans =
     fresh ()
-      (debug_var m (flip Matchable.reify) (fun ms ->
+      (debug_var m ( Matchable.reify) (fun ms ->
       (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
         match ms with
         | [] -> failure
@@ -59,7 +59,7 @@ let inhabit_by typs cond =
             (iter2io (fun n -> helper (Matchable.field (n) m)) arg_typs es)
         ; fresh ()
             (is_ok === !!false)
-            (debug_var is_ok (flip OCanren.reify) (fun ok ->
+            (debug_var is_ok ( OCanren.reify) (fun ok ->
                let () =
                  match ok with
                  | [Value false] -> ()
@@ -429,8 +429,8 @@ let optimize_pair: IR.ground -> IR.ground = fun ir ->
   let rec helper = function
   | Lit n -> Lit n
   | Fail -> Fail
-  | Switch (_, Std.List.Nil, default) -> helper default
-  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when Tag.string_of_tag_exn t = "pair" -> helper code
+  | Switch (_, [], default) -> helper default
+  | Switch (_, ( ((t,code) :: [])), _) when Tag.string_of_tag_exn t = "pair" -> helper code
   | Switch (m, xs, default) ->
       let ys = GT.gmap Std.List.ground (fun (t,c) -> (t, helper c)) xs in
       Switch (m, ys, helper default)
@@ -445,8 +445,8 @@ let optimize_triple: IR.ground -> IR.ground = fun ir ->
   let rec helper = function
   | Lit n -> Lit n
   | Fail -> Fail
-  | Switch (_, Std.List.Nil, default) -> helper default
-  | Switch (_, Std.List.(Cons ((t,code), Nil)), _) when Tag.string_of_tag_exn t = "triple" -> helper code
+  | Switch (_, [], default) -> helper default
+  | Switch (_, (((t,code)::[])), _) when Tag.string_of_tag_exn t = "triple" -> helper code
   | Switch (m, xs, default) ->
       let ys = GT.gmap Std.List.ground (fun (t,c) -> (t, helper c)) xs in
       Switch (m, ys, helper default)
@@ -1330,7 +1330,7 @@ module ArgMake(Arg: ARG0) : ARG_FINAL = struct
 
           let first =
             OCanren.(run q (Work_base_common.compile_naively injected)) (fun rr -> rr#reify IR.prj_exn)
-            |> OCanren.Stream.hd
+             |> OCanren.Stream.hd
           in
           let second = Arg.optimize first in
           second

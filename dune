@@ -23,17 +23,18 @@
  (name mytester)
  (modules mytester)
  (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
- (flags (-rectypes))
+  (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
+ (flags
+  (:standard -rectypes))
  (libraries mtime.clock.os OCanren))
 
 (library
  (name mybench)
  (modules mybench)
  (preprocess
-  (action
-   (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
+  (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
+ (flags
+  (:standard -rectypes))
  (libraries GT mtime.clock.os))
 
 (rule

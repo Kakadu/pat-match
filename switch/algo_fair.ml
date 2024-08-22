@@ -55,7 +55,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
   let default_shortcut0 m max_height cases rez =
     let open OCanren in
     fresh ()
-      (debug_var m (flip Matchable.reify) (fun ms ->
+      (debug_var m (Matchable.reify) (fun ms ->
 (*        Format.printf "default_shortcut0 on matchable %s\n%!" ((GT.show GT.list) Matchable.show_logic ms);*)
         match ms with
         | [] -> failure
@@ -415,7 +415,8 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       clear_mc ();
       let start = Mtime_clock.counter () in
       let open Mytester in
-      runR IR.reify on_ground on_logic n q qh (info, (fun ideal_IR ->
+      (* let _: float -> int = run_r IR.reify on_logic n q in *)
+      run_r IR.reify on_logic n q qh (info, (fun ideal_IR ->
           let init = Arg.ir_hint ideal_IR in
 
           List.fold_left (fun acc (scru: Expr.injected) ->
@@ -431,7 +432,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
                     (res_ir === Std.Option.none())
                 ])
                 (my_eval_ir  ideal_IR scru injected_typs ideal_IR res_ir)
-                (debug_var ideal_IR (flip IR.reify) (fun irs ->
+                (debug_var ideal_IR (IR.reify) (fun irs ->
                   let verbose = false in
 (*                  let verbose = true in*)
                   let ir =
@@ -471,11 +472,9 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
 
       Format.printf "\n";
-      Format.printf "Total synthesis time: %s\n%!"
-        ( let ms = Mtime.Span.to_ms span in
-          if ms > 10000.0
-          then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
-          else Format.sprintf "%10.0fms\n%!" ms);
+      Format.printf "Total synthesis time: ";
+      Mytester.print_span span;
+      Format.printf "\n%!";
       report_mc ();
   end;
   let () = disable_periodic_prunes () in

@@ -1,12 +1,21 @@
 (executable
  (name main_switch)
- (modules
-  main_switch
-  main_inputs
-  unn_pre
-  pats_tree
-  algo_fair
-  algo_fair_manual)
+ (modules main_switch)
+ (libraries main_lib)
+ (flags
+  (:standard -rectypes))
+ (preprocess
+  (pps
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_distrib
+   GT.ppx_all
+   ; TODO: replace ppx_optcomp by something lightweight
+   ppx_optcomp)))
+
+(library
+ (name main_lib)
+ (wrapped false)
+ (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
  (flags
   (:standard -rectypes -warn-error +20+5))
  (libraries
@@ -19,9 +28,10 @@
   helper
   mytester
   mybench)
- ;(preprocess
- ; (action
- ;  (run %{project_root}/pp_ppx/ppx_rewriter.exe %{input-file})))
- ;
  (preprocess
-  (pps OCanren-ppx.ppx_fresh OCanren-ppx.ppx_distrib GT.ppx_all)))
+  (pps
+   OCanren-ppx.ppx_fresh
+   OCanren-ppx.ppx_distrib
+   GT.ppx_all
+   ; TODO: replace ppx_optcomp by something lightweight
+   ppx_optcomp)))

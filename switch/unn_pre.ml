@@ -208,8 +208,8 @@ end
 let rec inject_ground_list (xs : 'a OCanren.ilogic Std.List.ground) : ('a ilogic) Std.List.injected =
   (* TODO: tail recursion *)
   let rec helper = function
-  | Std.List.Nil -> Std.List.nil ()
-  | Std.List.Cons (x, xs) -> Std.List.cons x (helper xs)
+  | [] -> Std.List.nil ()
+  | (x :: xs) -> Std.List.cons x (helper xs)
   in
   helper xs
 
@@ -225,8 +225,8 @@ let ground_list_foldi f init xs =
 let ground_list_fold2i_exn f init xs ys =
   let open Std.List in
   let rec helper acc n = function
-    | Nil,Nil -> acc
-    | Cons (x,xs), Cons(y,ys) -> helper (f acc n x y) (n+1) (xs,ys)
+    | [],[] -> acc
+    |  (x::xs), (y::ys) -> helper (f acc n x y) (n+1) (xs,ys)
     | _ -> failwith "bad length"
   in
   helper init 0 (xs,ys)
@@ -254,6 +254,10 @@ module Pattern = struct
 
   let constr = W.pConstr
   let wc = W.wildCard
+  let rec inject : ground -> injected =
+    function
+    | WildCard -> wc()
+    | PConstr (name,args) -> constr !!name (Std.list inject args)
 
   let rec height = function
   | WildCard  -> 0
@@ -272,7 +276,7 @@ module Pattern = struct
            method c_WildCard _ _ = Format.fprintf ppf "_"
            method c_PConstr flg _ name ps =
              match ps with
-             | Std.List.Nil -> Format.fprintf ppf "%a" (GT.fmt Tag.ground) name
+             | [] -> Format.fprintf ppf "%a" (GT.fmt Tag.ground) name
              | ps ->
                 Format.fprintf ppf "%a (" (GT.fmt Tag.ground) name;
                 ground_list_iteri (fun n x ->
@@ -365,8 +369,8 @@ module Expr = struct
   let show : ground -> string   =
     let rec helper pars x =
      match x with
-    | EConstr (c, Std.List.Nil) when pars -> Printf.sprintf "(%s)" (GT.show Tag.ground c)
-    | EConstr (c, Std.List.Nil)           -> GT.show Tag.ground c
+    | EConstr (c, []) when pars -> Printf.sprintf "(%s)" (GT.show Tag.ground c)
+    | EConstr (c, [])           -> GT.show Tag.ground c
     | EConstr (s, xs) when pars ->
       Printf.sprintf "(%s %s)"
         (GT.show Tag.ground s)
@@ -699,6 +703,7 @@ end
 module Clauses = struct
   type pg = Pattern.ground * IR.ground
   type pre_ground = pg list
+  (* TODO: merge ground and pre_ground *)
   type ground = pg Std.List.ground
   type logic = (Pattern.logic, IR.logic) Std.Pair.logic Std.List.logic
   type injected = (Pattern.injected * IR.injected) OCanren.ilogic Std.List.injected
@@ -711,8 +716,7 @@ module Clauses = struct
         (inject_ground_list @@ GT.gmap Std.List.ground one ps)
     in
     fun ps ->
-      Std.List.list @@
-      List.map (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
+      Std.list (fun (p,rhs) -> Std.Pair.pair (one p) (IR.inject rhs)) ps
 
 
   let pretty_print ch clauses =
