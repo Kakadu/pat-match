@@ -12,6 +12,8 @@
 (library
  (name helper)
  (modules helper)
+ (preprocessor_deps
+  (package OCanren-ppx))
  (preprocess
   (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
  (flags
@@ -21,6 +23,8 @@
 (library
  (name mytester)
  (modules mytester)
+ (preprocessor_deps
+  (package OCanren-ppx))
  (preprocess
   (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
  (flags
@@ -30,14 +34,10 @@
 (library
  (name mybench)
  (modules mybench)
+ (preprocessor_deps
+  (package OCanren-ppx))
  (preprocess
   (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
  (flags
   (:standard -rectypes))
  (libraries GT mtime.clock.os))
-
-(rule
- (targets work.ml)
- (deps work.ml2mk.ml)
- (action
-  (run noCanren work.ml2mk.ml -o %{targets})))
