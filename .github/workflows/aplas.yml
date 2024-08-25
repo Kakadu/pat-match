@@ -40,6 +40,6 @@ jobs:
         run: opam list
 
       - run: opam exec -- dune build --profile=release
-      - run: opam exec -- make test
+      - run: opam exec -- dune test --profile=release
 
 
