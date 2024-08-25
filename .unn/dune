@@ -1,0 +1,36 @@
+; (executable
+;  (name main_unnested)
+;  (modules
+;   main_unnested
+;   main_inputs
+;   work_unnested
+;   unn_pre
+;   algo_fair
+;   algo_fair2
+;   algo_fair3
+;   impl1
+;   impl2)
+;  (flags
+;   (:standard -rectypes -open OCanren.Std))
+;  (libraries OCanren helper mytester)
+;  (preprocess
+;   (pps
+;    OCanren-ppx.ppx_repr
+;    OCanren-ppx.ppx_fresh
+;    OCanren-ppx.ppx_distrib
+;    GT.ppx_all)))
+
+; (rule
+;  (targets work_unnested.ml)
+;  (deps work_unnested.ml2mk.ml)
+;  (mode
+;   (promote (until-clean)))
+;  (action
+;   (run
+;    noCanren
+;    -unnesting-mode
+;    -without-activate-tactics
+;    -new-ocanren
+;    %{deps}
+;    -o
+;    %{targets})))

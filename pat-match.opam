@@ -4,7 +4,7 @@ synopsis:
   "Synthesis of pattern mathcing compilation bia relational programmin (proof of concept)"
 maintainer: ["Dmitrii Kosarev https://github.com/Kakadu"]
 authors: ["Dmitrii Kosarev https://github.com/Kakadu"]
-license: "LGPL-3.0"
+license: "LGPL-3.0-or-later"
 homepage: "https://github.com/Kakadu/pat-match"
 bug-reports: "https://github.com/Kakadu/pat-match/issues"
 depends: [

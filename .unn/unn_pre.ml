@@ -3,7 +3,6 @@ open OCanren
 module Work = Work_unnested
 open Work
 
-let id x = x
 let (>>=?) x f = match x with None -> None | Some x -> f x
 let failwiths fmt = Printf.ksprintf failwith fmt
 
@@ -29,7 +28,7 @@ module Pattern = struct
 
   type ground = (string, ground Std.List.ground) t
   type logic = (string OCanren.logic, logic Std.List.logic) t OCanren.logic
-  type injected = (ground, logic) OCanren.injected
+  type injected = (string ilogic, injected Std.List.injected) t ilogic
 
   let constr = Work.pConstr
   let wc = Work.wildCard
@@ -45,7 +44,7 @@ module Pattern = struct
   let show p =
     let rec helper = function
     | WildCard -> "_"
-    | PConstr (s, Std.List.Nil) -> Printf.sprintf "(%s)" s
+    | PConstr (s, []) -> Printf.sprintf "(%s)" s
     | PConstr (s, ps) ->
       Printf.sprintf "(%s %s)" s (GT.show Std.List.ground helper ps)
     in
@@ -67,7 +66,7 @@ module Pattern = struct
 
 
 
-  module ArityMap = Map.Make(Base.String)
+  module ArityMap = Map.Make(String)
   exception Bad
 
   let get_arities (pat: ground) =
@@ -95,16 +94,16 @@ module Expr = struct
 
   type ground = (string, ground Std.List.ground) gexpr
   type logic  = (string OCanren.logic, logic Std.List.logic) gexpr OCanren.logic
-  type injected = (ground, logic) OCanren.injected
+  type injected = (string ilogic, injected Std.List.injected) t ilogic
 
   let constr = eConstr
-  let econstr s xs = EConstr (s, Std.List.of_list id xs)
+  let econstr s xs = EConstr (s, Std.list Fun.id xs)
 
   let show x =
     let rec helper pars x =
      match x with
-    | EConstr (s, Std.List.Nil) when pars -> Printf.sprintf "(%s)" s
-    | EConstr (s, Std.List.Nil)           -> s
+    | EConstr (s, []) when pars -> Printf.sprintf "(%s)" s
+    | EConstr (s, [])           -> s
     | EConstr (s, xs) when pars ->
       Printf.sprintf "(%s %s)"
         (GT.show GT.string s)
@@ -126,20 +125,17 @@ module Expr = struct
     in
     GT.show OCanren.logic helper x
 
-  let rec reify env x =
-    For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
-
   let inject (e: ground) : injected =
     let rec helper = function
     | EConstr (s,xs) ->
-        constr !!s (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
+        constr !!s (Std.list helper xs)
     in
     helper e
 end
 
 
 let pwc = WildCard
-let pconstr name xs = PConstr (name, Std.List.of_list id xs)
+let pconstr name xs = PConstr (name, xs)
 let pleaf s = pconstr s []
 let pnil    = pleaf "nil"
 let pnil2   = pleaf "nil2"
@@ -161,7 +157,7 @@ module Nat = struct
     [@@deriving gt ~options:{ foldl; fmt; gmap }]
   type logic = logic t OCanren.logic
     [@@deriving gt ~options:{ foldl; fmt; gmap }]
-  type injected = (ground, logic) OCanren.injected
+  type injected = injected t ilogic
 
   let z : injected = Work.z ()
   let one : injected =  Work.s z
@@ -187,9 +183,9 @@ module Nat = struct
     | S n -> helper (acc+1) n
     in
     helper 0 n
-
+(*
   let rec reify env x = For_gnat.reify reify env x
-  let rec prjc onvar env xs = For_gnat.prjc (prjc onvar) onvar env xs
+  let rec prjc onvar env xs = For_gnat.prjc (prjc onvar) onvar env xs *)
 
 
   let inject : ground -> injected = fun root ->
@@ -221,7 +217,7 @@ module Matchable = struct
   type ground = (Nat.ground, ground) t
     [@@deriving gt ~options:{ foldl; fmt; gmap }]
   type logic = (Nat.logic, logic) t OCanren.logic
-  type injected = (ground, logic) OCanren.injected
+  type injected = (Nat.injected, injected) t ilogic
 
   let scru = scru
   let field = field
@@ -235,8 +231,6 @@ module Matchable = struct
   let field11  () : injected = field (s(z())) @@ field1 ()
 
 
-  let rec reify env x =
-    For_gmatchable.reify Nat.reify reify env x
 
   let inject : ground -> injected = fun root ->
     let rec helper = function
@@ -327,16 +321,13 @@ module IR = struct
     [@@deriving gt ~options: { show; fmt } ]
   type logic = (GT.string OCanren.logic, Matchable.logic, logic, GT.int OCanren.logic) t OCanren.logic
     [@@deriving gt ~options: { show; fmt } ]
-  type injected = (ground, logic) OCanren.injected
+  type injected = (string ilogic, Matchable.injected, injected, int ilogic) t ilogic
 
   let fail = fail
   let iftag = iFTag
   let int = int
 
   let eint n = Int n
-
-  let rec reify env x =
-    For_gir.reify OCanren.reify Matchable.reify reify OCanren.reify env x
 
   let inject e =
     let rec helper = function
@@ -434,7 +425,7 @@ module IR = struct
     ; GT.plugins = object
         method fmt  = fmt
         method show = show
-        method gmap = id
+        method gmap = Fun.id
       end
     }
   let logic =
@@ -443,7 +434,7 @@ module IR = struct
     ; GT.plugins = object
         method fmt  = fmt_logic
         method show = show_logic
-        method gmap = id
+        method gmap = Fun.id
       end
     }
 
