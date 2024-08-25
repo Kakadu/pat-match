@@ -594,15 +594,15 @@ module IR = struct
           method! c_Lit fmt _ n = Format.fprintf fmt "%d " n
 
           method! c_Switch fmt _ m xs on_default =
-            Format.fprintf fmt "@[(@[match %a with @]" (GT.fmt Matchable.ground)
-              m;
+            Format.fprintf fmt "@[(@[<v>@[match %a with@]@,"
+              (GT.fmt Matchable.ground) m;
             GT.foldl Std.List.ground
               (fun () (t, code) ->
-                Format.fprintf fmt "@[ | %a -> %a@]@;" (GT.fmt Tag.ground) t
+                Format.fprintf fmt "@[| %a -> %a@]@;" (GT.fmt Tag.ground) t
                   fself code)
               () xs;
-            Format.fprintf fmt "@[ | _ -> %a@]" fself on_default;
-            Format.fprintf fmt ")@]"
+            Format.fprintf fmt "@[| _ -> %a@]" fself on_default;
+            Format.fprintf fmt "@])@]"
         end)
       f ir
 
@@ -624,17 +624,23 @@ module IR = struct
   let rec fmt_logic fmt (e : logic) =
     let fmt_ocl fmt f x = GT.fmt OCanren.logic f fmt x in
     let rec helper fmt = function
-      | Fail -> Format.fprintf fmt "fail"
+      | Fail -> Format.fprintf fmt "@[fail@]@,"
+      | Lit (Value n) -> Format.fprintf fmt "%d" n
       | Lit ln ->
-          Format.fprintf fmt "%a " (GT.fmt OCanren.logic (GT.fmt GT.int)) ln
+          Format.fprintf fmt "@[%a @]@,"
+            (GT.fmt OCanren.logic (GT.fmt GT.int))
+            ln
       | Switch (m, xs, default) ->
-          Format.fprintf fmt "(switch %a with" (GT.fmt Matchable.logic) m;
-          GT.foldl Std.List.logic
-            (GT.foldl OCanren.logic (fun () (tag, irl) ->
-                 Format.fprintf fmt "@[ | %a@ ->@ %a@]" (GT.fmt Tag.logic) tag
-                   fmt_logic irl))
-            () xs;
-          Format.fprintf fmt "@[ | _ -> %a@])" fmt_logic default
+          Format.fprintf fmt "@[(@[<v>";
+          (* Format.fprintf fmt "@[switch %a with@]@," (GT.fmt Matchable.logic) m; *)
+          Format.fprintf fmt "@[switch S with@]@ ";
+          (* GT.foldl Std.List.logic
+             (GT.foldl OCanren.logic (fun () (tag, irl) ->
+                  Format.fprintf fmt "@[| %a@ ->@ %a@]@," (GT.fmt Tag.logic) tag
+                    fmt_logic irl))
+             () xs; *)
+          Format.fprintf fmt "@[| _ -> %a@]" fmt_logic default;
+          Format.fprintf fmt "@])@]"
     in
     fmt_ocl fmt helper e
 

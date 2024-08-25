@@ -198,7 +198,7 @@ module Make(Arg: ARG_FINAL) = struct
       ( let ms = Mtime.Span.to_ms span in
         if ms > 10000.0
         then Format.sprintf "%10.0fs \n%!" (Mtime.Span.to_s span)
-        else Format.sprintf "%10.0fms\n%!" ms)
+        else Format.sprintf "%10.0fms 2\n%!" ms)
 
 
 

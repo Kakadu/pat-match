@@ -2,6 +2,8 @@
 
 (name pat-match)
 
+(cram enable)
+
 (generate_opam_files)
 
 (package

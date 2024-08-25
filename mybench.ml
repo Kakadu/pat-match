@@ -121,7 +121,6 @@ let repeat f =
     )
 
 let got_answer span ~idx =
-(*  assert false;*)
   Format.printf "got answer %d\n%!" idx;
   add_test_data idx span;
   ()
@@ -151,7 +150,7 @@ let finish () =
           let runs = IMap.find 0 v in
           let ms = Runs.avg_ms runs in
           if ms < 1000.
-          then Printf.sprintf "%dms" (int_of_float ms)
+          then Printf.sprintf "%dms 3" (int_of_float ms)
           else Printf.sprintf "%30fs" (Runs.avg_s runs)
         in
         let answers_requested =

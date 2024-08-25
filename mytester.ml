@@ -5,11 +5,17 @@ open OCanren
 
 (** {3 Helper functions to provide names for top-level variables } *)
 
+let do_print_span = ref true
+let set_print_span x =
+  (* Printf.printf "%s %b\n%!" __FUNCTION__ x; *)
+  do_print_span := x
+
 let print_span span =
-  let ms = Mtime.Span.to_float_ns span /. 1e6 in
+  if !do_print_span then
+  (let ms = Mtime.Span.to_float_ns span /. 1e6 in
   if ms > 10000.
-  then printf "%10.0fs \n%!" (ms /. 1e3)
-  else printf "%10.0fms\n%!" ms
+  then printf "%10.0fs\n%!" (ms /. 1e3)
+  else printf "%10.0fms 111 \n%!" ms)
 
 let wrap ~span onOK i (name, x) =
   onOK   i name ~span x
@@ -38,7 +44,7 @@ let make_title n msg =
 
 exception NoMoreAnswers
 
-let run_gen onFree n num handler (repr, goal) =
+let run_gen ?(do_print_span=true) onFree n num handler (repr, goal) =
   make_title n repr;
   let rec loop st = function
   | k when (k > n) && (n >= 0) -> ()
@@ -48,11 +54,10 @@ let run_gen onFree n num handler (repr, goal) =
     let span = Mtime_clock.count start in
     match stream_rez with
     | [],_ ->
-        print_span span;
+        if do_print_span then print_span span;
         raise NoMoreAnswers
     | [f],tl ->
       f ~span ();
-      printf "\n%!";
       loop tl (k+1)
     | _ -> assert false
   in
@@ -60,43 +65,9 @@ let run_gen onFree n num handler (repr, goal) =
   let () = try loop (run num goal handler) 1 with NoMoreAnswers -> () in
   printf "}\n%!"
 
-(*
-(**
-  [run_exn printer n name_helper goal] prints answers supposing there are no free variables there
-  (i.e. reification is not required)
-*)
-let run_exn printer = run_gen
-  (fun i name ~span x  -> printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer x#prj) )
-  (fun _ _ ~span:_ _  -> failwith "Free logic variables in the answer")
-
-(**
-  [runR reifier print_plain print_injected n name_helper goal] prints answers both with free varibles and
-  without them. In the first cases it uses [print_plain] as printer fuction. In the latter case it does
-  reification using [reifier] and prints the result wit [print_ibjected]
-*)
-let runR reifier printerNoFree printerR = run_gen
-  (fun i name ~span x ->
-    (* i is a answer part (depends on qh, qrh sizes). It is not index of an answer *)
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerNoFree ~span x#prj)
-  )
-  (fun i name ~span func  ->
-    let ans = func#reify reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerR ~span ans)
-    )
-
-let run_prjc reifier printer = run_gen
-  (fun i name ~span x  ->
-     printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span x#prj) )
-  (fun i name ~span func ->
-    let ans = func#prjc reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printer ~span ans)
-  )
-*)
-
-(* TODO: Remove two functions above *)
-
-let run_r reifier printerR = run_gen
-  (fun i name ~span (func : _ OCanren.reified) ->
-    let ans = func#reify reifier in
-    printf "%s%s=%s;%!" (if i<>0 then " " else "") name (printerR ~span ans)
-    )
+let run_r ?(do_print_span=true) reifier printerR =
+  run_gen ~do_print_span
+    (fun i name ~span (func : _ OCanren.reified) ->
+      let ans = func#reify reifier in
+      printf "%s%s=%s;\n%!" (if i<>0 then " " else "") name (printerR ~span ans)
+      )

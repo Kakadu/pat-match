@@ -1,3 +1,6 @@
+(cram
+ (deps ./main_switch.exe))
+
 (executable
  (name main_switch)
  (modules main_switch)
@@ -18,8 +21,16 @@
  (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
  (flags
   (:standard -rectypes -warn-error +20+5))
- (libraries base lazy-trie work_base_common work_ho work_unn OCanren helper
-   mytester mybench)
+ (libraries
+  base
+  lazy-trie
+  work_base_common
+  work_ho
+  work_unn
+  OCanren
+  helper
+  mytester
+  mybench)
  (preprocess
   (pps
    OCanren-ppx.ppx_fresh
@@ -27,3 +38,13 @@
    GT.ppx_all
    ; TODO: replace ppx_optcomp by something lightweight
    ppx_optcomp)))
+
+(library
+ (name tests2)
+ (inline_tests)
+ (libraries main_lib)
+ (modules tests)
+ (flags
+  (:standard -rectypes))
+ (preprocess
+  (pps ppx_expect)))

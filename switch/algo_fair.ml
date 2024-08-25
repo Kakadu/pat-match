@@ -381,11 +381,13 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
              Mybench.got_answer span ~idx:(!answer_index);
              repr)
        in *)
-    let on_logic ~span ir =
+    let on_logic ~span (ir : IR.logic) =
       incr answer_index;
       let nextn = IR.count_ifs_low ir in
       upgrade_bound nextn;
-      let repr = Printf.sprintf "%s with ifs_low=%d" (IR.show_logic ir) nextn in
+      let repr =
+        Format.asprintf "%a with ifs_low='%d'\n" IR.fmt_logic ir nextn
+      in
       Mybench.when_enabled
         ~fail:(fun () -> repr)
         (fun () ->
@@ -418,7 +420,10 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
            *)
       W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez
     in
-
+    let is_time_tracing_enabled =
+      match Sys.getenv "NOBENCH" with _ -> false | exception Not_found -> true
+    in
+    Mytester.set_print_span is_time_tracing_enabled;
     Mybench.repeat (fun () ->
         set_initial_bound ();
         answer_index := -1;
@@ -426,7 +431,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         let start = Mtime_clock.counter () in
         let open Mytester in
         (* let _: float -> int = run_r IR.reify on_logic n q in *)
-        run_r IR.reify on_logic n q qh
+        run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
           ( info,
             fun ideal_IR ->
               let init = Arg.ir_hint ideal_IR in
@@ -491,9 +496,12 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         let span = Mtime_clock.count start in
 
         Format.printf "\n";
-        Format.printf "Total synthesis time: ";
-        Mytester.print_span span;
-        Format.printf "\n%!";
+        (match Sys.getenv "NOBENCH" with
+        | _ -> ()
+        | exception Not_found ->
+            Format.printf "Total synthesis time: ";
+            Mytester.print_span span;
+            Format.printf "\n%!");
         report_mc ());
     let () = disable_periodic_prunes () in
     ()
