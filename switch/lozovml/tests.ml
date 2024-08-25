@@ -37,7 +37,8 @@ let%expect_test _ =
     |> OCanren.Stream.hd
   in
   print_endline (GT.show IR.ground ans);
-  [%expect {| (match S with  | pair -> (match S[0] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))  | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail)))  | _ -> (match S with  | pair -> (match S[1] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))  | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))) |}]
+  [%expect
+    {| (match S with  | pair -> (match S[0] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))  | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail)))  | _ -> (match S with  | pair -> (match S[1] with  | true -> 1   | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))  | _ -> (match S with  | pair -> (match S[1] with  | false -> (match S[0] with  | false -> 0   | _ -> fail)  | _ -> fail)  | _ -> fail))) |}]
 
 let traco file line =
   let open OCanren in

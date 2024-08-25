@@ -18,16 +18,8 @@
  (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
  (flags
   (:standard -rectypes -warn-error +20+5))
- (libraries
-  base
-  lazy-trie
-  work_base_common
-  work_ho
-  work_unn
-  OCanren
-  helper
-  mytester
-  mybench)
+ (libraries base lazy-trie work_base_common work_ho work_unn OCanren helper
+   mytester mybench)
  (preprocess
   (pps
    OCanren-ppx.ppx_fresh
