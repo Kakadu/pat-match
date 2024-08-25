@@ -92,7 +92,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
   (* ************************************************************************ *)
   (** synthetizer main  *)
-  let work ?(n=10) ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
+  let work ~n ~with_hack ~print_examples ~check_repeated_ifs ~debug_filtered_by_size
           ~prunes_period ~with_default_shortcuts =
     print_endline "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
 
@@ -232,9 +232,9 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
       let _do_debug = false in
 
       structural ans IR.reify (fun (ir: IR.logic) ->
-        let verbose = true in
+        let[@ocaml.warning "-26"] verbose = true  in
         let verbose = false in
-        let verbose_exc = true in
+        let[@ocaml.warning "-26"] verbose_exc = true in
         let verbose_exc = false in
 
         try
@@ -361,7 +361,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
 
 
     let answer_index = ref (-1) in
-    let on_ground ~span ir =
+    (* let on_ground ~span ir =
       incr answer_index;
       let nextn = IR.count_ifs_ground ir in
       upgrade_bound nextn;
@@ -370,7 +370,7 @@ module Make(W: WORK)(Arg: ARG_FINAL) = struct
         (fun () ->
           Mybench.got_answer span ~idx:(!answer_index);
           repr)
-    in
+    in *)
     let on_logic ~span ir =
       incr answer_index;
       let nextn = IR.count_ifs_low ir in
