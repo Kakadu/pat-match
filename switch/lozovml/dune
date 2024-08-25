@@ -11,7 +11,7 @@
  (name work)
  (modules work)
  (flags
-  (:standard -open Work_base))
+  (:standard -rectypes -open Work_base))
  (libraries work_base))
 
 (library
@@ -81,11 +81,13 @@
 
 (rule
  (targets work_ho.ml)
- (deps work.ml)
+ (deps
+  (:lozovml work.ml)
+  work_base.cma)
  (action
   (run
    noCanren
-   %{deps}
+   %{lozovml}
    -open
    Work_base
    -I
@@ -109,7 +111,9 @@
 
 (rule
  (targets work_unn.ml)
- (deps work.ml)
+ (deps
+  (:lozovml work.ml)
+  work_base.cma)
  (action
   (run
    noCanren
@@ -120,7 +124,7 @@
    `ocamlfind
    query
    noCanren.List`
-   %{deps}
+   %{lozovml}
    -open
    Work_base
    -I

@@ -380,7 +380,7 @@ module Expr = struct
        onvar
   *)
   let constr : Tag.injected -> _ -> injected = eConstr
-  let econstr s xs = EConstr (Tag.tag_of_string_exn s, Std.List.of_list id xs)
+  let econstr s xs = EConstr (Tag.tag_of_string_exn s, Stdlib.List.map id xs)
   let eleaf s = econstr s []
 
   let height : ground -> int =
@@ -427,10 +427,7 @@ end
 
 let pwc = WildCard
 let __ = pwc
-
-let pconstr name xs =
-  PConstr (Tag.tag_of_string_exn name, Std.List.of_list id xs)
-
+let pconstr name xs = PConstr (Tag.tag_of_string_exn name, Stdlib.List.map id xs)
 let pleaf s = pconstr s []
 let pnil = pleaf "nil"
 let pnil2 = pleaf "nil2"
@@ -774,7 +771,7 @@ end
 module TagSet = Set.Make (struct
   type t = Tag.ground
 
-  let compare = Caml.compare
+  let compare = Stdlib.compare
 end)
 
 module Typs = struct
@@ -800,7 +797,7 @@ module Typs = struct
     match e with
     | T xs -> t (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
 
-  let mkt xs : ground = T (Std.List.of_list id xs)
+  let mkt xs : ground = T (Stdlib.List.map id xs)
 
   let get_names (T xs) =
     GT.foldl Std.List.ground
@@ -831,7 +828,7 @@ module Typs = struct
         mkt
         @@ List.map
              (fun (p, xs) ->
-               (Tag.tag_of_string_exn p, Std.List.of_list construct xs))
+               (Tag.tag_of_string_exn p, Stdlib.List.map construct xs))
              xs
 end
 
