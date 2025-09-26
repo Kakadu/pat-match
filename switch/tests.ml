@@ -17,7 +17,8 @@ let%expect_test _ =
     |> OCanren.Stream.hd
   in
   Format.printf "%a%!" IR.fmt_logic x;
-  [%expect {|
+  [%expect
+    {|
     (switch S with
      | _ -> (switch S with
              | _ -> 3)) |}]

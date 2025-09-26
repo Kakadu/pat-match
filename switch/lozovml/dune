@@ -32,13 +32,8 @@
  (action
   (with-stdout-to
    %{targets}
-   (run
-    ocamlformat
-    --impl
-    --enable-outside-detected-project
-    --profile=ocamlformat
-    --margin=100
-    %{deps}))))
+   (run ocamlformat --impl --enable-outside-detected-project
+     --profile=ocamlformat --margin=100 %{deps}))))
 
 (rule
  (targets work_base_common.raw)
@@ -46,25 +41,9 @@
   work_base.ml
   (package noCanren))
  (action
-  (run
-   noCanren
-   -unnesting-mode
-   -without-activate-tactics
-   -I
-   `ocamlfind
-   query
-   noCanren.List`
-   -I
-   `ocamlfind
-   query
-   noCanren.Peano`
-   -rectypes
-   -new-ocanren
-   %{deps}
-   -w
-   -8
-   -o
-   %{targets}))
+  (run noCanren -unnesting-mode -without-activate-tactics -I `ocamlfind query
+    noCanren.List` -I `ocamlfind query noCanren.Peano` -rectypes -new-ocanren
+    %{deps} -w -8 -o %{targets}))
  ; we expect that only types there so unesting and high-order will generate the same
  )
 
@@ -85,18 +64,8 @@
   (:lozovml work.ml)
   work_base.cma)
  (action
-  (run
-   noCanren
-   %{lozovml}
-   -open
-   Work_base
-   -I
-   .work_base.objs/byte
-   -rectypes
-   -w
-   -8
-   -o
-   work_ho.ml)))
+  (run noCanren %{lozovml} -open Work_base -I .work_base.objs/byte -rectypes
+    -w -8 -o work_ho.ml)))
 
 ; unnesting
 
@@ -115,24 +84,9 @@
   (:lozovml work.ml)
   work_base.cma)
  (action
-  (run
-   noCanren
-   -unnesting-mode
-   -without-activate-tactics
-   -rectypes
-   -I
-   `ocamlfind
-   query
-   noCanren.List`
-   %{lozovml}
-   -open
-   Work_base
-   -I
-   .work_base.objs/byte
-   -w
-   -8
-   -o
-   work_unn.ml)))
+  (run noCanren -unnesting-mode -without-activate-tactics -rectypes -I
+    `ocamlfind query noCanren.List` %{lozovml} -open Work_base -I
+    .work_base.objs/byte -w -8 -o work_unn.ml)))
 
 (library
  (name tests)
