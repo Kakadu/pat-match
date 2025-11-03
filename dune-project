@@ -1,4 +1,4 @@
-(lang dune 2.7)
+(lang dune 3.7)
 
 (name pat-match)
 
@@ -25,6 +25,6 @@
   ppx_optcomp
   ppx_expect
   (mtime
-   (= 2.0.0))
+   (= 2.1.0))
   (dune :build)
   (ocamlformat :build)))

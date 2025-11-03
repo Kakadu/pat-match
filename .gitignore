@@ -1,25 +1,7 @@
-.merlin
-/qtc-pm.cflags
-/qtc-pm.config
-/qtc-pm.creator
-/qtc-pm.creator.user.*
-/qtc-pm.cxxflags
-/qtc-pm.files
-/qtc-pm.includes
 /_build
+_coverage
 /node_modules
-
-/qtc-pm.*
-
-/pat-match.cflags
-/pat-match.config
-/pat-match.creator
-/pat-match.creator.user*
-/pat-match.cxxflags
-/pat-match.files
-/pat-match.includes
-
-
+.envrc
 /bench.csv
 /lst.tex
 

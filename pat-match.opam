@@ -12,8 +12,8 @@ depends: [
   "ocamlgraph"
   "ppx_optcomp"
   "ppx_expect"
-  "mtime" {= "2.0.0"}
-  "dune" {>= "2.7" & build}
+  "mtime" {= "2.1.0"}
+  "dune" {>= "3.7" & build}
   "ocamlformat" {build}
   "odoc" {with-doc}
 ]
