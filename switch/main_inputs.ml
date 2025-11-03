@@ -1342,6 +1342,7 @@ end
 module type ALGO = sig
   module Make : functor (W : WORK) (Arg : ARG_FINAL) -> sig
     val test :
+      Format.formatter ->
       ?print_examples:bool ->
       ?debug_filtered_by_size:bool ->
       ?with_hack:bool ->

@@ -110,7 +110,7 @@
   (:standard -rectypes -open Work_base_common -open OCanren.Std))
  (libraries work_base GT OCanren work_base_common)
  (preprocess
-  (pps bisect_ppx OCanren-ppx.ppx_fresh)))
+  (pps OCanren-ppx.ppx_fresh)))
 
 (rule
  (targets work_unn.ml)

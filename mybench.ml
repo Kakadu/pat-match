@@ -1,4 +1,73 @@
-let iterations_count = 10
+type test_key = {
+  tk_name : GT.string;
+  tk_prunes : GT.int GT.option;
+  tk_answers : GT.int;
+  tk_clauses : GT.string;
+  tk_ex_count : GT.int;
+}
+[@@deriving gt ~options:{ compare }]
+
+let make_key tk_name tk_prunes tk_answers tk_clauses tk_ex_count =
+  { tk_name; tk_prunes; tk_answers; tk_clauses; tk_ex_count }
+
+module IMap = Map.Make (Int)
+
+module TMap = Map.Make (struct
+  type t = test_key
+
+  let compare a b =
+    match GT.compare test_key a b with GT.EQ -> 0 | GT.LT -> -1 | GT.GT -> 1
+end)
+
+module SMap = Map.Make (String)
+
+module Runs = struct
+  open Mtime
+
+  type t = Span.t list
+
+  let extend t x = x :: t
+  let count = List.length
+  let make span = [ span ]
+
+  let avg_ms iterations_count t =
+    assert (count t = iterations_count);
+    let s =
+      List.fold_left
+        (fun acc span -> acc +. (Mtime.Span.to_float_ns span /. 1e6))
+        0.0 t
+    in
+    s /. float_of_int (count t)
+
+  let avg_s iterations_count t =
+    assert (count t = iterations_count);
+    avg_ms iterations_count t /. 1000.0
+
+  let sum_span iterations_count xs =
+    assert (count xs = iterations_count);
+    List.fold_left Mtime.Span.add Mtime.Span.zero xs
+end
+
+type test_data = Runs.t IMap.t TMap.t
+
+type cfg = {
+  mutable is_enabled : bool;
+  mutable cur_key : test_key;
+  mutable data : test_data;
+  mutable csv_filename : string;
+  mutable list_filename : string;
+  mutable iterations_count : int;
+}
+
+let cfg =
+  {
+    is_enabled = false;
+    cur_key = make_key "" None (-1) "" 0;
+    data = TMap.empty;
+    csv_filename = "bench.csv";
+    list_filename = "lst.tex";
+    iterations_count = 10;
+  }
 
 module Time = struct
   let now () = Unix.(localtime @@ time ())
@@ -37,86 +106,6 @@ module Time = struct
       (1900 + tm_year) tm_hour tm_min tm_sec
 end
 
-module SMap = Map.Make (String)
-
-module IMap = Map.Make (struct
-  type t = int
-
-  let compare = (compare : int -> int -> int)
-end)
-
-type test_key = {
-  tk_name : GT.string;
-  tk_prunes : GT.int GT.option;
-  tk_answers : GT.int;
-  tk_clauses : GT.string;
-  tk_ex_count : GT.int;
-}
-[@@deriving gt ~options:{ compare }]
-
-module TMap = Map.Make (struct
-  type t = test_key
-
-  let compare a b =
-    match GT.compare test_key a b with GT.EQ -> 0 | GT.LT -> -1 | GT.GT -> 1
-end)
-
-module Runs = struct
-  open Mtime
-
-  type t = Span.t list
-
-  let extend t x = x :: t
-  let count = List.length
-  let make span = [ span ]
-
-  let avg_ms t =
-    assert (count t = iterations_count);
-    let s =
-      List.fold_left
-        (fun acc span -> acc +. (Mtime.Span.to_float_ns span /. 1e6))
-        0.0 t
-    in
-    s /. float_of_int (count t)
-
-  let avg_s t =
-    assert (count t = iterations_count);
-    avg_ms t /. 1000.0
-
-  let sum_span xs =
-    assert (count xs = iterations_count);
-    List.fold_left Mtime.Span.add Mtime.Span.zero xs
-end
-
-type test_data = Runs.t IMap.t TMap.t
-
-let make_key tk_name tk_prunes tk_answers tk_clauses tk_ex_count =
-  { tk_name; tk_prunes; tk_answers; tk_clauses; tk_ex_count }
-
-type cfg = {
-  mutable is_enabled : bool;
-  mutable cur_key : test_key;
-  mutable data : test_data;
-  mutable csv_filename : string;
-  mutable list_filename : string;
-}
-
-let cfg =
-  {
-    is_enabled = false;
-    cur_key = make_key "" None (-1) "" 0;
-    data = TMap.empty;
-    csv_filename =
-      "/home/kakadu/asp/ocanren-ICFP2020/papers/MiniKanren-2020/matching/bench.csv";
-    list_filename =
-      "/home/kakadu/asp/ocanren-ICFP2020/papers/MiniKanren-2020/matching/lst.tex";
-  }
-
-let () =
-  cfg.csv_filename <- "bench.csv";
-  cfg.list_filename <- "lst.tex";
-  ()
-
 let enable ~on =
   cfg.is_enabled <- on;
   Format.printf "Benchmarking is on=%b\n%!" on
@@ -147,8 +136,8 @@ let repeat f =
   when_enabled ~fail:f (fun () ->
       (* warmup *)
       (*      f ();*)
-      for i = 1 to iterations_count do
-        Printf.printf "going iteration %d/%d\n%!" i iterations_count;
+      for i = 1 to cfg.iterations_count do
+        Printf.printf "going iteration %d/%d\n%!" i cfg.iterations_count;
         Gc.full_major ();
         Gc.compact ();
         f ();
@@ -165,9 +154,9 @@ let finish () =
   let calc tk_name tk_prunes answers_requested v =
     let answer1_str =
       let runs = IMap.find 0 v in
-      let ms = Runs.avg_ms runs in
+      let ms = Runs.avg_ms cfg.iterations_count runs in
       if ms < 1000. then Printf.sprintf "%dms 3" (int_of_float ms)
-      else Printf.sprintf "%30fs" (Runs.avg_s runs)
+      else Printf.sprintf "%30fs" (Runs.avg_s cfg.iterations_count runs)
     in
     let answers_requested =
       if answers_requested < 0 then "all" else string_of_int answers_requested
@@ -177,7 +166,11 @@ let finish () =
     in
     let found_anwsers_count = IMap.cardinal v in
     let sum =
-      let s = IMap.fold (fun _ v acc -> acc +. Runs.avg_ms v) v 0.0 in
+      let s =
+        IMap.fold
+          (fun _ v acc -> acc +. Runs.avg_ms cfg.iterations_count v)
+          v 0.0
+      in
       Format.asprintf "%3.1fms" s
     in
     (prunes_info, answer1_str, found_anwsers_count, answers_requested, sum)
@@ -254,10 +247,11 @@ let finish () =
       TMap.iter
         (fun { tk_name } v ->
           (* Format.printf "Generating table for test `%s`\n%!" tk_name; *)
-          IMap.iter (fun k v -> assert (List.length v = iterations_count)) v;
+          IMap.iter (fun k v -> assert (List.length v = cfg.iterations_count)) v;
           if IMap.cardinal v = 0 then
             failwith "We should not include tests with no answers")
         cfg.data;
+
       make_csv ();
       make_tex ();
 

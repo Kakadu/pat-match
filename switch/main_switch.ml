@@ -69,7 +69,7 @@ let true_false () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module M = Algo.Make (Work) (ArgMake (ArgTrueFalse)) in
-  M.test (-1)
+  M.test Format.std_formatter (-1)
 
 let () = extend "true_alse" true_false
 
@@ -82,7 +82,7 @@ let pair_true_false () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgPairTrueFalse)) in
-  L.test (-1)
+  L.test Format.std_formatter (-1)
 
 let () = extend "pair_true_false" pair_true_false
 
@@ -95,7 +95,7 @@ let ab () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgAB)) in
-  L.test (-1)
+  L.test Format.std_formatter (-1)
 
 let () = extend "ab" ab
 
@@ -108,7 +108,7 @@ let abc () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgABC)) in
-  L.test (-1)
+  L.test Format.std_formatter (-1)
 
 let () = extend "abc" abc
 
@@ -122,7 +122,7 @@ let triple_bool () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgTripleBool)) in
-  L.test (-1)
+  L.test Format.std_formatter (-1)
 
 (*    ~prunes_period:(Some 100)*)
 (*    ~prunes_period:None*)
@@ -139,7 +139,8 @@ let () = extend "triple_bool" triple_bool
 let peano () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgPeanoSimple)) in
-  L.test (*    ~debug_filtered_by_size:false*) ~prunes_period:None (-1)
+  L.test Format.std_formatter (*    ~debug_filtered_by_size:false*)
+    ~prunes_period:None (-1)
 
 let () = extend "peano" peano
 
@@ -152,7 +153,7 @@ let () = extend "peano" peano
 let simple_list () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgSimpleList)) in
-  L.test (*    ~debug_filtered_by_size:false*) 10
+  L.test Format.std_formatter (*    ~debug_filtered_by_size:false*) 10
 
 let () = extend "simple_list" simple_list
 
@@ -162,7 +163,7 @@ let () = extend "simple_list" simple_list
 let two_nil_lists () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgTwoNilLists2Cons)) in
-  L.test 10
+  L.test Format.std_formatter 10
 
 let () = extend "two_nil_lists" two_nil_lists
 
@@ -231,7 +232,7 @@ let pcf () =
       end)
   in
   let q = not config.quiet in
-  M.test ~print_examples:q (-1) ~prunes_period:(Some 777)
+  M.test Format.std_formatter ~print_examples:q (-1) ~prunes_period:(Some 777)
 
 let () = extend "pcf" pcf
 
@@ -261,13 +262,15 @@ let () =
   let run_all_tests = ref true in
   let () =
     let single_tests =
-      ListLabels.map !enabled_tests ~f:(fun (key, f) ->
-          ( "-" ^ key,
-            Arg.Unit
-              (fun () ->
-                run_all_tests := false;
-                f ()),
-            Printf.sprintf " Test '%s'" key ))
+      let f (key, f) =
+        ( "-" ^ key,
+          Arg.Unit
+            (fun () ->
+              run_all_tests := false;
+              f ()),
+          Printf.sprintf " Test '%s'" key )
+      in
+      List.map f !enabled_tests
     in
     Arg.parse
       ([

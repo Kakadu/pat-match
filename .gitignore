@@ -1,5 +1,7 @@
 /_build
 _coverage
+*.coverage 
+
 /node_modules
 .envrc
 /bench.csv

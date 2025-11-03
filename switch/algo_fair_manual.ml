@@ -38,7 +38,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         fresh (u v w) (constr_names === u % (v % w));
       ]
 
-  let work ?(n = 10) ~with_hack ~print_examples ~check_repeated_ifs
+  let work ?(n = 10) ppf ~with_hack ~print_examples ~check_repeated_ifs
       ~debug_filtered_by_size ~prunes_period ~with_default_shortcuts clauses
       typs =
     print_endline
@@ -373,11 +373,11 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         else Format.sprintf "%10.0fms\n%!" ms)
 *)
 
-  let test ?(print_examples = true) ?(debug_filtered_by_size = false)
+  let test ppf ?(print_examples = true) ?(debug_filtered_by_size = false)
       ?(with_hack = true) ?(check_repeated_ifs = false)
       ?(prunes_period = Some 100) ?(with_default_shortcuts = true) n =
     if !is_enabled then
-      work ~n ~with_hack ~print_examples ~check_repeated_ifs
+      work ppf ~n ~with_hack ~print_examples ~check_repeated_ifs
         ~debug_filtered_by_size ~with_default_shortcuts ~prunes_period
         Arg.clauses Arg.typs
     else ()

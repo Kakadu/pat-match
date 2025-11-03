@@ -90,8 +90,127 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
   (* ************************************************************************ *)
 
+  let prepare_injected_exprs print_examples injected_clauses =
+    let demo_exprs =
+      run one Arg.inhabit (fun r -> r#reify Expr.prj_exn)
+      |> OCanren.Stream.take ~n:(-1)
+    in
+
+    let demo_exprs =
+      if print_examples then
+        Format.printf "Testing %d examples:\n%!" (List.length demo_exprs);
+
+      demo_exprs
+      |> List.map (fun e ->
+             match Arg.possible_answer with
+             | _ ->
+                 let scru_demo = Expr.inject e in
+                 let stream =
+                   OCanren.(run one)
+                     (fun rez ->
+                       fresh n (W.eval_pat scru_demo injected_clauses rez)
+                       (*                    (rez === Std.Option.some ir)*)
+                       (*                    (ir === IR.int n)*)
+                       (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))
+                     (fun r -> r)
+                 in
+
+                 let () =
+                   if OCanren.Stream.is_empty stream then
+                     failwith "Bad (?) example"
+                 in
+                 let rez =
+                   (OCanren.Stream.hd stream)#reify (Std.Option.reify IR.reify)
+                 in
+                 (e, rez))
+    in
+
+    let () =
+      if print_examples then
+        demo_exprs
+        |> Stdlib.List.iter (fun (e, rez) ->
+               Format.printf "  %s ~~> %!" (Expr.show e);
+               Format.printf "%s\n%!"
+               @@ GT.show Std.Option.logic IR.show_logic rez)
+    in
+
+    List.map (fun (e, rez) -> Expr.inject e) demo_exprs
+
+  (* Raises [FilteredOut] when answer is not worth it *)
+  let count_if_constructors ?(chk_too_many_cases = true) ?(chk_order = false)
+      ?(chk_history = false) : IR.logic -> int =
+    let rec helper ~height ~count seen : IR.logic -> _ = function
+      | Var (_, _) | Value (Lit _) | Value Fail -> count
+      | Value (Switch (_, Value Std.List.Nil, _)) ->
+          raise_notrace FilteredOutByForm
+      | Value (Switch (scru, xs, on_default)) ->
+          let height = height + 1 in
+          let max_number_cases, new_seen =
+            match Matchable.to_ground scru with
+            | Some m ->
+                let repr = Matchable.ground_to_list_repr m in
+                if not (Pats_tree.is_set !trie repr) then
+                  raise_notrace FilteredOutByForm;
+                let max_cases =
+                  Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr)
+                in
+
+                let new_seen =
+                  if chk_history && Stdlib.List.mem m seen then
+                    raise_notrace FilteredOutByForm;
+                  m :: seen
+                in
+                (max_cases, new_seen)
+            | None -> (max_int, seen)
+          in
+
+          let open Std.List in
+          let rec my_fold_list_logic cases_count prev_ground_cstr acc :
+              _ Std.List.logic -> _ = function
+            | Var _ -> acc
+            | Value (Cons (Var _, tl)) ->
+                let cases_count =
+                  let cases_count = cases_count + 1 in
+                  if chk_too_many_cases then
+                    if cases_count >= max_number_cases then
+                      raise_notrace FilteredOutByTooManyCases;
+                  cases_count
+                in
+                my_fold_list_logic cases_count prev_ground_cstr (acc + 1) tl
+            | Value (Cons (Value (c, br), tl)) ->
+                let cases_count =
+                  let cases_count = cases_count + 1 in
+                  if chk_too_many_cases then
+                    if cases_count >= max_number_cases then
+                      raise_notrace FilteredOutByTooManyCases;
+                  cases_count
+                in
+                let next_constructor =
+                  if chk_order then (
+                    match (prev_ground_cstr, c) with
+                    | None, Var _ -> None
+                    | None, Value _ ->
+                        let cur_tag = Tag.to_ground_exn c in
+                        Some (Tag.to_int cur_tag)
+                    | Some _, Var _ -> prev_ground_cstr
+                    | Some p, Value _ ->
+                        let cur_tag = Tag.to_int @@ Tag.to_ground_exn c in
+                        if cur_tag <= p then raise FilteredOutByTagsOrder;
+                        Some cur_tag)
+                  else None
+                in
+                let acc0 = helper ~height ~count:(acc + 1) new_seen br in
+                my_fold_list_logic cases_count next_constructor acc0 tl
+            | Value Nil -> acc
+          in
+          let count_in_cases = my_fold_list_logic 0 None count xs in
+          helper ~height ~count:count_in_cases seen on_default
+    in
+
+    fun root -> helper ~height:0 ~count:0 [] root
+
   (** synthetizer main  *)
-  let work ~n ~with_hack ~print_examples ~check_repeated_ifs
+  let work ppf ~n ~with_hack ~print_examples ~check_repeated_ifs
       ~debug_filtered_by_size ~prunes_period ~with_default_shortcuts =
     print_endline
       "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
@@ -127,107 +246,6 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     in
 
     let max_height = N.(inject @@ of_int Arg.max_height) in
-
-    (* Raises [FilteredOut] when answer is not worth it *)
-    let count_if_constructors ?(chk_too_many_cases = true) ?(chk_order = false)
-        ?(chk_history = false) : IR.logic -> int =
-     fun root ->
-      (*
-      let next_seen seen scru tag =
-        if not check_repeated_ifs
-        then seen
-        else
-            match Matchable.to_ground scru with
-            | Some mground ->
-                if List.mem mground seen
-                then raise FilteredOutByForm
-                else if not (Pats_tree.is_set !trie (Matchable.ground_to_list_repr mground))
-                then raise FilteredOutByForm
-                else mground :: seen
-            | _ -> seen
-      in
-      *)
-      let rec helper ~height ~count seen : IR.logic -> _ = function
-        | Var (_, _) | Value (Lit _) | Value Fail -> count
-        | Value (Switch (_, Value Std.List.Nil, _)) ->
-            raise_notrace FilteredOutByForm
-        | Value (Switch (scru, xs, on_default)) ->
-            let height = height + 1 in
-            let max_number_cases, new_seen =
-              match Matchable.to_ground scru with
-              | Some m ->
-                  let repr = Matchable.ground_to_list_repr m in
-                  if not (Pats_tree.is_set !trie repr) then
-                    raise_notrace FilteredOutByForm;
-                  let max_cases =
-                    Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr)
-                  in
-
-                  let new_seen =
-                    if chk_history && Stdlib.List.mem m seen then
-                      raise_notrace FilteredOutByForm;
-                    m :: seen
-                  in
-                  (max_cases, new_seen)
-              | None -> (max_int, seen)
-            in
-
-            let open Std.List in
-            let rec my_fold_list_logic cases_count prev_ground_cstr acc :
-                _ Std.List.logic -> _ = function
-              | Var _ -> acc
-              | Value (Cons (Var _, tl)) ->
-                  let cases_count =
-                    let cases_count = cases_count + 1 in
-                    if chk_too_many_cases then
-                      if cases_count >= max_number_cases then
-                        raise_notrace FilteredOutByTooManyCases;
-                    cases_count
-                  in
-                  my_fold_list_logic cases_count prev_ground_cstr (acc + 1) tl
-              | Value (Cons (Value (c, br), tl)) ->
-                  let cases_count =
-                    let cases_count = cases_count + 1 in
-                    if chk_too_many_cases then
-                      if cases_count >= max_number_cases then
-                        raise_notrace FilteredOutByTooManyCases;
-                    cases_count
-                  in
-                  let next_constructor =
-                    if chk_order then (
-                      match (prev_ground_cstr, c) with
-                      | None, Var _ -> None
-                      | None, Value _ ->
-                          let cur_tag = Tag.to_ground_exn c in
-                          Some (Tag.to_int cur_tag)
-                      | Some _, Var _ -> prev_ground_cstr
-                      | Some p, Value _ ->
-                          let cur_tag = Tag.to_int @@ Tag.to_ground_exn c in
-                          if cur_tag <= p then raise FilteredOutByTagsOrder;
-                          Some cur_tag)
-                    else None
-                  in
-                  let acc0 = helper ~height ~count:(acc + 1) new_seen br in
-                  my_fold_list_logic cases_count next_constructor acc0 tl
-              | Value Nil -> acc
-            in
-            let count_in_cases = my_fold_list_logic 0 None count xs in
-            helper ~height ~count:count_in_cases seen on_default
-        (*
-          GT.foldl Std.List.logic (fun acc -> function
-            | Value (Var _, code) -> helper ~height ~count:acc seen code
-            | Value (tagl, code) ->
-                let seen = next_seen seen scru tagl in
-                helper ~height ~count:acc seen code
-            | Var _ -> acc)
-            0
-            xs
-          +
-          (helper ~height ~count:(count + (logic_list_len_lo xs)) seen on_default)
-   *)
-      in
-      helper ~height:0 ~count:0 [] root
-    in
 
     let _ifs_size_hack (ans : IR.injected) =
       let _do_debug = true in
@@ -300,61 +318,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     let injected_clauses = Clauses.inject Arg.clauses in
     let injected_typs = Typs.inject Arg.typs in
     let injected_exprs =
-      let demo_exprs =
-        run one Arg.inhabit (fun r -> r#reify Expr.prj_exn)
-        |> OCanren.Stream.take ~n:(-1)
-      in
-
-      let demo_exprs =
-        if print_examples then
-          Format.printf "Testing %d examples:\n%!" (List.length demo_exprs);
-
-        demo_exprs
-        |> List.map (fun e ->
-               match Arg.possible_answer with
-               | _ ->
-                   let scru_demo = Expr.inject e in
-                   let stream =
-                     OCanren.(run one)
-                       (fun rez ->
-                         fresh n (W.eval_pat scru_demo injected_clauses rez)
-                         (*                    (rez === Std.Option.some ir)*)
-                         (*                    (ir === IR.int n)*)
-                         (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))
-                       (fun r -> r)
-                   in
-
-                   let () =
-                     if OCanren.Stream.is_empty stream then
-                       failwith "Bad (?) example"
-                   in
-                   let rez =
-                     (OCanren.Stream.hd stream)#reify
-                       (Std.Option.reify IR.reify)
-                   in
-                   (e, rez))
-      in
-
-      (*
-      let demo_exprs =
-        List.sort (fun (_,a) (_,b) ->
-          match GT.compare Std.Option.logic IR.compare_logic a b with
-          | LT -> -1
-          | EQ -> 0
-          | GT -> 1
-        ) demo_exprs
-        |> List.rev
-      in*)
-      let () =
-        if print_examples then
-          demo_exprs
-          |> Stdlib.List.iter (fun (e, rez) ->
-                 Format.printf "  %s ~~> %!" (Expr.show e);
-                 Format.printf "%s\n%!"
-                 @@ GT.show Std.Option.logic IR.show_logic rez)
-      in
-
-      List.map (fun (e, rez) -> Expr.inject e) demo_exprs
+      prepare_injected_exprs print_examples injected_clauses
     in
 
     Mybench.set_start_info Arg.info ~n prunes_period ~clauses:printed_clauses
@@ -432,7 +396,6 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         clear_mc ();
         let start = Mtime_clock.counter () in
         let open Mytester in
-        (* let _: float -> int = run_r IR.reify on_logic n q in *)
         run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
           ( info,
             fun ideal_IR ->
@@ -454,7 +417,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                     (my_eval_ir ideal_IR scru injected_typs ideal_IR res_ir)
                     (debug_var ideal_IR IR.reify (fun irs ->
                          let verbose = false in
-                         (*                  let verbose = true in*)
+                         (* let verbose = true in *)
                          let ir =
                            match irs with
                            | [] -> assert false
@@ -508,11 +471,11 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     let () = disable_periodic_prunes () in
     ()
 
-  let test ?(print_examples = true) ?(debug_filtered_by_size = true)
+  let test ppf ?(print_examples = true) ?(debug_filtered_by_size = true)
       ?(with_hack = true) ?(check_repeated_ifs = false)
       ?(prunes_period = Some 100) ?(with_default_shortcuts = true) n =
     if !is_enabled then
-      work ~n ~with_hack ~print_examples ~check_repeated_ifs
+      work ppf ~n ~with_hack ~print_examples ~check_repeated_ifs
         ~debug_filtered_by_size ~with_default_shortcuts ~prunes_period
     else ()
 end

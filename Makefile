@@ -10,11 +10,11 @@ endif
 
 .PHONY: run run-mini celan
 
-all: switch #nonlin unn #guards
+all: switch
 
 bench:
-	dune build switch/main_switch.exe
-	_build/default/switch/main_switch.exe -bench
+	dune build --profile=release switch/main_switch.exe
+	dune exec  --profile=release switch/main_switch.exe -- -bench
 
 
 run:
