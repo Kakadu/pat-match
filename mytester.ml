@@ -6,16 +6,13 @@ open OCanren
 (** {3 Helper functions to provide names for top-level variables } *)
 
 let do_print_span = ref true
-
-let set_print_span x =
-  (* Printf.printf "%s %b\n%!" __FUNCTION__ x; *)
-  do_print_span := x
+let set_print_span x = do_print_span := x
 
 let print_span span =
   if !do_print_span then
     let ms = Mtime.Span.to_float_ns span /. 1e6 in
     if ms > 10000. then printf "%10.0fs\n%!" (ms /. 1e3)
-    else printf "%10.0fms 111 \n%!" ms
+    else printf "%10.0fms\n%!" ms
 
 let wrap ~span onOK i (name, x) = onOK i name ~span x
 

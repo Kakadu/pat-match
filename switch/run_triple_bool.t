@@ -1,42 +1,42 @@
   $ export NOBENCH=1
-  $ ./main_switch.exe -triple_bool
+  $ ./main_switch.exe -triple_bool | sed 's/[[:space:]]*$//'
   Benchmarking is on=false
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   match ... with
-  | triple (_, false, true) -> 1 
-  | triple (false, true, _) -> 2 
-  | triple (_, _, false) -> 3 
-  | triple (_, _, true) -> 4 
+  | triple (_, false, true) -> 1
+  | triple (false, true, _) -> 2
+  | triple (_, _, false) -> 3
+  | triple (_, _, true) -> 4
   A priori answer:
-  
+
   (match S[2] with
    | true -> (match S[1] with
-              | false -> 1 
+              | false -> 1
               | _ -> (match S[1] with
                       | true -> (match S[0] with
-                                 | false -> 2 
+                                 | false -> 2
                                  | _ -> (match S[2] with
-                                         | false -> 3 
+                                         | false -> 3
                                          | _ -> (match S[2] with
-                                                 | true -> 4 
+                                                 | true -> 4
                                                  | _ -> fail)))
                       | _ -> (match S[2] with
-                              | false -> 3 
+                              | false -> 3
                               | _ -> (match S[2] with
-                                      | true -> 4 
+                                      | true -> 4
                                       | _ -> fail))))
    | _ -> (match S[1] with
            | true -> (match S[0] with
-                      | false -> 2 
+                      | false -> 2
                       | _ -> (match S[2] with
-                              | false -> 3 
+                              | false -> 3
                               | _ -> (match S[2] with
-                                      | true -> 4 
+                                      | true -> 4
                                       | _ -> fail)))
            | _ -> (match S[2] with
-                   | false -> 3 
+                   | false -> 3
                    | _ -> (match S[2] with
-                           | true -> 4 
+                           | true -> 4
                            | _ -> fail))))
   Initial upper bound of IF-ish constructions = 14
   		max_matchable_height = 2
@@ -73,7 +73,7 @@
            | _ -> 3)) with ifs_low='4'
   ;
   }
-  
+
   with fresh = 1819
   	S[0] -> 1077
   	S[1] -> 902

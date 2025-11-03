@@ -372,13 +372,6 @@ module Expr = struct
   (* type logic  = (Tag.logic, logic Std.List.logic) gexpr OCanren.logic *)
   (* type injected = (ground, logic) OCanren.injected *)
 
-  (* let rec prjc onvar : injected -> ground =
-     For_gexpr.prjc
-       (Tag.prjc (fun _ _ -> assert false))
-       (Std.List.prjc prjc (fun _ _ -> assert false) )
-       (fun _ _ -> assert false)
-       onvar
-  *)
   let constr : Tag.injected -> _ -> injected = eConstr
   let econstr s xs = EConstr (Tag.tag_of_string_exn s, Stdlib.List.map id xs)
   let eleaf s = econstr s []
@@ -404,25 +397,22 @@ module Expr = struct
     in
     helper false
 
-  let rec show_logic (x : logic) : string =
+  let rec show_logic : logic -> string =
     let rec helper x =
       match x with
       | EConstr (s, xs) ->
           Printf.sprintf "(%s %s)" (GT.show Tag.logic s)
             (GT.show Std.List.logic show_logic xs)
     in
-    GT.show OCanren.logic helper x
+    fun x -> GT.show OCanren.logic helper x
 
-  (* let rec reify env x =
-     For_gexpr.reify OCanren.reify (Std.List.reify reify) env x
-  *)
-  let inject (e : ground) : injected =
+  let inject : ground -> injected =
     let rec helper = function
       | EConstr (t, xs) ->
           constr (Tag.inject t)
             (inject_ground_list @@ GT.gmap Std.List.ground helper xs)
     in
-    helper e
+    helper
 end
 
 let pwc = WildCard
@@ -464,12 +454,12 @@ module Matchable = struct
   let field10 () = field (z ()) @@ field1 ()
   let field11 () : injected = field (s (z ())) @@ field1 ()
 
-  let rec show_logic x =
+  let rec show_logic =
     let rec helper = function
       | Scru -> "S"
       | Field (n, r) -> Printf.sprintf "%s[%s]" (show_logic r) (N.show_logic n)
     in
-    GT.show OCanren.logic helper x
+    fun x -> GT.show OCanren.logic helper x
 
   let show x =
     let rec helper = function
@@ -503,9 +493,6 @@ module Matchable = struct
           method compare = logic.GT.plugins#compare
         end;
     }
-
-  (* let rec reify env (x: injected) : logic =
-     For_gmatchable.reify N.reify reify env x *)
 
   let inject : ground -> injected =
    fun root ->

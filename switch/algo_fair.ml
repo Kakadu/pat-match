@@ -52,6 +52,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
   (* ******************** Default synthesis shortucts ************************* *)
   let default_shortcut0 m max_height cases rez =
+    let _ : Matchable.injected = m in
     let open OCanren in
     fresh ()
       (debug_var m Matchable.reify (fun ms ->
@@ -148,7 +149,8 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       *)
       let rec helper ~height ~count seen : IR.logic -> _ = function
         | Var (_, _) | Value (Lit _) | Value Fail -> count
-        | Value (Switch (_, Value Std.List.Nil, _)) -> raise FilteredOutByForm
+        | Value (Switch (_, Value Std.List.Nil, _)) ->
+            raise_notrace FilteredOutByForm
         | Value (Switch (scru, xs, on_default)) ->
             let height = height + 1 in
             let max_number_cases, new_seen =
@@ -156,14 +158,14 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
               | Some m ->
                   let repr = Matchable.ground_to_list_repr m in
                   if not (Pats_tree.is_set !trie repr) then
-                    raise FilteredOutByForm;
+                    raise_notrace FilteredOutByForm;
                   let max_cases =
                     Unn_pre.TagSet.cardinal (Pats_tree.find_exn !trie repr)
                   in
 
                   let new_seen =
                     if chk_history && Stdlib.List.mem m seen then
-                      raise FilteredOutByForm;
+                      raise_notrace FilteredOutByForm;
                     m :: seen
                   in
                   (max_cases, new_seen)
@@ -171,15 +173,15 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
             in
 
             let open Std.List in
-            let rec my_fold_list_logic cases_count prev_ground_cstr acc =
-              function
+            let rec my_fold_list_logic cases_count prev_ground_cstr acc :
+                _ Std.List.logic -> _ = function
               | Var _ -> acc
               | Value (Cons (Var _, tl)) ->
                   let cases_count =
                     let cases_count = cases_count + 1 in
                     if chk_too_many_cases then
                       if cases_count >= max_number_cases then
-                        raise FilteredOutByTooManyCases;
+                        raise_notrace FilteredOutByTooManyCases;
                     cases_count
                   in
                   my_fold_list_logic cases_count prev_ground_cstr (acc + 1) tl
@@ -188,7 +190,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                     let cases_count = cases_count + 1 in
                     if chk_too_many_cases then
                       if cases_count >= max_number_cases then
-                        raise FilteredOutByTooManyCases;
+                        raise_notrace FilteredOutByTooManyCases;
                     cases_count
                   in
                   let next_constructor =
@@ -244,7 +246,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
             in
             assert (n >= 0);
             match n with
-            | x when x >= !max_ifs_count -> raise (FilteredOutBySize x)
+            | x when x >= !max_ifs_count -> raise_notrace (FilteredOutBySize x)
             | _ ->
                 (*if verbose then
                   Format.printf "height_hack `%s` = %d\n%!" (IR.show_logic ir) n;*)

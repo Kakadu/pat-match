@@ -1,20 +1,20 @@
   $ export NOBENCH=1
-  $ ./main_switch.exe -abc
+  $ ./main_switch.exe -abc | sed 's/[[:space:]]*$//'
   Benchmarking is on=false
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   match ... with
-  | A -> 1 
-  | B -> 1 
-  | C -> 0 
+  | A -> 1
+  | B -> 1
+  | C -> 0
   A priori answer:
   (match S with
-                                                                 | A -> 1 
-                                                                 | _ -> 
+                                                                 | A -> 1
+                                                                 | _ ->
                                                                  (match S with
-                                                                  | B -> 1 
-                                                                  | _ -> 
+                                                                  | B -> 1
+                                                                  | _ ->
                                                                   (match S with
-                                                                   | C -> 0 
+                                                                   | C -> 0
                                                                    | _ -> fail)))
   Initial upper bound of IF-ish constructions = 3
   		max_matchable_height = 1

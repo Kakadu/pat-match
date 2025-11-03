@@ -1,26 +1,26 @@
   $ export NOBENCH=1
-  $ ./main_switch.exe -two_nil_lists
+  $ ./main_switch.exe -two_nil_lists | sed 's/[[:space:]]*$//'
   Benchmarking is on=false
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   match ... with
-  | pair (nil, _) -> 10 
-  | pair (_, nil) -> 20 
-  | pair (nil2, _) -> 30 
-  | pair (_, nil2) -> 40 
-  | pair (cons (_, _), cons (_, _)) -> 60 
+  | pair (nil, _) -> 10
+  | pair (_, nil) -> 20
+  | pair (nil2, _) -> 30
+  | pair (_, nil2) -> 40
+  | pair (cons (_, _), cons (_, _)) -> 60
   A priori answer:
-  
+
   (match S[0] with
-   | nil -> 10 
+   | nil -> 10
    | _ -> (match S[1] with
-           | nil -> 20 
+           | nil -> 20
            | _ -> (match S[0] with
-                   | nil2 -> 30 
+                   | nil2 -> 30
                    | _ -> (match S[1] with
-                           | nil2 -> 40 
+                           | nil2 -> 40
                            | _ -> (match S[1] with
                                    | cons -> (match S[0] with
-                                              | cons -> 60 
+                                              | cons -> 60
                                               | _ -> fail)
                                    | _ -> fail)))))
   Initial upper bound of IF-ish constructions = 6
@@ -46,7 +46,7 @@
            | _ -> 60)) with ifs_low='5'
   ;
   }
-  
+
   with fresh = 595
   	S[0] -> 517
   	S[1] -> 499

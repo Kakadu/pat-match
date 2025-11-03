@@ -5,6 +5,9 @@ open Helper
 open Unn_pre
 open Main_inputs
 
+type config = { mutable quiet : bool }
+
+let config = { quiet = false }
 let env_work = "PAT_MATCH_WORK"
 
 let work =
@@ -227,7 +230,8 @@ let pcf () =
         let max_examples_count = 10
       end)
   in
-  M.test (-1) ~prunes_period:(Some 777)
+  let q = not config.quiet in
+  M.test ~print_examples:q (-1) ~prunes_period:(Some 777)
 
 let () = extend "pcf" pcf
 
@@ -266,7 +270,10 @@ let () =
             Printf.sprintf " Test '%s'" key ))
     in
     Arg.parse
-      ([ ("-bench", Arg.Unit (fun () -> Mybench.enable ~on:true), "") ]
+      ([
+         ("-bench", Arg.Unit (fun () -> Mybench.enable ~on:true), "");
+         ("-q", Arg.Unit (fun () -> config.quiet <- true), " ");
+       ]
       @ single_tests)
       (fun _ -> print_endline "anonymous arguments not supported")
       "msg"
