@@ -403,70 +403,80 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         set_initial_bound ();
         answer_index := -1;
         clear_mc ();
+
+        let goal ideal_IR =
+          let init = Arg.ir_hint ideal_IR in
+
+          let check_bound irs =
+            let verbose = false in
+            let ir =
+              match irs with
+              | [] -> assert false
+              | [ ir ] -> ir
+              | _ -> assert false
+            in
+            let verdict =
+              try
+                let n =
+                  count_if_constructors ~chk_order:true ~chk_too_many_cases:true
+                    ~chk_history:false ir
+                in
+                assert (n >= 0);
+                match n with
+                | x when x > !max_ifs_count -> raise (FilteredOutBySize x)
+                | _ ->
+                    if verbose then
+                      Format.printf "height_hack `%s` = %d\n%!"
+                        (IR.show_logic ir) n;
+                    true
+              with
+              | FilteredOutBySize n -> false
+              | FilteredOutByForm -> false
+              | FilteredOutByNestedness -> false
+              | FilteredOutByTooManyCases -> false
+              | FilteredOutByTagsOrder ->
+                  if
+                    false
+                    (* verbose && verbose_exc && debug_filtered_by_size *)
+                  then
+                    Format.printf
+                      "  %s \x1b[31mFILTERED OUT\x1b[39;49m because by tags \
+                       order\n\
+                       %!"
+                      (IR.show_logic ir);
+                  false
+            in
+            if verdict then success else failure
+          in
+          List.fold_left
+            (fun acc (scru : Expr.injected) ->
+              fresh (res_pat res_ir) acc
+                (W.eval_pat scru injected_clauses res_pat)
+                (conde
+                   [
+                     fresh n
+                       (res_pat === Std.Option.some (IR.int n))
+                       (res_ir === Std.Option.some n);
+                     fresh ()
+                       (res_pat === Std.Option.none ())
+                       (res_ir === Std.Option.none ());
+                   ])
+                (my_eval_ir ideal_IR scru injected_typs ideal_IR res_ir)
+                (debug_var ideal_IR IR.reify (fun irs -> check_bound irs)))
+            init injected_exprs
+        in
+
         let start = Mtime_clock.counter () in
+        let () =
+          OCanren.Stream.iteri_k 100
+            (OCanren.(run q) goal (fun x -> x#reify IR.reify))
+            (fun _ -> ())
+            (fun i calc k -> ())
+        in
+
         let open Mytester in
         run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
-          ( info,
-            fun ideal_IR ->
-              let init = Arg.ir_hint ideal_IR in
-
-              List.fold_left
-                (fun acc (scru : Expr.injected) ->
-                  fresh (res_pat res_ir) acc
-                    (W.eval_pat scru injected_clauses res_pat)
-                    (conde
-                       [
-                         fresh n
-                           (res_pat === Std.Option.some (IR.int n))
-                           (res_ir === Std.Option.some n);
-                         fresh ()
-                           (res_pat === Std.Option.none ())
-                           (res_ir === Std.Option.none ());
-                       ])
-                    (my_eval_ir ideal_IR scru injected_typs ideal_IR res_ir)
-                    (debug_var ideal_IR IR.reify (fun irs ->
-                         let verbose = false in
-                         (* let verbose = true in *)
-                         let ir =
-                           match irs with
-                           | [] -> assert false
-                           | [ ir ] -> ir
-                           | _ -> assert false
-                         in
-                         let verdict =
-                           try
-                             let n =
-                               count_if_constructors ~chk_order:true
-                                 ~chk_too_many_cases:true ~chk_history:false ir
-                             in
-                             assert (n >= 0);
-                             match n with
-                             | x when x > !max_ifs_count ->
-                                 raise (FilteredOutBySize x)
-                             | _ ->
-                                 if verbose then
-                                   Format.printf "height_hack `%s` = %d\n%!"
-                                     (IR.show_logic ir) n;
-                                 true
-                           with
-                           | FilteredOutBySize n -> false
-                           | FilteredOutByForm -> false
-                           | FilteredOutByNestedness -> false
-                           | FilteredOutByTooManyCases -> false
-                           | FilteredOutByTagsOrder ->
-                               if
-                                 false
-                                 (* verbose && verbose_exc && debug_filtered_by_size *)
-                               then
-                                 Format.printf
-                                   "  %s \x1b[31mFILTERED OUT\x1b[39;49m \
-                                    because by tags order\n\
-                                    %!"
-                                   (IR.show_logic ir);
-                               false
-                         in
-                         if verdict then success else failure)))
-                init injected_exprs );
+          (info, goal);
         let span = Mtime_clock.count start in
 
         Format.printf "\n";
