@@ -46,7 +46,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     Format.printf "with fresh = %d\n%!" !with_fresh_vars;
     !matchables_counts
     |> MatchableMap.iter (fun k v ->
-           Format.printf "\t%s -> %d\n%!" (GT.show Matchable.ground k) v)
+        Format.printf "\t%s -> %d\n%!" (GT.show Matchable.ground k) v)
 
   let trie = ref Pats_tree.empty
 
@@ -102,36 +102,35 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
       demo_exprs
       |> List.map (fun e ->
-             match Arg.possible_answer with
-             | _ ->
-                 let scru_demo = Expr.inject e in
-                 let stream =
-                   OCanren.(run one)
-                     (fun rez ->
-                       fresh n (W.eval_pat scru_demo injected_clauses rez)
-                       (*                    (rez === Std.Option.some ir)*)
-                       (*                    (ir === IR.int n)*)
-                       (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))
-                     (fun r -> r)
-                 in
+          match Arg.possible_answer with
+          | _ ->
+              let scru_demo = Expr.inject e in
+              let stream =
+                OCanren.(run one)
+                  (fun rez ->
+                    fresh n (W.eval_pat scru_demo injected_clauses rez)
+                    (*                    (rez === Std.Option.some ir)*)
+                    (*                    (ir === IR.int n)*)
+                    (*                    (W.eval_ir scru_demo max_height injected_typs simple_shortcut0 simple_shortcut simple_shortcut_tag answer_demo (Std.Option.some n))*))
+                  (fun r -> r)
+              in
 
-                 let () =
-                   if OCanren.Stream.is_empty stream then
-                     failwith "Bad (?) example"
-                 in
-                 let rez =
-                   (OCanren.Stream.hd stream)#reify (Std.Option.reify IR.reify)
-                 in
-                 (e, rez))
+              let () =
+                if OCanren.Stream.is_empty stream then
+                  failwith "Bad (?) example"
+              in
+              let rez =
+                (OCanren.Stream.hd stream)#reify (Std.Option.reify IR.reify)
+              in
+              (e, rez))
     in
 
     let () =
       if print_examples then
         demo_exprs
         |> Stdlib.List.iter (fun (e, rez) ->
-               Format.printf "  %s ~~> %!" (Expr.show e);
-               Format.printf "%s\n%!"
-               @@ GT.show Std.Option.logic IR.show_logic rez)
+            Format.printf "  %s ~~> %!" (Expr.show e);
+            Format.printf "%s\n%!" @@ GT.show Std.Option.logic IR.show_logic rez)
     in
 
     List.map (fun (e, rez) -> Expr.inject e) demo_exprs
@@ -209,8 +208,8 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
     fun root -> helper ~height:0 ~count:0 [] root
 
-  (** synthetizer main  *)
-  let work ppf ?(quiet = false) ~with_hack ~print_examples ~check_repeated_ifs
+  (** synthetizer main *)
+  let work ?(quiet = false) ppf ~with_hack ~print_examples ~check_repeated_ifs
       ~debug_filtered_by_size ~prunes_period ~with_default_shortcuts ~n =
     Format.fprintf ppf
       "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n%!";
@@ -390,9 +389,10 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     in
     let my_eval_ir ideal (s : Expr.injected) tinfo ir rez =
       (if with_hack then _ifs_size_hack ideal else success)
-      &&& (* There we use shortcuts optimized for search.
-           * These shortcuts canptentially broke execution in default direction
-           *)
+      &&&
+      (* There we use shortcuts optimized for search.
+       * These shortcuts canptentially broke execution in default direction
+       *)
       W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez
     in
     let is_time_tracing_enabled =

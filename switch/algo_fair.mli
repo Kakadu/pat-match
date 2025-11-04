@@ -1,7 +1,7 @@
 module Make : functor (W : Unn_pre.WORK) (Arg : Main_inputs.ARG_FINAL) -> sig
   val work :
-    Format.formatter ->
     ?quiet:bool ->
+    Format.formatter ->
     with_hack:bool ->
     print_examples:bool ->
     check_repeated_ifs:'a ->
