@@ -8,13 +8,13 @@ license: "LGPL-3.0-or-later"
 homepage: "https://github.com/Kakadu/pat-match"
 bug-reports: "https://github.com/Kakadu/pat-match/issues"
 depends: [
+  "dune" {>= "3.7" & build}
   "lazy-trie"
   "ocamlgraph"
   "ppx_optcomp"
   "ppx_expect"
   "mtime" {= "2.1.0"}
-  "dune" {>= "3.7" & build}
-  "ocamlformat" {build}
+  "ocamlformat" {= "0.28.1" & build}
   "odoc" {with-doc}
 ]
 build: [

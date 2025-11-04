@@ -16,15 +16,19 @@
 
 (package
  (name pat-match)
+ (allow_empty)
  (authors "Dmitrii Kosarev https://github.com/Kakadu")
  (synopsis
   "Synthesis of pattern mathcing compilation bia relational programmin (proof of concept)")
  (depends
+  (dune :build)
   lazy-trie
   ocamlgraph
   ppx_optcomp
   ppx_expect
   (mtime
    (= 2.1.0))
-  (dune :build)
-  (ocamlformat :build)))
+  (ocamlformat
+   (and
+    (= 0.28.1)
+    :build))))
