@@ -14,7 +14,7 @@ all: switch
 
 bench:
 	dune build --profile=release switch/main_switch.exe
-	dune exec  --profile=release switch/main_switch.exe -- -bench
+	PAT_MATCH_REPEAT=10 OCAMLRUNPARAM='s=2200M,h=2200M,b=0' dune exec  --profile=release switch/main_switch.exe -- -bench
 
 
 run:

@@ -6,8 +6,8 @@
  (libraries noCanren.List noCanren.Peano)
  (flags
   (:standard -rectypes))
- (preprocess
-  (pps bisect_ppx)))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (library
  (name work)
@@ -15,8 +15,8 @@
  (flags
   (:standard -rectypes -open Work_base))
  (libraries work_base)
- (preprocess
-  (pps bisect_ppx)))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (library
  (name work_base_common)
@@ -25,7 +25,9 @@
   (:standard -rectypes -open OCanren.Std))
  (libraries GT OCanren)
  (preprocess
-  (pps bisect_ppx OCanren-ppx.ppx_fresh)))
+  (pps OCanren-ppx.ppx_fresh))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (rule
  (targets work_base_common.ml)
@@ -145,4 +147,6 @@
  (flags
   (:standard -rectypes))
  (preprocess
-  (pps OCanren-ppx.ppx_fresh bisect_ppx ppx_expect)))
+  (pps OCanren-ppx.ppx_fresh ppx_expect))
+ (instrumentation
+  (backend bisect_ppx)))

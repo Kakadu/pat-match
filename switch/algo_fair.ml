@@ -210,11 +210,11 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     fun root -> helper ~height:0 ~count:0 [] root
 
   (** synthetizer main  *)
-  let work ppf ~n ~with_hack ~print_examples ~check_repeated_ifs
-      ~debug_filtered_by_size ~prunes_period ~with_default_shortcuts =
-    print_endline
-      "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-
+  let work ppf ?(quiet = false) ~with_hack ~print_examples ~check_repeated_ifs
+      ~debug_filtered_by_size ~prunes_period ~with_default_shortcuts ~n =
+    Format.fprintf ppf
+      "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n%!";
+    (* Format.fprintf ppf "quiet = %b\n%!" quiet; *)
     let printed_clauses =
       Format.asprintf "%a" Clauses.pretty_print Arg.clauses
     in
@@ -227,20 +227,25 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
       match Arg.possible_answer with
       | None -> ()
       | Some a ->
-          Format.printf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) a;
+          if not quiet then
+            Format.fprintf ppf "A priori answer:\n%a\n%!" (GT.fmt IR.ground) a;
           assert (Arg.max_ifs_count <= IR.count_ifs_ground a)
     in
-    Format.printf "Initial upper bound of IF-ish constructions = %d\n%!"
-      !max_ifs_count;
-    Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
-    Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
-    Format.printf "\t\tprunes_period = %s\n%!"
-      (match prunes_period with Some n -> string_of_int n | None -> "always");
+    if not quiet then (
+      Format.printf "Initial upper bound of IF-ish constructions = %d\n%!"
+        !max_ifs_count;
+      Format.printf "\t\tmax_matchable_height = %d\n%!" Arg.max_height;
+      Format.printf "\t\tmax_nested_switches = %d\n%!" Arg.max_nested_switches;
+      Format.printf "\t\tprunes_period = %s\n%!"
+        (match prunes_period with
+        | Some n -> string_of_int n
+        | None -> "always"));
 
     let upgrade_bound x =
       if !max_ifs_count > x then
         let () =
-          Format.printf "Set upper bound of IF-ish constructions to %d\n%!" x
+          if not quiet then
+            Format.printf "Set upper bound of IF-ish constructions to %d\n%!" x
         in
         max_ifs_count := x
     in
@@ -334,7 +339,11 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
           reset ()
       | None -> disable_periodic_prunes ()
     in
-    let info = Format.sprintf "fair lozovML (%s)" Arg.info in
+    let info =
+      Format.asprintf "#### %s, prunes = %a" Arg.info
+        Format.(pp_print_option pp_print_int)
+        prunes_period
+    in
 
     let answer_index = ref (-1) in
     (* let on_ground ~span ir =
@@ -467,15 +476,17 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
             Format.printf "Total synthesis time: ";
             Mytester.print_span span;
             Format.printf "\n%!");
+
         report_mc ());
     let () = disable_periodic_prunes () in
     ()
 
-  let test ppf ?(print_examples = true) ?(debug_filtered_by_size = true)
-      ?(with_hack = true) ?(check_repeated_ifs = false)
-      ?(prunes_period = Some 100) ?(with_default_shortcuts = true) n =
+  let test ppf ?(quiet = false) ?(print_examples = true)
+      ?(debug_filtered_by_size = true) ?(with_hack = true)
+      ?(check_repeated_ifs = false) ?(prunes_period = Some 100)
+      ?(with_default_shortcuts = true) n =
     if !is_enabled then
-      work ppf ~n ~with_hack ~print_examples ~check_repeated_ifs
-        ~debug_filtered_by_size ~with_default_shortcuts ~prunes_period
+      work ppf ~quiet ~with_hack ~print_examples ~check_repeated_ifs
+        ~debug_filtered_by_size ~with_default_shortcuts ~prunes_period ~n
     else ()
 end

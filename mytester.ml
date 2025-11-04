@@ -8,6 +8,11 @@ open OCanren
 let do_print_span = ref true
 let set_print_span x = do_print_span := x
 
+let pp_span ppf span =
+  let ms = Mtime.Span.to_float_ns span /. 1e6 in
+  if ms > 10000. then Format.fprintf ppf "%10.0fs\n%!" (ms /. 1e3)
+  else Format.fprintf ppf "%10.0fms\n%!" ms
+
 let print_span span =
   if !do_print_span then
     let ms = Mtime.Span.to_float_ns span /. 1e6 in

@@ -4,7 +4,7 @@
 (executable
  (name main_switch)
  (modules main_switch)
- (libraries main_lib)
+ (libraries main_lib memtrace)
  (flags
   (:standard -rectypes))
  (preprocess
@@ -12,14 +12,21 @@
    OCanren-ppx.ppx_fresh
    OCanren-ppx.ppx_distrib
    GT.ppx_all
-   bisect_ppx
    ; TODO: replace ppx_optcomp by something lightweight
-   ppx_optcomp)))
+   ppx_optcomp))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (library
  (name main_lib)
  (wrapped false)
- (modules main_inputs unn_pre pats_tree algo_fair algo_fair_manual)
+ (modules
+  main_inputs
+  unn_pre
+  pats_tree
+  algo_fair
+  ;algo_fair_manual
+  )
  (flags
   (:standard -rectypes -warn-error +20+5))
  (libraries
@@ -39,9 +46,10 @@
    OCanren-ppx.ppx_fresh
    OCanren-ppx.ppx_distrib
    GT.ppx_all
-   bisect_ppx
    ; TODO: replace ppx_optcomp by something lightweight
-   ppx_optcomp)))
+   ppx_optcomp))
+ (instrumentation
+  (backend bisect_ppx)))
 
 (library
  (name tests2)
@@ -51,4 +59,6 @@
  (flags
   (:standard -rectypes))
  (preprocess
-  (pps bisect_ppx ppx_expect)))
+  (pps ppx_expect))
+ (instrumentation
+  (backend bisect_ppx)))

@@ -5,6 +5,8 @@ open Helper
 open Unn_pre
 open Main_inputs
 
+let () = Memtrace.trace_if_requested ~context:"my program" ()
+
 type config = { mutable quiet : bool }
 
 let config = { quiet = false }
@@ -17,22 +19,19 @@ let work =
   | _ -> failwith (sprintf "Bad argument of env variable %s" env_work)
   | exception Not_found -> (module Unn_pre.WorkHO : Unn_pre.WORK)
 
-let algo =
-  match Sys.getenv "PAT_MATCH_ALGO" with
-  | "manual" -> (module Algo_fair_manual : Main_inputs.ALGO)
-  | exception Not_found -> (module Algo_fair : Main_inputs.ALGO)
-  | _ -> (module Algo_fair : Main_inputs.ALGO)
-
+let algo = (module Algo_fair : Main_inputs.ALGO)
 let enabled_tests : (string * (unit -> unit)) list ref = ref []
+let all_tests : (string * (unit -> unit)) list ref = ref []
 
 let extend k v =
-  assert (List.assoc_opt k !enabled_tests = None);
-  enabled_tests := (k, v) :: !enabled_tests
+  assert (List.assoc_opt k !all_tests = None);
+  all_tests := (k, v) :: !all_tests
 
 [%%define AB]
 [%%undef AB]
 [%%define TwoNilLists2]
-[%%undef TwoNilLists2]
+(* [%%undef TwoNilLists2] *)
+
 [%%define ABC]
 
 (*[%% undef  ABC]*)
@@ -69,7 +68,7 @@ let true_false () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module M = Algo.Make (Work) (ArgMake (ArgTrueFalse)) in
-  M.test Format.std_formatter (-1)
+  M.test Format.std_formatter ~quiet:config.quiet (-1)
 
 let () = extend "true_alse" true_false
 
@@ -82,7 +81,7 @@ let pair_true_false () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgPairTrueFalse)) in
-  L.test Format.std_formatter (-1)
+  L.test Format.std_formatter ~quiet:config.quiet (-1)
 
 let () = extend "pair_true_false" pair_true_false
 
@@ -95,7 +94,7 @@ let ab () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgAB)) in
-  L.test Format.std_formatter (-1)
+  L.test Format.std_formatter ~quiet:config.quiet (-1)
 
 let () = extend "ab" ab
 
@@ -108,7 +107,7 @@ let abc () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgABC)) in
-  L.test Format.std_formatter (-1)
+  L.test Format.std_formatter ~quiet:config.quiet (-1)
 
 let () = extend "abc" abc
 
@@ -118,18 +117,22 @@ let () = extend "abc" abc
 
 [%%if defined TripleBool]
 
-let triple_bool () =
+let triple_bool ~prunes_period () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module L = Algo.Make (Work) (ArgMake (ArgTripleBool)) in
-  L.test Format.std_formatter (-1)
+  L.test Format.std_formatter ~quiet:config.quiet ~prunes_period (-1)
 
 (*    ~prunes_period:(Some 100)*)
 (*    ~prunes_period:None*)
 (*    ~check_repeated_ifs:true*)
 (*    ~debug_filtered_by_size:true*)
 
-let () = extend "triple_bool" triple_bool
+let () =
+  extend "triple_boolpZ" (triple_bool ~prunes_period:None);
+  extend "triple_boolpX" (triple_bool ~prunes_period:(Some 10));
+  extend "triple_boolpL" (triple_bool ~prunes_period:(Some 100));
+  ()
 
 [%%endif]
 
@@ -139,7 +142,8 @@ let () = extend "triple_bool" triple_bool
 let peano () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgPeanoSimple)) in
-  L.test Format.std_formatter (*    ~debug_filtered_by_size:false*)
+  L.test Format.std_formatter
+    ~quiet:config.quiet (*    ~debug_filtered_by_size:false*)
     ~prunes_period:None (-1)
 
 let () = extend "peano" peano
@@ -153,7 +157,8 @@ let () = extend "peano" peano
 let simple_list () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgSimpleList)) in
-  L.test Format.std_formatter (*    ~debug_filtered_by_size:false*) 10
+  L.test Format.std_formatter ~quiet:config.quiet
+    (*    ~debug_filtered_by_size:false*) 10
 
 let () = extend "simple_list" simple_list
 
@@ -163,7 +168,7 @@ let () = extend "simple_list" simple_list
 let two_nil_lists () =
   let (module Work) = work in
   let module L = Algo_fair.Make (Work) (ArgMake (ArgTwoNilLists2Cons)) in
-  L.test Format.std_formatter 10
+  L.test ~quiet:config.quiet Format.std_formatter 10
 
 let () = extend "two_nil_lists" two_nil_lists
 
@@ -172,31 +177,16 @@ let () = extend "two_nil_lists" two_nil_lists
 (* ************************************************************************** *)
 [%%if defined TwoNilLists2]
 
-let two_nil_lists2_I () =
+let two_nil_lists2 ~prunes_period () =
   let (module Work) = work in
   let (module Algo) = algo in
   let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
-  L.test 10 ~prunes_period:(Some 100)
+  L.test ~quiet:config.quiet Format.std_formatter ~prunes_period 10
 
-let two_nil_lists2_II () =
-  let (module Work) = work in
-  let (module Algo) = algo in
-  let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
-  L.test 10 ~prunes_period:(Some 10)
-
-let two_nil_lists2_III () =
-  let (module Work) = work in
-  let (module Algo) = algo in
-  let module L = Algo.Make (Work) (ArgMake (ArgTwoNilLists2Simplified)) in
-  L.test 10 ~prunes_period:None
-
-let two_nil_lists2 () =
-  two_nil_lists2_I ();
-  two_nil_lists2_II ();
-  two_nil_lists2_III ();
-  ()
-
-let () = extend "two_nil_lists2" two_nil_lists2
+let () =
+  (* extend "two_nil_lists2pC" (two_nil_lists2 ~prunes_period:(Some 100)); *)
+  (* extend "two_nil_lists2pX" (two_nil_lists2 ~prunes_period:(Some 10)); *)
+  extend "two_nil_lists2pZ" (two_nil_lists2 ~prunes_period:None)
 
 [%%endif]
 
@@ -210,7 +200,7 @@ let abcd () =
   let (module Algo) = algo in
   let (module Work) = work in
   let module M = Algo.Make (Work) (ArgMake (ArgABCD)) in
-  M.test (-1)
+  M.test ~quiet:config.quiet (-1)
 
 let () = extend "abcd" abcd
 
@@ -259,18 +249,19 @@ let tuple5 () =
 
 let () =
   let () = Mybench.enable ~on:false in
-  let run_all_tests = ref true in
+
   let () =
     let single_tests =
       let f (key, f) =
         ( "-" ^ key,
           Arg.Unit
             (fun () ->
-              run_all_tests := false;
+              enabled_tests :=
+                List.find (fun (s, _) -> s = key) !all_tests :: !enabled_tests;
               f ()),
           Printf.sprintf " Test '%s'" key )
       in
-      List.map f !enabled_tests
+      List.map f !all_tests
     in
     Arg.parse
       ([
@@ -278,8 +269,9 @@ let () =
          ("-q", Arg.Unit (fun () -> config.quiet <- true), " ");
        ]
       @ single_tests)
-      (fun _ -> print_endline "anonymous arguments not supported")
+      (fun _ -> print_endline "Anonymous arguments not supported")
       "msg"
   in
-  if !run_all_tests then List.iter (fun (_, f) -> f ()) !enabled_tests;
+  if !enabled_tests = [] then enabled_tests := !all_tests;
+  List.iter (fun (_, f) -> f ()) !enabled_tests;
   Mybench.finish ()
