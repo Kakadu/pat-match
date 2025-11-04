@@ -39,7 +39,16 @@ jobs:
       - name: List installed packages
         run: opam list
 
-      - run: opam exec -- dune build --profile=release
-      - run: opam exec -- dune test --profile=release
+      - run: opam exec -- dune build --profile=release switch
+      - run: opam exec -- dune test --profile=release switch
 
-
+      - name: Send coverage report to Coveralls
+        if: github.event_name != 'pull_request'
+        run: |
+          git config --global --add safe.directory /__w/apt-match/pat-match
+          opam exec -- make coverage
+          opam exec -- bisect-ppx-report send-to Coveralls --coverage-path $BISECT_DIR
+        env:
+          BISECT_DIR: /tmp/pat-match-cov
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
