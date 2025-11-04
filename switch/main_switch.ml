@@ -5,7 +5,7 @@ open Helper
 open Unn_pre
 open Main_inputs
 
-let () = Memtrace.trace_if_requested ~context:"my program" ()
+(* let () = Memtrace.trace_if_requested ~context:"my program" () *)
 
 type config = { mutable quiet : bool }
 

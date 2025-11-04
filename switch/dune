@@ -4,7 +4,10 @@
 (executable
  (name main_switch)
  (modules main_switch)
- (libraries main_lib memtrace)
+ (libraries
+  main_lib
+  ; memtrace
+  )
  (flags
   (:standard -rectypes))
  (preprocess
