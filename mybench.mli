@@ -9,3 +9,4 @@ val got_answer : Mtime.Span.t -> idx:int -> unit
 
 (*val start: unit -> unit*)
 val finish : unit -> unit
+val pp_span : Format.formatter -> Mtime.span -> unit

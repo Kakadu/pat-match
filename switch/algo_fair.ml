@@ -466,27 +466,53 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
             init injected_exprs
         in
 
-        let start = Mtime_clock.counter () in
-        let () =
+        let __ () =
+          let time f =
+            let start = Mtime_clock.elapsed () in
+            let ans = f () in
+            let fin = Mtime_clock.elapsed () in
+            let span = Mtime.Span.abs_diff start fin in
+            (span, ans)
+          in
+
+          Format.fprintf ppf "%s\n%!" info;
           OCanren.Stream.iteri_k 100
             (OCanren.(run q) goal (fun x -> x#reify IR.reify))
-            (fun _ -> ())
-            (fun i calc k -> ())
+            (fun _ ->
+              failwith "We request really many answer. We will not reach this")
+            (fun i calc k ->
+              match time calc with
+              | span, None ->
+                  Format.printf "Got MO MORE_ANSWERS in %a\n%!" Mybench.pp_span
+                    span
+              | span, Some (ir, tl) ->
+                  Format.printf "Got answer %d in %a\n%!" i Mybench.pp_span span;
+                  let nextn = IR.count_ifs_low ir in
+                  upgrade_bound nextn;
+
+                  let repr =
+                    Format.asprintf "%a with ifs_low='%d'\n" IR.fmt_logic ir
+                      nextn
+                  in
+                  Format.fprintf ppf "%s%!" repr;
+                  Mybench.when_enabled
+                    ~fail:(fun () -> ())
+                    (fun () -> Mybench.got_answer span ~idx:!answer_index);
+                  k tl)
         in
 
         let open Mytester in
         run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
           (info, goal);
-        let span = Mtime_clock.count start in
-
+        (* let span = Mtime_clock.count start in *)
         Format.printf "\n";
-        (match Sys.getenv "NOBENCH" with
+
+        (* (match Sys.getenv "NOBENCH" with
         | _ -> ()
         | exception Not_found ->
             Format.printf "Total synthesis time: ";
             Mytester.print_span span;
-            Format.printf "\n%!");
-
+            Format.printf "\n%!"); *)
         report_mc ());
     let () = disable_periodic_prunes () in
     ()
