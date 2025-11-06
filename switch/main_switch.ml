@@ -257,8 +257,7 @@ let () =
           Arg.Unit
             (fun () ->
               enabled_tests :=
-                List.find (fun (s, _) -> s = key) !all_tests :: !enabled_tests;
-              f ()),
+                List.find (fun (s, _) -> s = key) !all_tests :: !enabled_tests),
           Printf.sprintf " Test '%s'" key )
       in
       List.map f !all_tests
@@ -273,5 +272,6 @@ let () =
       "msg"
   in
   if !enabled_tests = [] then enabled_tests := !all_tests;
+  (* Format.printf "There are %d enabled tests\n%!" (List.length !enabled_tests); *)
   List.iter (fun (_, f) -> f ()) !enabled_tests;
   Mybench.finish ()

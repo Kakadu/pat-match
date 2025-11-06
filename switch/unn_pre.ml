@@ -612,13 +612,13 @@ module IR = struct
             ln
       | Switch (m, xs, default) ->
           Format.fprintf fmt "@[(@[<v>";
-          (* Format.fprintf fmt "@[switch %a with@]@," (GT.fmt Matchable.logic) m; *)
-          Format.fprintf fmt "@[switch S with@]@ ";
-          (* GT.foldl Std.List.logic
-             (GT.foldl OCanren.logic (fun () (tag, irl) ->
-                  Format.fprintf fmt "@[| %a@ ->@ %a@]@," (GT.fmt Tag.logic) tag
-                    fmt_logic irl))
-             () xs; *)
+          Format.fprintf fmt "@[switch %a with@]@," (GT.fmt Matchable.logic) m;
+          (* Format.fprintf fmt "@[switch S with@]@ "; *)
+          GT.foldl Std.List.logic
+            (GT.foldl OCanren.logic (fun () (tag, irl) ->
+                 Format.fprintf fmt "@[| %a@ ->@ %a@]@," (GT.fmt Tag.logic) tag
+                   fmt_logic irl))
+            () xs;
           Format.fprintf fmt "@[| _ -> %a@]" fmt_logic default;
           Format.fprintf fmt "@])@]"
     in
@@ -711,8 +711,7 @@ module IR = struct
       | Value (Switch (scru, xs, on_default)) ->
           GT.foldl Std.List.logic
             (fun acc -> function
-              | Value (_, code) -> acc + helper code
-              | Var _ -> acc)
+              | Value (_, code) -> acc + helper code | Var _ -> acc)
             (logic_list_len_lo xs) xs
           + helper on_default
     in
@@ -748,7 +747,7 @@ module Clauses = struct
     Format.fprintf ch "@[match ... with@]@.";
     clauses
     |> Stdlib.List.iter (fun (p, ir) ->
-           Format.fprintf ch "@[| %s@ ->@ %s@]@." (Pattern.show p) (IR.show ir))
+        Format.fprintf ch "@[| %s@ ->@ %s@]@." (Pattern.show p) (IR.show ir))
 end
 
 module TagSet = Set.Make (struct
