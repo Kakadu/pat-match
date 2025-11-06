@@ -31,6 +31,7 @@ module Runs = struct
   let extend t x = x :: t
   let count = List.length
   let make span = [ span ]
+  let empty = []
 
   let avg_ms iterations_count t =
     assert (count t = iterations_count);
@@ -50,10 +51,14 @@ module Runs = struct
     List.fold_left Mtime.Span.add Mtime.Span.zero xs
 end
 
+type 'a experiment = { answers : 'a IMap.t; no_more : 'a }
+
 type cfg = {
   mutable is_enabled : bool;
   mutable cur_key : test_key;
-  mutable data : Runs.t IMap.t TMap.t;
+  (* It should be a map
+    test -> (int | postproof) Map -> Runs.t *)
+  mutable data : Runs.t experiment TMap.t;
   mutable csv_filename : string;
   mutable list_filename : string;
   mutable iterations_count : int;
@@ -145,21 +150,23 @@ let set_start_info s ~n prunes ~clauses ~examples =
   let _ : string = latex_name s prunes in
   let k = make_key s prunes n clauses examples in
   cfg.cur_key <- k;
-  cfg.data <- TMap.add k IMap.empty cfg.data
+  cfg.data <- TMap.add k { answers = IMap.empty; no_more = Runs.empty } cfg.data
 
 let clear_startistics () = ()
 
-let add_span ~span idx map =
+let add_span ~span ~iteration idx map =
   Format.printf "add_span for idx = %d\n%!" idx;
   try
     let r = IMap.find idx map in
     IMap.add idx (Runs.extend r span) map
   with Not_found -> IMap.add idx (Runs.make span) map
 
-let add_test_data idx span =
-  let map1 = TMap.find cfg.cur_key cfg.data in
-  let map2 = add_span idx ~span map1 in
-  cfg.data <- TMap.add cfg.cur_key map2 cfg.data
+let add_anwer ~iteration idx span =
+  let ex = TMap.find cfg.cur_key cfg.data in
+  let map2 = add_span ~iteration idx ~span ex.answers in
+  cfg.data <- TMap.add cfg.cur_key { ex with answers = map2 } cfg.data
+
+let add_nomore ~iteration span = assert false
 
 (* ************************************************************************ *)
 let when_enabled ~fail ok = if cfg.is_enabled then ok () else fail ()
@@ -278,7 +285,12 @@ let finish () =
       TMap.iter
         (fun { tk_name } v ->
           (* Format.printf "Generating table for test `%s`\n%!" tk_name; *)
-          IMap.iter (fun k v -> assert (List.length v = cfg.iterations_count)) v;
+          IMap.iter
+            (fun k v ->
+              let vlen = List.length v in
+              if vlen = cfg.iterations_count then ()
+              else failwithf "iteration count mismatch. length = %d" vlen)
+            v;
           if IMap.cardinal v = 0 then
             failwith "We should not include tests with no answers")
         cfg.data;

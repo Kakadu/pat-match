@@ -466,7 +466,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
             init injected_exprs
         in
 
-        let __ () =
+        let () : unit =
           let time f =
             let start = Mtime_clock.elapsed () in
             let ans = f () in
@@ -487,6 +487,9 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                     span
               | span, Some (ir, tl) ->
                   Format.printf "Got answer %d in %a\n%!" i Mybench.pp_span span;
+                  Mybench.when_enabled
+                    ~fail:(fun () -> ())
+                    (fun () -> Mybench.got_answer span ~idx:i);
                   let nextn = IR.count_ifs_low ir in
                   upgrade_bound nextn;
 
@@ -495,15 +498,13 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                       nextn
                   in
                   Format.fprintf ppf "%s%!" repr;
-                  Mybench.when_enabled
-                    ~fail:(fun () -> ())
-                    (fun () -> Mybench.got_answer span ~idx:!answer_index);
+
                   k tl)
         in
 
         let open Mytester in
-        run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
-          (info, goal);
+        (* run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
+          (info, goal); *)
         (* let span = Mtime_clock.count start in *)
         Format.printf "\n";
 
