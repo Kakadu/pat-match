@@ -1,3 +1,12 @@
+let pp_span ppf span =
+  let ms = Mtime.Span.to_float_ns span /. 1e6 in
+  if ms > 10000. then Format.fprintf ppf "%10.0fs\n%!" (ms /. 1e3)
+  else Format.fprintf ppf "%10.0fms\n%!" ms
+
+let pp_float_time ppf timems =
+  if timems < 1000. then Format.fprintf ppf "%10.1fms" timems
+  else Format.fprintf ppf "%10.1fs" (timems /. 1000.0)
+
 let failwithf fmt = Format.kasprintf failwith fmt
 
 type test_key = {
@@ -23,6 +32,8 @@ end)
 
 module SMap = Map.Make (String)
 
+type avg = { min : float; avg : float; max : float }
+
 module Runs = struct
   open Mtime
 
@@ -32,6 +43,7 @@ module Runs = struct
   let count = List.length
   let make span = [ span ]
   let empty = []
+  let nth i xs = List.nth xs i
 
   let avg_ms iterations_count t =
     assert (count t = iterations_count);
@@ -49,9 +61,51 @@ module Runs = struct
   let sum_span iterations_count xs =
     assert (count xs = iterations_count);
     List.fold_left Mtime.Span.add Mtime.Span.zero xs
+
+  (** Convert spans into ms and calculate statistics *)
+  let statistics span =
+    let ans =
+      List.fold_left
+        (fun acc v ->
+          let v = Mtime.Span.to_float_ns v /. 1e6 in
+          {
+            min = Float.min acc.min v;
+            max = Float.max acc.max v;
+            avg = acc.avg +. v;
+          })
+        { min = Float.infinity; max = Float.neg_infinity; avg = 0.0 }
+        span
+    in
+    { ans with avg = ans.avg /. float_of_int (List.length span) }
 end
 
-type 'a experiment = { answers : 'a IMap.t; no_more : 'a }
+type 'a experiment = { mutable answers : 'a IMap.t; mutable no_more : 'a }
+
+(* Return statistics in milliseconds  *)
+let get_stats2 iters : Runs.t experiment -> _ =
+ fun e ->
+  let min = ref Float.infinity in
+  let sum = ref 0. in
+  let max = ref Float.neg_infinity in
+  for i = 0 to iters - 1 do
+    let cur =
+      IMap.fold
+        (fun _ v acc -> Mtime.Span.add acc (Runs.nth i v))
+        e.answers (Runs.nth i e.no_more)
+      |> Mtime.Span.to_float_ns
+    in
+    sum := !sum +. cur;
+    min := Float.min cur !min;
+    max := Float.max cur !max
+  done;
+  {
+    min = !min /. 1000.;
+    avg = !sum /. 1000. /. float_of_int iters;
+    max = !max /. 1000.;
+  }
+
+let map_experiment f e =
+  { no_more = f e.no_more; answers = IMap.map f e.answers }
 
 type cfg = {
   mutable is_enabled : bool;
@@ -154,19 +208,16 @@ let set_start_info s ~n prunes ~clauses ~examples =
 
 let clear_startistics () = ()
 
-let add_span ~span ~iteration idx map =
-  Format.printf "add_span for idx = %d\n%!" idx;
-  try
-    let r = IMap.find idx map in
-    IMap.add idx (Runs.extend r span) map
-  with Not_found -> IMap.add idx (Runs.make span) map
-
-let add_anwer ~iteration idx span =
+let add_answer idx span =
   let ex = TMap.find cfg.cur_key cfg.data in
-  let map2 = add_span ~iteration idx ~span ex.answers in
-  cfg.data <- TMap.add cfg.cur_key { ex with answers = map2 } cfg.data
+  ex.answers <-
+    (match IMap.find idx ex.answers with
+    | exception Not_found -> IMap.add idx (Runs.make span) ex.answers
+    | r -> IMap.add idx (Runs.extend r span) ex.answers)
 
-let add_nomore ~iteration span = assert false
+let add_nomore span =
+  let ex = TMap.find cfg.cur_key cfg.data in
+  ex.no_more <- Runs.extend ex.no_more span
 
 (* ************************************************************************ *)
 let when_enabled ~fail ok = if cfg.is_enabled then ok () else fail ()
@@ -184,23 +235,14 @@ let repeat f =
         Gc.compact ()
       done)
 
-let pp_span ppf span =
-  let ms = Mtime.Span.to_float_ns span /. 1e6 in
-  if ms > 10000. then Format.fprintf ppf "%10.0fs\n%!" (ms /. 1e3)
-  else Format.fprintf ppf "%10.0fms\n%!" ms
-
-let got_answer span ~idx =
-  Format.printf "got answer %d, span = %a\n%!" idx pp_span span;
-  add_test_data idx span;
-  ()
-
 let finish () =
   let calc tk_name tk_prunes answers_requested v =
+    let _ : avg experiment = v in
     let answer1_str =
-      let runs = IMap.find 0 v in
-      let ms = Runs.avg_ms cfg.iterations_count runs in
+      let runs = IMap.find 0 v.answers in
+      let ms = runs.avg in
       if ms < 1000. then Printf.sprintf "%dms 3" (int_of_float ms)
-      else Printf.sprintf "%30fs" (Runs.avg_s cfg.iterations_count runs)
+      else Printf.sprintf "%30fs" (ms /. 1000.0)
     in
     let answers_requested =
       if answers_requested < 0 then "all" else string_of_int answers_requested
@@ -208,74 +250,77 @@ let finish () =
     let prunes_info =
       match tk_prunes with None -> "always" | Some n -> Printf.sprintf "%d" n
     in
-    let found_anwsers_count = IMap.cardinal v in
+    let found_anwsers_count = IMap.cardinal v.answers in
     let sum =
-      let s =
-        IMap.fold
-          (fun _ v acc -> acc +. Runs.avg_ms cfg.iterations_count v)
-          v 0.0
-      in
+      let s = IMap.fold (fun _ v acc -> acc +. v.avg) v.answers v.no_more.avg in
       Format.asprintf "%3.1fms" s
     in
+    (* TODO: maybe extract time of proving that no more answers *)
     (prunes_info, answer1_str, found_anwsers_count, answers_requested, sum)
   in
-  let make_csv () =
-    let ch = open_out cfg.csv_filename in
-    let ppf = Format.formatter_of_out_channel ch in
-    Format.fprintf ppf
-      "Name,Pruning, Answers requested,Examples generated,First answer time, \
-       Answers found, All answers time\n\
-       %!";
+  let make_csv data =
+    Out_channel.with_open_text cfg.csv_filename (fun ch ->
+        let ppf = Format.formatter_of_out_channel ch in
+        Format.fprintf ppf
+          "Name,Pruning, Answers requested,Examples generated,First answer \
+           time, Answers found, All answers time\n\
+           %!";
 
-    TMap.iter
-      (fun ({ tk_name; tk_prunes; tk_answers = answers_requested } as tk) v ->
-        Format.printf "Generating table for test `%s`\n%!" tk_name;
-        let ( prunes_info,
-              answer1_str,
-              found_anwsers_count,
-              answers_requested,
-              sum ) =
-          calc tk_name tk_prunes answers_requested v
-        in
-        Format.fprintf ppf "%s,%s,%s,%d,%s,%d,%s\n%!" tk.tk_name prunes_info
-          answers_requested tk.tk_ex_count answer1_str found_anwsers_count sum)
-      cfg.data;
-    Format.pp_print_flush ppf ();
-    close_out ch
+        TMap.iter
+          (fun ({ tk_name; tk_prunes; tk_answers = answers_requested } as tk) v
+             ->
+            let _ : avg experiment = v in
+            Format.printf "Generating table for test `%s`\n%!" tk_name;
+            let ( prunes_info,
+                  answer1_str,
+                  found_anwsers_count,
+                  answers_requested,
+                  sum ) =
+              calc tk_name tk_prunes answers_requested v
+            in
+            Format.fprintf ppf "%s,%s,%s,%d,%s,%d,%s\n%!" tk.tk_name prunes_info
+              answers_requested tk.tk_ex_count answer1_str found_anwsers_count
+              sum)
+          data;
+        Format.pp_print_flush ppf ())
   in
 
   let make_tex () =
-    let listings_ch = open_out cfg.list_filename in
-    Printf.fprintf listings_ch "%%%% Autogenerated %s\n\n%!"
-      Time.(now () |> to_string);
-    let ppf = Format.std_formatter in
-    let printfn fmt = Format.kasprintf (Format.fprintf ppf "%s\n%!") fmt in
-    Format.printf "TMap.cardinal = %d\n%!" (TMap.cardinal cfg.data);
-    TMap.iter
-      (fun ({ tk_name; tk_prunes; tk_answers = answers_requested } as tk) v ->
-        Format.printf "IMap.cardinal = %d\n%!" (IMap.cardinal v);
-        Format.printf "Generating table for test `%s`\n%!" tk_name;
-        let ( prunes_info,
-              answer1_str,
-              found_anwsers_count,
-              answers_requested,
-              sum ) =
-          calc tk_name tk_prunes answers_requested v
-        in
-        let lname = latex_name tk_name tk_prunes in
-        printfn "\\def\\m%ssamples{%d}" lname tk.tk_ex_count;
-        printfn "\\def\\m%s%s{%d}" lname "answers" found_anwsers_count;
-        printfn "\\def\\m%s%s{%d}" lname "firstSize" tk.tk_ex_count;
-        printfn "\\def\\m%s%s{%d}" lname "firstTime" tk.tk_ex_count;
-        printfn "\\def\\m%s%s{%d}" lname "optSize" tk.tk_ex_count;
-        printfn "\\def\\m%s%s{%d}" lname "optTime" tk.tk_ex_count;
-        printfn "\\def\\m%s%s{%d}" lname "total" tk.tk_ex_count;
-        Format.pp_print_flush ppf ();
-        Printf.fprintf listings_ch
-          "\\begin{lstlisting}\n(* %s *)\n%s\\end{lstlisting}\n\n" tk.tk_name
-          tk.tk_clauses)
-      cfg.data;
-    close_out listings_ch
+    Out_channel.with_open_text cfg.list_filename (fun listings_ch ->
+        Printf.fprintf listings_ch "%%%% Autogenerated %s\n\n%!"
+          Time.(now () |> to_string);
+        let ppf = Format.std_formatter in
+        let printfn fmt = Format.kasprintf (Format.fprintf ppf "%s\n%!") fmt in
+        Format.printf "TMap.cardinal = %d\n%!" (TMap.cardinal cfg.data);
+        TMap.iter
+          (fun ({ tk_name; tk_prunes; tk_answers = answers_requested } as tk) v
+             ->
+            let _ : Runs.t experiment = v in
+            Format.printf "Generating table for test `%s`\n%!" tk_name;
+            let ( prunes_info,
+                  answer1_str,
+                  found_anwsers_count,
+                  answers_requested,
+                  sum ) =
+              calc tk_name tk_prunes answers_requested
+                (map_experiment Runs.statistics v)
+            in
+            let lname = latex_name tk_name tk_prunes in
+            let stats2 = get_stats2 cfg.iterations_count v in
+            printfn "\\def\\m%s%s{%d}" lname "samples" tk.tk_ex_count;
+            printfn "\\def\\m%s%s{%d}" lname "answers" found_anwsers_count;
+            printfn "\\def\\m%s%s{%a}" lname "totalAvg" pp_float_time stats2.avg;
+            printfn "\\def\\m%s%s{%a}" lname "totalMin" pp_float_time stats2.min;
+            printfn "\\def\\m%s%s{%a}" lname "totalMax" pp_float_time stats2.max;
+
+            (* printfn "\\def\\m%s%s{%d}" lname "firstTime" tk.tk_ex_count; *)
+            (* printfn "\\def\\m%s%s{%d}" lname "optSize" tk.tk_ex_count; *)
+            (* printfn "\\def\\m%s%s{%d}" lname "optTime" tk.tk_ex_count; *)
+            Format.pp_print_flush ppf ();
+            Printf.fprintf listings_ch
+              "\\begin{lstlisting}\n(* %s *)\n%s\\end{lstlisting}\n\n"
+              tk.tk_name tk.tk_clauses)
+          cfg.data)
   in
   when_enabled
     ~fail:(fun () -> ())
@@ -285,17 +330,18 @@ let finish () =
       TMap.iter
         (fun { tk_name } v ->
           (* Format.printf "Generating table for test `%s`\n%!" tk_name; *)
+          let _ : _ experiment = v in
           IMap.iter
             (fun k v ->
               let vlen = List.length v in
               if vlen = cfg.iterations_count then ()
               else failwithf "iteration count mismatch. length = %d" vlen)
-            v;
-          if IMap.cardinal v = 0 then
+            v.answers;
+          if IMap.cardinal v.answers = 0 then
             failwith "We should not include tests with no answers")
         cfg.data;
-
-      make_csv ();
+      let data = TMap.map (map_experiment Runs.statistics) cfg.data in
+      make_csv data;
       make_tex ();
 
       let (_ : int) =

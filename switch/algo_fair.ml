@@ -343,32 +343,6 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
         Format.(pp_print_option pp_print_int)
         prunes_period
     in
-
-    let answer_index = ref (-1) in
-    (* let on_ground ~span ir =
-         incr answer_index;
-         let nextn = IR.count_ifs_ground ir in
-         upgrade_bound nextn;
-         let repr = Printf.sprintf "%s with ifs_low=%d" (IR.show ir) nextn in
-         Mybench.when_enabled ~fail:(fun () -> repr)
-           (fun () ->
-             Mybench.got_answer span ~idx:(!answer_index);
-             repr)
-       in *)
-    let on_logic ~span (ir : IR.logic) =
-      incr answer_index;
-      let nextn = IR.count_ifs_low ir in
-      upgrade_bound nextn;
-      let repr =
-        Format.asprintf "%a with ifs_low='%d'\n" IR.fmt_logic ir nextn
-      in
-      Mybench.when_enabled
-        ~fail:(fun () -> repr)
-        (fun () ->
-          Mybench.got_answer span ~idx:!answer_index;
-          repr)
-    in
-
     let shortcut0 m maxheight cases rez =
       Arg.shortcut0 m maxheight cases rez
       &&&
@@ -401,7 +375,6 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
     Mytester.set_print_span is_time_tracing_enabled;
     Mybench.repeat (fun () ->
         set_initial_bound ();
-        answer_index := -1;
         clear_mc ();
 
         let goal ideal_IR =
@@ -479,17 +452,18 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
           OCanren.Stream.iteri_k 100
             (OCanren.(run q) goal (fun x -> x#reify IR.reify))
             (fun _ ->
-              failwith "We request really many answer. We will not reach this")
+              failwith "We request really many answers. We will not reach this")
             (fun i calc k ->
               match time calc with
               | span, None ->
+                  Mybench.add_nomore span;
                   Format.printf "Got MO MORE_ANSWERS in %a\n%!" Mybench.pp_span
                     span
               | span, Some (ir, tl) ->
                   Format.printf "Got answer %d in %a\n%!" i Mybench.pp_span span;
                   Mybench.when_enabled
                     ~fail:(fun () -> ())
-                    (fun () -> Mybench.got_answer span ~idx:i);
+                    (fun () -> Mybench.add_answer i span);
                   let nextn = IR.count_ifs_low ir in
                   upgrade_bound nextn;
 
