@@ -1,6 +1,6 @@
-[![Build aplas2020-rework 4.14](https://github.com/Kakadu/pat-match/actions/workflows/aplas.yml/badge.svg?branch=aplas2020-rework)](https://github.com/Kakadu/pat-match/actions/workflows/aplas.yml)
+[![Build aplas2020 4.14](https://github.com/Kakadu/pat-match/actions/workflows/aplas.yml/badge.svg?branch=aplas2020)](https://github.com/Kakadu/pat-match/actions/workflows/aplas.yml)
 [![License](https://img.shields.io/badge/license-LGPL-blue)](https://github.com/Kakadu/pat-match/blob/master/LICENSE.LESSER)
-[![Coverage Status](https://coveralls.io/repos/github/Kakadu/pat-match/badge.svg?branch=aplas2020-rework)](https://coveralls.io/github/Kakadu/pat-match?branch=aplas2020-rework)
+[![Coverage Status](https://coveralls.io/repos/github/Kakadu/pat-match/badge.svg?branch=aplas2020)](https://coveralls.io/github/Kakadu/pat-match?branch=aplas2020)
 
 [1]:  https://github.com/PLTools/OCanren/actions/workflows/master.yml/badge.svg
 [2]:  https://github.com/PLTools/OCanren/actions

@@ -5,7 +5,7 @@ on:
     paths-ignore:
       - README.md
     branches:
-      - 'aplas2020-rework'
+      - 'aplas2020'
   #schedule:
   #  - cron: "0 13 * * 1"
     # https://jasonet.co/posts/scheduled-actions/
