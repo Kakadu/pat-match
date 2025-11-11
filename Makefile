@@ -16,35 +16,8 @@ bench:
 	dune build --profile=release switch/main_switch.exe
 	PAT_MATCH_REPEAT=10 OCAMLRUNPARAM='s=2200M,h=2200M,b=0' dune exec  --profile=release switch/main_switch.exe -- -bench
 
-
-run:
-	dune exec ./main2.exe $(DUNEOPTS)
-
-gadt:
-	dune exec gadt/main_gadt.exe $(DUNEOPTS)
-
-guards:
-	dune exec guards/main_guards.exe $(DUNEOPTS)
-
-run-mini:
-	dune exec mini/minirun.exe $(DUNEOPTS)
-
-unn:
-	dune exec unn/main_unnested.exe $(DUNEOPTS)
-
 switch:
 	dune exec switch/main_switch.exe $(DUNEOPTS)
-
-nonlin:
-	dune exec nonlinear/main_nonlinear.exe $(DUNEOPTS)
-
-
-lorry:
-	dune exec lorry/lorry_run.exe $(DUNEOPTS)
-
-
-gcw:
-	dune exec GCW/GCW_run.exe $(DUNEOPTS)
 
 celan: clean
 clean:
