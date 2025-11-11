@@ -463,11 +463,12 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                   no_bench (fun () ->
                       Format.fprintf ppf "Got answer %d in %a\n%!" i
                         Mybench.pp_span span);
-                  Mybench.when_enabled
-                    ~fail:(fun () -> ())
-                    (fun () -> Mybench.add_answer i span);
                   let nextn = IR.count_ifs_low ir in
                   upgrade_bound nextn;
+
+                  Mybench.when_enabled
+                    ~fail:(fun () -> ())
+                    (fun () -> Mybench.add_answer ~size:nextn i span);
 
                   let repr =
                     Format.asprintf "%a with ifs_low='%d'\n" IR.fmt_logic ir

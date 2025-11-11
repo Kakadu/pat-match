@@ -14,7 +14,8 @@ all: switch
 
 bench:
 	dune build --profile=release switch/main_switch.exe
-	PAT_MATCH_REPEAT=10 OCAMLRUNPARAM='s=2200M,h=2200M,b=0' dune exec  --profile=release switch/main_switch.exe -- -bench
+	sudo cpupower -c 0 frequency-set --governor performance
+	PAT_MATCH_REPEAT=10 OCAMLRUNPARAM='s=2200M,h=2200M,b=0' taskset -c 0 _build/default/switch/main_switch.exe -bench
 
 switch:
 	dune exec switch/main_switch.exe $(DUNEOPTS)
