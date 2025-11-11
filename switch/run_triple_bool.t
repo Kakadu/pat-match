@@ -55,9 +55,9 @@
     triple [false; true; false] ~~> Some (2)
     triple [true; false; false] ~~> Some (3)
     triple [false; false; false] ~~> Some (3)
-  #### bool*bool*bool (Maranget;page1), prunes = 100, all answers {
+  #### bool*bool*bool (Maranget;page1), prunes = 100
   Set upper bound of IF-ish constructions to 6
-  q=(switch S[0] with
+  (switch S[0] with
    | true ->
    (switch S[1] with
     | true -> (switch S[2] with
@@ -71,9 +71,8 @@
            | _ -> (switch S[2] with
                    | true -> 1
                    | _ -> 3))) with ifs_low='6'
-  ;
   Set upper bound of IF-ish constructions to 5
-  q=(switch S[0] with
+  (switch S[0] with
    | true ->
    (switch S[2] with
     | true -> (switch S[1] with
@@ -85,9 +84,8 @@
            | _ -> (switch S[2] with
                    | true -> 1
                    | _ -> 3))) with ifs_low='5'
-  ;
   Set upper bound of IF-ish constructions to 4
-  q=(switch S[1] with
+  (switch S[1] with
    | true ->
    (switch S[0] with
     | true -> (switch S[2] with
@@ -97,8 +95,6 @@
    | _ -> (switch S[2] with
            | true -> 1
            | _ -> 3)) with ifs_low='4'
-  ;
-  }
   
   with fresh = 1819
   	S[0] -> 1077

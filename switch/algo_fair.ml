@@ -10,6 +10,9 @@ let disable_periodic_prunes () =
   let open OCanren.PrunesControl in
   enable_skips ~on:false
 
+let no_bench f =
+  match Sys.getenv "NOBENCH" with _ -> () | exception Not_found -> f ()
+
 exception FilteredOutBySize of int
 exception FilteredOutByForm
 exception FilteredOutByNestedness
@@ -457,10 +460,13 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
               match time calc with
               | span, None ->
                   Mybench.add_nomore span;
-                  Format.printf "Got MO MORE_ANSWERS in %a\n%!" Mybench.pp_span
-                    span
+                  no_bench (fun () ->
+                      Format.printf "Got MO MORE_ANSWERS in %a\n%!"
+                        Mybench.pp_span span)
               | span, Some (ir, tl) ->
-                  Format.printf "Got answer %d in %a\n%!" i Mybench.pp_span span;
+                  no_bench (fun () ->
+                      Format.fprintf ppf "Got answer %d in %a\n%!" i
+                        Mybench.pp_span span);
                   Mybench.when_enabled
                     ~fail:(fun () -> ())
                     (fun () -> Mybench.add_answer i span);
@@ -472,22 +478,10 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                       nextn
                   in
                   Format.fprintf ppf "%s%!" repr;
-
                   k tl)
         in
 
-        let open Mytester in
-        (* run_r ~do_print_span:is_time_tracing_enabled IR.reify on_logic n q qh
-          (info, goal); *)
-        (* let span = Mtime_clock.count start in *)
-        Format.printf "\n";
-
-        (* (match Sys.getenv "NOBENCH" with
-        | _ -> ()
-        | exception Not_found ->
-            Format.printf "Total synthesis time: ";
-            Mytester.print_span span;
-            Format.printf "\n%!"); *)
+        Format.fprintf ppf "\n";
         report_mc ());
     let () = disable_periodic_prunes () in
     ()

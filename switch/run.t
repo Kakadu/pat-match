@@ -25,19 +25,16 @@
     A ~~> Some (1)
     B ~~> Some (1)
     C ~~> Some (0)
-  #### A|B|C, prunes = 100, all answers {
+  #### A|B|C, prunes = 100
   Set upper bound of IF-ish constructions to 2
-  q=(switch S with
+  (switch S with
    | A -> 1
    | B -> 1
    | _ -> 0) with ifs_low='2'
-  ;
   Set upper bound of IF-ish constructions to 1
-  q=(switch S with
+  (switch S with
    | C -> 0
    | _ -> 1) with ifs_low='1'
-  ;
-  }
   
   with fresh = 12
   	S -> 7
@@ -70,15 +67,13 @@
     pair [false; true] ~~> Some (1)
     pair [true; false] ~~> Some (1)
     pair [false; false] ~~> Some (0)
-  #### bool*bool, prunes = 100, all answers {
+  #### bool*bool, prunes = 100
   Set upper bound of IF-ish constructions to 2
-  q=(switch S[0] with
+  (switch S[0] with
    | true -> 1
    | _ -> (switch S[1] with
            | true -> 1
            | _ -> 0)) with ifs_low='2'
-  ;
-  }
   
   with fresh = 25
   	S[0] -> 8
@@ -105,13 +100,11 @@
   Testing 2 examples:
     true ~~> Some (1)
     false ~~> Some (0)
-  #### bool, prunes = 100, all answers {
+  #### bool, prunes = 100
   Set upper bound of IF-ish constructions to 1
-  q=(switch S with
+  (switch S with
    | true -> 1
    | _ -> 0) with ifs_low='1'
-  ;
-  }
   
   with fresh = 5
   	S -> 1
@@ -148,15 +141,13 @@
     pair [succ [zero]; zero] ~~> Some (10)
     pair [zero; succ [zero]] ~~> Some (10)
     pair [succ [zero]; succ [zero]] ~~> Some (30)
-  #### simple nats (a la Maranget2008), prunes = , all answers {
+  #### simple nats (a la Maranget2008), prunes = 
   Set upper bound of IF-ish constructions to 2
-  q=(switch S[0] with
+  (switch S[0] with
    | zero -> 10
    | _ -> (switch S[1] with
            | zero -> 10
            | _ -> 30)) with ifs_low='2'
-  ;
-  }
   
   with fresh = 14
   	S[0] -> 8
@@ -190,15 +181,13 @@
     pair [cons [int; nil]; nil] ~~> Some (20)
     pair [nil; cons [int; nil]] ~~> Some (10)
     pair [cons [int; nil]; cons [int; nil]] ~~> Some (30)
-  #### simple lists (from Maranget2008), prunes = 100, 10 answers {
+  #### simple lists (from Maranget2008), prunes = 100
   Set upper bound of IF-ish constructions to 2
-  q=(switch S[0] with
+  (switch S[0] with
    | nil -> 10
    | _ -> (switch S[1] with
            | nil -> 20
            | _ -> 30)) with ifs_low='2'
-  ;
-  }
   
   with fresh = 18
   	S[0] -> 9
@@ -221,16 +210,14 @@
     triple [Push; nil; cons [Ldi [42]; nil]] ~~> Some (1)
     triple [Push; nil; cons [IOp [42]; nil]] ~~> None
     triple [Push; nil; cons [Int [42]; nil]] ~~> None
-  #### BIG (no cons -- use WCs), prunes = 777, all answers {
+  #### BIG (no cons -- use WCs), prunes = 777
   Set upper bound of IF-ish constructions to 3
-  q=(switch S[2] with
+  (switch S[2] with
    | nil -> fail
    | _ -> (switch S[2][0] with
            | Push -> 2
            | Ldi -> 1
            | _ -> fail)) with ifs_low='3'
-  ;
-  }
   
   with fresh = 29
   	S[2][0] -> 14

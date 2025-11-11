@@ -39,9 +39,9 @@
     pair [cons [int; nil]; nil2] ~~> Some (40)
     pair [nil2; cons [int; nil]] ~~> Some (30)
     pair [cons [int; nil]; cons [int; nil]] ~~> Some (60)
-  #### two-nil lists (with cons), prunes = 100, 10 answers {
+  #### two-nil lists (with cons), prunes = 100
   Set upper bound of IF-ish constructions to 5
-  q=(switch S[0] with
+  (switch S[0] with
    | nil -> 10
    | nil2 -> (switch S[1] with
               | nil -> 20
@@ -50,8 +50,6 @@
            | nil -> 20
            | nil2 -> 40
            | _ -> 60)) with ifs_low='5'
-  ;
-  }
   
   with fresh = 595
   	S[0] -> 517
