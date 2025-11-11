@@ -39,6 +39,7 @@
    %{targets}
    (run
     ocamlformat
+    --no-version-check
     --impl
     --enable-outside-detected-project
     --profile=ocamlformat
