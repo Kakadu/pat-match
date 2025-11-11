@@ -1,13 +1,23 @@
+let failwithf fmt = Format.kasprintf failwith fmt
+
 let pp_span ppf span =
   let ms = Mtime.Span.to_float_ns span /. 1e6 in
   if ms > 10000. then Format.fprintf ppf "%10.0fs\n%!" (ms /. 1e3)
   else Format.fprintf ppf "%10.0fms\n%!" ms
 
+let rec to_roman = function
+  | 1 -> "I"
+  | 2 -> "II"
+  | 3 -> "III"
+  | 4 -> "IV"
+  | 5 -> "V"
+  | 6 -> "VI"
+  | 7 -> "VII"
+  | x -> failwithf "%s: not implemented %d" __FUNCTION__ x
+
 let pp_float_time ppf timems =
   if timems < 1000. then Format.fprintf ppf "%10.1fms" timems
   else Format.fprintf ppf "%10.1fs" (timems /. 1000.0)
-
-let failwithf fmt = Format.kasprintf failwith fmt
 
 type test_key = {
   tk_name : GT.string;
@@ -81,7 +91,7 @@ end
 
 type 'a experiment = { mutable answers : 'a IMap.t; mutable no_more : 'a }
 
-(* Return statistics in milliseconds  *)
+(* Return statistics in milliseconds of whole synthesis time *)
 let get_stats2 iters : Runs.t experiment -> _ =
  fun e ->
   let min = ref Float.infinity in
@@ -295,15 +305,21 @@ let finish () =
         TMap.iter
           (fun ({ tk_name; tk_prunes; tk_answers = answers_requested } as tk) v
              ->
+            let pp_error ppf { min; avg; max } =
+              Format.fprintf ppf "-%2.0f\\%% +%2.0f\\%%"
+                ((avg -. min) /. avg *. 100.)
+                ((max -. avg) /. avg *. 100.)
+            in
+
             let _ : Runs.t experiment = v in
+            let vAvg : _ experiment = map_experiment Runs.statistics v in
             Format.printf "Generating table for test `%s`\n%!" tk_name;
             let ( prunes_info,
                   answer1_str,
                   found_anwsers_count,
                   answers_requested,
                   sum ) =
-              calc tk_name tk_prunes answers_requested
-                (map_experiment Runs.statistics v)
+              calc tk_name tk_prunes answers_requested vAvg
             in
             let lname = latex_name tk_name tk_prunes in
             let stats2 = get_stats2 cfg.iterations_count v in
@@ -312,7 +328,17 @@ let finish () =
             printfn "\\def\\m%s%s{%a}" lname "totalAvg" pp_float_time stats2.avg;
             printfn "\\def\\m%s%s{%a}" lname "totalMin" pp_float_time stats2.min;
             printfn "\\def\\m%s%s{%a}" lname "totalMax" pp_float_time stats2.max;
-
+            printfn "\\def\\m%s%s{%a}" lname "totalError" pp_error stats2;
+            let () =
+              IMap.iter
+                (fun k { avg } ->
+                  printfn "\\def\\m%s%s%sTime{%a}" lname "Avg"
+                    (to_roman (k + 1))
+                    pp_float_time avg)
+                vAvg.answers;
+              printfn "\\def\\m%s%s%sTime{%a}" lname "Avg" "NoMore"
+                pp_float_time vAvg.no_more.avg
+            in
             (* printfn "\\def\\m%s%s{%d}" lname "firstTime" tk.tk_ex_count; *)
             (* printfn "\\def\\m%s%s{%d}" lname "optSize" tk.tk_ex_count; *)
             (* printfn "\\def\\m%s%s{%d}" lname "optTime" tk.tk_ex_count; *)
