@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Tester (OCanren.Tester)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../index.html">Index</a> &#x00BB; <a href="../index.html">OCanren</a> &#x00BB; Tester</nav><header class="odoc-preamble"><h1>Module <code><span>Tester</span></code></h1></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#main">Main</a></li><li><a href="#auxiliary-functions">Auxiliary functions</a></li></ul></nav></div><div class="odoc-content"><h2 id="main"><a href="#main" class="anchor"></a>Main</h2><p>In this module you can find convenience functions to speedup your introduction to OCanren. In real projects, more likely you will need more low-level interface like <a href="../OCanren/index.html#val-run"><code>OCanren.run</code></a>.</p><div class="odoc-spec"><div class="spec value anchored" id="val-run_r"><a href="#val-run_r" class="anchor"></a><code><span><span class="keyword">val</span> run_r : 
+  <span><span><span>(<span><span class="type-var">'a</span> <a href="../OCanren/index.html#type-ilogic">OCanren.ilogic</a></span>, <span class="type-var">'b</span>)</span> <a href="../OCanren/Reifier/index.html#type-t">OCanren.Reifier.t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+    <span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../OCanren/State/index.html#type-t">OCanren.State.t</a> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'d</span>)</span>
+    * <span>(<span><span class="type-var">'e</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../OCanren/Env/index.html#type-t">OCanren.Env.t</a> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'f</span>)</span>
+    * <span>(<span><span class="type-var">'d</span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'e</span> * <span><a href="../OCanren/State/index.html#type-t">OCanren.State.t</a> <a href="../OCanren/Stream/index.html#type-t">OCanren.Stream.t</a></span>)</span>
+    * <span>(<span><span class="type-var">'g</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'f</span> <span class="arrow">&#45;&gt;</span></span>
+    <span>unit <span class="arrow">&#45;&gt;</span></span>
+    unit)</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span>(<span>int <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="../OCanren/class-type-reified/index.html">OCanren.reified</a></span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'g</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <span class="type-var">'c</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div><div class="spec-doc"><p>The call <code>run_r reifier to_string count num num_handler (&quot;description&quot;, goal)</code> should be used to a goal <code>goal</code>, get <code>count</code> answers, reify all of them using <code>reifier</code>, and print them using provided <code>to_string</code> function. Auxiliary functions <code>num</code> and <code>num_handler</code> allow using this function in polyvariadic manner (see <a href="../OCanren/index.html#val-q"><code>OCanren.q</code></a>, <a href="../OCanren/index.html#val-qr"><code>OCanren.qr</code></a> and <a href="#val-qh"><code>qh</code></a>, <a href="#val-qrh"><code>qrh</code></a> for examples).</p><p>For example:</p><pre class="language-ocaml"><code>open OCanren
+open Tester
+let () =
+  run_r (Std.List.prj_exn prj_exn) (GT.show GT.int) 1
+    q qh (&quot;simple&quot;, (fun q -&gt; q === inj 1))</code></pre><p>OCanren uses many types and various type printing functions. That's why Scheme equivalent is much shorter.</p><pre class="language-scheme"><code>  (run 1 (q) (== ,q 1))</code></pre><p>In scheme</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-run_gen"><a href="#val-run_gen" class="anchor"></a><code><span><span class="keyword">val</span> run_gen : 
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+    <span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../OCanren/State/index.html#type-t">OCanren.State.t</a> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'c</span>)</span>
+    * <span>(<span><span class="type-var">'d</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><a href="../OCanren/Env/index.html#type-t">OCanren.Env.t</a> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'e</span>)</span>
+    * <span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'d</span> * <span><a href="../OCanren/State/index.html#type-t">OCanren.State.t</a> <a href="../OCanren/Stream/index.html#type-t">OCanren.Stream.t</a></span>)</span>
+    * <span>(<span><span class="type-var">'f</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'e</span> <span class="arrow">&#45;&gt;</span></span>
+    <span>unit <span class="arrow">&#45;&gt;</span></span>
+    unit)</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'f</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(string * <span class="type-var">'b</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div><div class="spec-doc"><p>More general combinator. The <a href="#val-run_r"><code>run_r</code></a> is implemented using it. Unlikely will be used in practice</p></div></div><h2 id="auxiliary-functions"><a href="#auxiliary-functions" class="anchor"></a>Auxiliary functions</h2><div class="odoc-spec"><div class="spec value anchored" id="val-qh"><a href="#val-qh" class="anchor"></a><code><span><span class="keyword">val</span> qh : <span><span>(<span>int <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span>unit <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-qrh"><a href="#val-qrh" class="anchor"></a><code><span><span class="keyword">val</span> qrh : <span><span>(<span>int <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span>unit <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-qrsh"><a href="#val-qrsh" class="anchor"></a><code><span><span class="keyword">val</span> qrsh : <span><span>(<span>int <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span>unit <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-qrsth"><a href="#val-qrsth" class="anchor"></a><code><span><span class="keyword">val</span> qrsth : 
+  <span><span>(<span>int <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div></div></body></html>

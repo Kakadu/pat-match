@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Triple (OCanren.OCanren.Std.Triple)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../../odoc.support/odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../../index.html">Index</a> &#x00BB; <a href="../../../index.html">OCanren</a> &#x00BB; <a href="../../index.html">OCanren</a> &#x00BB; <a href="../index.html">Std</a> &#x00BB; Triple</nav><header class="odoc-preamble"><h1>Module <code><span>Std.Triple</span></code></h1></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#relational-pairs">Relational pairs</a><ul><li><a href="#gt-related-api">GT-related API</a></li><li><a href="#relational-api">Relational API</a></li></ul></li></ul></nav></div><div class="odoc-content"><h2 id="relational-pairs"><a href="#relational-pairs" class="anchor"></a>Relational pairs</h2><h3 id="gt-related-api"><a href="#gt-related-api" class="anchor"></a>GT-related API</h3><div class="odoc-spec"><div class="spec type anchored" id="type-t"><a href="#type-t" class="anchor"></a><code><span><span class="keyword">type</span> <span>('a, 'b, 'c) t</span></span><span> = <span class="type-var">'a</span> * <span class="type-var">'b</span> * <span class="type-var">'c</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-t_t"><a href="#class-t_t" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> ['ia, 'a, 'sa, 'ib, 'b, 'sb, 'ic, 'c, 'sc, 'inh, 'extra, 'syn] </span><span><a href="class-t_t/index.html">t_t</a></span><span> : <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gcata_t"><a href="#val-gcata_t" class="anchor"></a><code><span><span class="keyword">val</span> gcata_t : 
+  <span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span>, <span class="type-var">'syn</span>]</span> <a href="class-t_t/index.html">t_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-fmt_t_t"><a href="#class-fmt_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_t] </span><span><a href="class-fmt_t_t/index.html">fmt_t_t</a></span><span> : <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-fmt_t"><a href="#val-fmt_t" class="anchor"></a><code><span><span class="keyword">val</span> fmt_t : 
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldr_t_t"><a href="#class-foldr_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_t] </span><span><a href="class-foldr_t_t/index.html">foldr_t_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldr_t"><a href="#val-foldr_t" class="anchor"></a><code><span><span class="keyword">val</span> foldr_t : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldl_t_t"><a href="#class-foldl_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_t] </span><span><a href="class-foldl_t_t/index.html">foldl_t_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldl_t"><a href="#val-foldl_t" class="anchor"></a><code><span><span class="keyword">val</span> foldl_t : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-compare_t_t"><a href="#class-compare_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_t] </span><span><a href="class-compare_t_t/index.html">compare_t_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-compare_t"><a href="#val-compare_t" class="anchor"></a><code><span><span class="keyword">val</span> compare_t : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-eq_t_t"><a href="#class-eq_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_t] </span><span><a href="class-eq_t_t/index.html">eq_t_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-eq_t"><a href="#val-eq_t" class="anchor"></a><code><span><span class="keyword">val</span> eq_t : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-gmap_t_t"><a href="#class-gmap_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'a_2, 'b, 'b_2, 'c, 'c_2, 'extra_t, 'syn_t] </span><span><a href="class-gmap_t_t/index.html">gmap_t_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-t">t</a></span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gmap_t"><a href="#val-gmap_t" class="anchor"></a><code><span><span class="keyword">val</span> gmap_t : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-t">t</a></span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-show_t_t"><a href="#class-show_t_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_t] </span><span><a href="class-show_t_t/index.html">show_t_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-show_t"><a href="#val-show_t" class="anchor"></a><code><span><span class="keyword">val</span> show_t : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-t"><a href="#val-t" class="anchor"></a><code><span><span class="keyword">val</span> t : 
+  <span><span>(<span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span>, <span class="type-var">'syn</span>]</span> <a href="class-t_t/index.html">t_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn</span>,
+    <span>&lt; fmt : 
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      unit
+    ; foldr : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; foldl : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; compare : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="xref-unresolved">GT</span>.comparison
+    ; eq : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      bool
+    ; gmap : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-t">t</a></span>
+    ; show : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+      string &gt;</span>,
+    <span><span>(<span><span>(<span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>[<span class="type-var">'inh1</span>,
+        <span class="type-var">'a</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'b</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'c</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span>,
+        <span class="type-var">'syn2</span>]</span>
+        <a href="class-t_t/index.html">t_t</a></span>)</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-t">t</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn2</span>)</span>
+    <span class="xref-unresolved">GT</span>.t</span></span></code></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-ground"><a href="#type-ground" class="anchor"></a><code><span><span class="keyword">type</span> <span>('a, 'b, 'c) ground</span></span><span> = <span class="type-var">'a</span> * <span class="type-var">'b</span> * <span class="type-var">'c</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-ground_t"><a href="#class-ground_t" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> ['ia, 'a, 'sa, 'ib, 'b, 'sb, 'ic, 'c, 'sc, 'inh, 'extra, 'syn] </span><span><a href="class-ground_t/index.html">ground_t</a></span><span> : <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gcata_ground"><a href="#val-gcata_ground" class="anchor"></a><code><span><span class="keyword">val</span> gcata_ground : 
+  <span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span>, <span class="type-var">'syn</span>]</span>
+    <a href="class-ground_t/index.html">ground_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-fmt_ground_t"><a href="#class-fmt_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_ground] </span><span><a href="class-fmt_ground_t/index.html">fmt_ground_t</a></span><span> : <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-fmt_ground"><a href="#val-fmt_ground" class="anchor"></a><code><span><span class="keyword">val</span> fmt_ground : 
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldr_ground_t"><a href="#class-foldr_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_ground] </span><span><a href="class-foldr_ground_t/index.html">foldr_ground_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldr_ground"><a href="#val-foldr_ground" class="anchor"></a><code><span><span class="keyword">val</span> foldr_ground : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldl_ground_t"><a href="#class-foldl_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_ground] </span><span><a href="class-foldl_ground_t/index.html">foldl_ground_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldl_ground"><a href="#val-foldl_ground" class="anchor"></a><code><span><span class="keyword">val</span> foldl_ground : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-compare_ground_t"><a href="#class-compare_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_ground] </span><span><a href="class-compare_ground_t/index.html">compare_ground_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-compare_ground"><a href="#val-compare_ground" class="anchor"></a><code><span><span class="keyword">val</span> compare_ground : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-eq_ground_t"><a href="#class-eq_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_ground] </span><span><a href="class-eq_ground_t/index.html">eq_ground_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-eq_ground"><a href="#val-eq_ground" class="anchor"></a><code><span><span class="keyword">val</span> eq_ground : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-gmap_ground_t"><a href="#class-gmap_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'a_2, 'b, 'b_2, 'c, 'c_2, 'extra_ground, 'syn_ground] </span><span><a href="class-gmap_ground_t/index.html">gmap_ground_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-ground">ground</a></span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gmap_ground"><a href="#val-gmap_ground" class="anchor"></a><code><span><span class="keyword">val</span> gmap_ground : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-ground">ground</a></span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-show_ground_t"><a href="#class-show_ground_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_ground] </span><span><a href="class-show_ground_t/index.html">show_ground_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-show_ground"><a href="#val-show_ground" class="anchor"></a><code><span><span class="keyword">val</span> show_ground : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-ground"><a href="#val-ground" class="anchor"></a><code><span><span class="keyword">val</span> ground : 
+  <span><span>(<span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span>, <span class="type-var">'syn</span>]</span>
+     <a href="class-ground_t/index.html">ground_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn</span>,
+    <span>&lt; fmt : 
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      unit
+    ; foldr : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; foldl : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; compare : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="xref-unresolved">GT</span>.comparison
+    ; eq : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      bool
+    ; gmap : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-ground">ground</a></span>
+    ; show : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+      string &gt;</span>,
+    <span><span>(<span><span>(<span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>[<span class="type-var">'inh1</span>,
+        <span class="type-var">'a</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'b</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'c</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span>,
+        <span class="type-var">'syn2</span>]</span>
+        <a href="class-ground_t/index.html">ground_t</a></span>)</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn2</span>)</span>
+    <span class="xref-unresolved">GT</span>.t</span></span></code></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-logic"><a href="#type-logic" class="anchor"></a><code><span><span class="keyword">type</span> <span>('a, 'b, 'c) logic</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-logic_t"><a href="#class-logic_t" class="anchor"></a><code><span><span class="keyword">class</span> <span class="keyword">virtual</span> ['ia, 'a, 'sa, 'ib, 'b, 'sb, 'ic, 'c, 'sc, 'inh, 'extra, 'syn] </span><span><a href="class-logic_t/index.html">logic_t</a></span><span> : <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gcata_logic"><a href="#val-gcata_logic" class="anchor"></a><code><span><span class="keyword">val</span> gcata_logic : 
+  <span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span>, <span class="type-var">'syn</span>]</span> <a href="class-logic_t/index.html">logic_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-fmt_logic_t"><a href="#class-fmt_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_logic] </span><span><a href="class-fmt_logic_t/index.html">fmt_logic_t</a></span><span> : <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-fmt_logic"><a href="#val-fmt_logic" class="anchor"></a><code><span><span class="keyword">val</span> fmt_logic : 
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldr_logic_t"><a href="#class-foldr_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_logic] </span><span><a href="class-foldr_logic_t/index.html">foldr_logic_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldr_logic"><a href="#val-foldr_logic" class="anchor"></a><code><span><span class="keyword">val</span> foldr_logic : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-foldl_logic_t"><a href="#class-foldl_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'syn, 'extra_logic] </span><span><a href="class-foldl_logic_t/index.html">foldl_logic_t</a></span><span> : <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-foldl_logic"><a href="#val-foldl_logic" class="anchor"></a><code><span><span class="keyword">val</span> foldl_logic : 
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'syn</span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-compare_logic_t"><a href="#class-compare_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_logic] </span><span><a href="class-compare_logic_t/index.html">compare_logic_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-compare_logic"><a href="#val-compare_logic" class="anchor"></a><code><span><span class="keyword">val</span> compare_logic : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="xref-unresolved">GT</span>.comparison</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-eq_logic_t"><a href="#class-eq_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_logic] </span><span><a href="class-eq_logic_t/index.html">eq_logic_t</a></span><span> : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-eq_logic"><a href="#val-eq_logic" class="anchor"></a><code><span><span class="keyword">val</span> eq_logic : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  bool</span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-gmap_logic_t"><a href="#class-gmap_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'a_2, 'b, 'b_2, 'c, 'c_2, 'extra_logic, 'syn_logic] </span><span><a href="class-gmap_logic_t/index.html">gmap_logic_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-logic">logic</a></span>)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-gmap_logic"><a href="#val-gmap_logic" class="anchor"></a><code><span><span class="keyword">val</span> gmap_logic : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-logic">logic</a></span></span></code></div></div><div class="odoc-spec"><div class="spec class anchored" id="class-show_logic_t"><a href="#class-show_logic_t" class="anchor"></a><code><span><span class="keyword">class</span> ['a, 'b, 'c, 'extra_logic] </span><span><a href="class-show_logic_t/index.html">show_logic_t</a></span><span> : <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string)</span> <span class="arrow">&#45;&gt;</span></span> <span class="keyword">object</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-show_logic"><a href="#val-show_logic" class="anchor"></a><code><span><span class="keyword">val</span> show_logic : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+  string</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-logic"><a href="#val-logic" class="anchor"></a><code><span><span class="keyword">val</span> logic : 
+  <span><span>(<span><span><span>[<span class="type-var">_</span>, <span class="type-var">'a</span>, <span class="type-var">'sa</span>, <span class="type-var">_</span>, <span class="type-var">'b</span>, <span class="type-var">'sb</span>, <span class="type-var">_</span>, <span class="type-var">'c</span>, <span class="type-var">'sc</span>, <span class="type-var">'inh</span>, <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span>, <span class="type-var">'syn</span>]</span> <a href="class-logic_t/index.html">logic_t</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn</span>,
+    <span>&lt; fmt : 
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="xref-unresolved">Stdlib</span>.Format.formatter <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      unit
+    ; foldr : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; foldl : 
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span class="type-var">'syn</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="type-var">'syn</span>
+    ; compare : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="xref-unresolved">GT</span>.comparison)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span class="xref-unresolved">GT</span>.comparison
+    ; eq : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> bool)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      bool
+    ; gmap : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c_2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span class="type-var">'a_2</span>, <span class="type-var">'b_2</span>, <span class="type-var">'c_2</span>)</span> <a href="#type-logic">logic</a></span>
+    ; show : 
+      <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> string)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+      string &gt;</span>,
+    <span><span>(<span><span>(<span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'syn2</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+      <span><span>[<span class="type-var">'inh1</span>,
+        <span class="type-var">'a</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'b</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span class="type-var">'c</span>,
+        <span class="type-var">'syn2</span>,
+        <span class="type-var">'inh1</span>,
+        <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span>,
+        <span class="type-var">'syn2</span>]</span>
+        <a href="class-logic_t/index.html">logic_t</a></span>)</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span class="type-var">'inh1</span> <span class="arrow">&#45;&gt;</span></span>
+    <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-logic">logic</a></span> <span class="arrow">&#45;&gt;</span></span>
+    <span class="type-var">'syn2</span>)</span>
+    <span class="xref-unresolved">GT</span>.t</span></span></code></div></div><h3 id="relational-api"><a href="#relational-api" class="anchor"></a>Relational API</h3><div class="odoc-spec"><div class="spec value anchored" id="val-inj"><a href="#val-inj" class="anchor"></a><code><span><span class="keyword">val</span> inj : 
+  <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'d</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'e</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'f</span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'c</span>, <span class="type-var">'e</span>)</span> <a href="#type-ground">ground</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'b</span>, <span class="type-var">'d</span>, <span class="type-var">'f</span>)</span> <a href="#type-logic">logic</a></span></span></code></div><div class="spec-doc"><p>Logic injection (for reification)</p></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-groundi"><a href="#type-groundi" class="anchor"></a><code><span><span class="keyword">type</span> <span>('a, 'b, 'c) groundi</span></span></code></div><div class="spec-doc"><p>A synonym for injected triple</p></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-injected"><a href="#type-injected" class="anchor"></a><code><span><span class="keyword">type</span> <span>('a, 'b, 'c) injected</span></span><span> = <span><span>(<span class="type-var">'a</span>, <span class="type-var">'b</span>, <span class="type-var">'c</span>)</span> <a href="#type-groundi">groundi</a></span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-make"><a href="#val-make" class="anchor"></a><code><span><span class="keyword">val</span> make : 
+  <span><span><span class="type-var">'a</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'b</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'c</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'a</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>,
+    <span><span class="type-var">'b</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>,
+    <span><span class="type-var">'c</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>)</span>
+    <a href="#type-injected">injected</a></span></span></code></div><div class="spec-doc"><p>Make injected triple from ground one with injected components</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-triple"><a href="#val-triple" class="anchor"></a><code><span><span class="keyword">val</span> triple : 
+  <span><span><span class="type-var">'a</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'b</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'c</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span class="type-var">'a</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>,
+    <span><span class="type-var">'b</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>,
+    <span><span class="type-var">'c</span> <span class="xref-unresolved">OCanren__.Logic.ilogic</span></span>)</span>
+    <a href="#type-injected">injected</a></span></span></code></div><div class="spec-doc"><p>An alias for <code>make</code></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-reify"><a href="#val-reify" class="anchor"></a><code><span><span class="keyword">val</span> reify : 
+  <span><span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'d</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span><span class="type-var">'e</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'f</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'c</span>, <span class="type-var">'e</span>)</span> <a href="#type-injected">injected</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span class="type-var">'b</span>, <span class="type-var">'d</span>, <span class="type-var">'f</span>)</span> <a href="#type-logic">logic</a></span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span></span></code></div><div class="spec-doc"><p>Reifier</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-prj_exn"><a href="#val-prj_exn" class="anchor"></a><code><span><span class="keyword">val</span> prj_exn : 
+  <span><span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span><span class="type-var">'c</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'d</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span>(<span><span class="type-var">'e</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'f</span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span><span><span>(<span class="type-var">'a</span>, <span class="type-var">'c</span>, <span class="type-var">'e</span>)</span> <a href="#type-injected">injected</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span class="type-var">'b</span>, <span class="type-var">'d</span>, <span class="type-var">'f</span>)</span> <a href="#type-ground">ground</a></span>)</span> <a href="../../Env/index.html#type-m">Env.m</a></span></span></code></div></div></div></body></html>
