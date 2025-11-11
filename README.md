@@ -7,11 +7,9 @@
 
 ### Playground for OCanren and pattern matching
 
-Running
+An artifact for [APLAS-2020 paper](https://link.springer.com/chapter/10.1007/978-3-030-64437-6_15).
 
-Unnested version with manual patching (artifact for APLAS-2020)
-
-    make bench
+Use `make bench` to run performance measurements and demos
 
 Dependencies:
 

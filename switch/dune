@@ -32,16 +32,7 @@
   )
  (flags
   (:standard -rectypes -warn-error +20+5))
- (libraries
-  base
-  lazy-trie
-  work_base_common
-  work_ho
-  work_unn
-  OCanren
-  helper
-  mytester
-  mybench)
+ (libraries base lazy-trie work_base_common work_ho work_unn OCanren mybench)
  (preprocessor_deps
   (package OCanren-ppx))
  (preprocess

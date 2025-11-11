@@ -1,5 +1,10 @@
 open Unn_pre
 
+let list_max xs =
+  match xs with
+  | [] -> failwith "bad argument of list_max"
+  | x :: xs -> List.fold_left max x xs
+
 let simple_shortcut0 _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut _ _ _ _ ans = OCanren.(ans === !!true)
 let simple_shortcut_tag _ _ ans = OCanren.(ans === !!true)
@@ -138,20 +143,12 @@ module ArgTrueFalse : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
-    (*    Format.printf "patterns max height = %d\n%!" n;*)
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (1 = n);
     n
 
   let rec optimize (root : IR.ground) = root
 
-  (* let prjp e =
-     OCanren.prjc
-       (fun _ _ -> failwith "should not happen5")
-       e
-  *)
   let to_expr (demo_exprs : bool list) =
     let open Unn_pre.Expr in
     let rec helper = function
@@ -192,9 +189,7 @@ module ArgAB : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (1 = n);
     n
 
@@ -242,19 +237,11 @@ module ArgABC : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (1 = n);
     n
 
   let rec optimize (root : IR.ground) = root
-
-  (* let prjp e =
-     OCanren.prjc
-       (fun _ _ -> failwith "should not happen5")
-       e
-  *)
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
@@ -356,9 +343,7 @@ module ArgABCD : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (3 = n);
     n
 
@@ -431,7 +416,8 @@ module ArgPairTrueFalse : ARG0
 (*with type g = bool * bool
   and  type l = (bool OCanren.logic, bool OCanren.logic) OCanren.Std.Pair.logic
   and qtyp_injected = (g, l) OCanren.injected
-*) = struct
+*) =
+struct
   open OCanren
 
   type g = bool * bool
@@ -457,9 +443,7 @@ module ArgPairTrueFalse : ARG0
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
@@ -519,25 +503,11 @@ module ArgTripleBool : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
-    (*    Format.printf "patterns max height = %d\n%!" n;*)
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     assert (2 = n);
     n
 
   let optimize = optimize_triple
-
-  (* let prjp e =
-     let prjl e =
-       OCanren.prjc
-         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-         e
-       in
-       Triple.prjc prjl prjl prjl
-         (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-         e *)
-
   let shortcut0 = simple_shortcut0
   let shortcut = simple_shortcut
   let shortcut_tag = simple_shortcut_tag
@@ -593,24 +563,13 @@ module ArgPeanoSimple : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
 
   let optimize = optimize_pair
   (*
-  let prjp e =
-    let prjl e =
-      N.prjc
-        (fun _ _ -> failwiths "should not happen %s %d" __FILE__ __LINE__)
-        e
-      in
-    Std.Pair.prjc prjl prjl
-      (fun _ _ -> failwiths "should not happen5 %s %d" __FILE__ __LINE__)
-      e
 
   let to_expr (demo_exprs: (N.ground * N.ground) list) =
     let open Unn_pre.Expr in
@@ -751,28 +710,13 @@ module ArgSimpleList : ARG0 = struct
 *)
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
 
   let optimize = optimize_pair
 
-  module L = OCanren.Std.List
-
-  (* let prjp e =
-     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
-     let prjl e =
-       L.prjc
-         prj1
-         (fun _ _ -> failwith "should not happen2")
-         e
-       in
-     Std.Pair.prjc prjl prjl
-       (fun _ _ -> failwith "should not happen5")
-       e *)
   (*
   let to_expr demo_exprs =
     let open Unn_pre.Expr in
@@ -792,7 +736,6 @@ module ArgSimpleList : ARG0 = struct
 end
 
 module TwoNilList = struct
-  open Helper
   open OCanren
 
   module L = struct
@@ -949,27 +892,13 @@ module ArgTwoNilLists1 : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     assert (2 = n);
     n
 
   let optimize = optimize_pair
 
-  (* let prjp e =
-     let prj1 e = OCanren.prjc (fun _ _ -> failwith "should not happen") e in
-     let prjl e =
-       TwoNilList.L.prjc
-         prj1
-         (fun _ _ -> failwith "should not happen2")
-         e
-       in
-     Std.Pair.prjc prjl prjl
-       (fun _ _ -> failwith "should not happen5")
-       e
-  *)
   let to_expr : _ -> Expr.ground list =
    fun demo_exprs ->
     let open Unn_pre.Expr in
@@ -1165,9 +1094,7 @@ module ArgPCF : ARG0 = struct
     ]
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     (*    Format.printf "patterns max height = %d\n%!" n;*)
     (*    assert (2 = n);*)
     n
@@ -1279,9 +1206,7 @@ module ArgTuple5 : ARG0 = struct
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
 
   let max_height =
-    let n =
-      Helper.List.max (List.map (fun (p, _) -> Pattern.height p) clauses)
-    in
+    let n = list_max (List.map (fun (p, _) -> Pattern.height p) clauses) in
     n
 
   let shortcut0 = simple_shortcut0
@@ -1336,7 +1261,7 @@ module ArgMake (Arg : ARG0) : ARG_FINAL = struct
         (*        Format.printf "pattern %a has size %d\n%!" (GT.fmt Pattern.ground) p size;*)
         size)
       clauses
-    |> Helper.List.max
+    |> list_max
 end
 
 module type ALGO = sig

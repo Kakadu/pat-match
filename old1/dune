@@ -13,3 +13,25 @@
 ;  (libraries OCanren OCanren.tester helper)
 ;  (preprocess
 ;   (pps OCanren-ppx.ppx_repr OCanren-ppx.ppx_fresh GT.ppx)))
+
+; (library
+;  (name helper)
+;  (modules helper)
+;  (preprocessor_deps
+;   (package OCanren-ppx))
+;  (preprocess
+;   (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
+;  (flags
+;   (:standard -rectypes))
+;  (libraries OCanren unix))
+
+; (library
+;  (name mytester)
+;  (modules mytester)
+;  (preprocessor_deps
+;   (package OCanren-ppx))
+;  (preprocess
+;   (pps OCanren-ppx.ppx_distrib OCanren-ppx.ppx_fresh GT.ppx_all))
+;  (flags
+;   (:standard -rectypes))
+;  (libraries mtime.clock.os OCanren))

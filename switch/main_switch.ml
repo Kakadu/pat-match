@@ -1,7 +1,5 @@
 open Printf
 open OCanren
-open Mytester
-open Helper
 open Unn_pre
 open Main_inputs
 
@@ -24,7 +22,7 @@ let enabled_tests : (string * (unit -> unit)) list ref = ref []
 let all_tests : (string * (unit -> unit)) list ref = ref []
 
 let extend k v =
-  assert (List.assoc_opt k !all_tests = None);
+  assert (List.lookup k !all_tests = None);
   all_tests := (k, v) :: !all_tests
 
 [%%define AB]
@@ -257,7 +255,8 @@ let () =
           Arg.Unit
             (fun () ->
               enabled_tests :=
-                List.find (fun (s, _) -> s = key) !all_tests :: !enabled_tests),
+                Stdlib.List.find (fun (s, _) -> s = key) !all_tests
+                :: !enabled_tests),
           Printf.sprintf " Test '%s'" key )
       in
       List.map f !all_tests
@@ -273,5 +272,5 @@ let () =
   in
   if !enabled_tests = [] then enabled_tests := !all_tests;
   (* Format.printf "There are %d enabled tests\n%!" (List.length !enabled_tests); *)
-  List.iter (fun (_, f) -> f ()) !enabled_tests;
+  Stdlib.List.iter (fun (_, f) -> f ()) !enabled_tests;
   Mybench.finish ()

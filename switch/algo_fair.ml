@@ -372,10 +372,6 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
        *)
       W.eval_ir s max_height tinfo shortcut0 shortcut1 shortcut_tag1 ir rez
     in
-    let is_time_tracing_enabled =
-      match Sys.getenv "NOBENCH" with _ -> false | exception Not_found -> true
-    in
-    Mytester.set_print_span is_time_tracing_enabled;
     Mybench.repeat (fun () ->
         set_initial_bound ();
         clear_mc ();
