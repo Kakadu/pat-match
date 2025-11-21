@@ -368,9 +368,7 @@ let finish () =
                   printfn "\\def\\m%s%s%sTime{%a}" lname "Avg"
                     (to_roman (k + 1))
                     pp_float_time avg;
-                  printfn "\\def\\m%s%s%sTime{%d}" lname "AnsSize"
-                    (to_roman (k + 1))
-                    sz)
+                  printfn "\\def\\m%sAns%sSize{%d}" lname (to_roman (k + 1)) sz)
                 vAvg.answers;
               printfn "\\def\\m%s%s%sTime{%a}" lname "Avg" "NoMore"
                 pp_float_time vAvg.no_more.avg
