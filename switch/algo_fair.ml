@@ -456,6 +456,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
               match time calc with
               | span, None ->
                   Mybench.add_nomore span;
+                  Mybench.set_best_answer_size !max_ifs_count;
                   no_bench (fun () ->
                       Format.printf "Got MO MORE_ANSWERS in %a\n%!"
                         Mybench.pp_span span)

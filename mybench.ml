@@ -16,8 +16,8 @@ let rec to_roman = function
   | x -> failwithf "%s: not implemented %d" __FUNCTION__ x
 
 let pp_float_time ppf timems =
-  if timems < 1000. then Format.fprintf ppf "%10.1fms" timems
-  else Format.fprintf ppf "%10.1fs" (timems /. 1000.0)
+  if timems < 1000. then Format.fprintf ppf "%10.1f\\ms{}" timems
+  else Format.fprintf ppf "%10.1f\\s{}" (timems /. 1000.0)
 
 type test_key = {
   tk_name : GT.string;
@@ -25,11 +25,19 @@ type test_key = {
   tk_answers : GT.int;
   tk_clauses : GT.string;
   tk_ex_count : GT.int;
+  mutable tk_best_answer_size : GT.int;
 }
 [@@deriving gt ~options:{ compare }]
 
 let make_key tk_name tk_prunes tk_answers tk_clauses tk_ex_count =
-  { tk_name; tk_prunes; tk_answers; tk_clauses; tk_ex_count }
+  {
+    tk_name;
+    tk_prunes;
+    tk_answers;
+    tk_clauses;
+    tk_ex_count;
+    tk_best_answer_size = 0;
+  }
 
 module IMap = Map.Make (Int)
 
@@ -196,7 +204,9 @@ let latex_name name prunes =
     match prunes with
     | None -> ""
     | Some 10 -> "pX"
-    | Some 100 -> "pL"
+    | Some 50 -> "pL"
+    | Some 100 -> "pC"
+    | Some 1000 -> "pM"
     | Some 777 -> "pLLL"
     | _ ->
         failwithf "prunes a not known: %a"
@@ -236,6 +246,11 @@ let add_answer idx ~size span =
 let add_nomore span =
   let ex = TMap.find cfg.cur_key cfg.data in
   ex.no_more <- Runs.extend ex.no_more span
+
+let set_best_answer_size n =
+  if cfg.cur_key.tk_best_answer_size <= 0 then
+    cfg.cur_key.tk_best_answer_size <- n
+  else assert (cfg.cur_key.tk_best_answer_size = n)
 
 (* ************************************************************************ *)
 let when_enabled ~fail ok = if cfg.is_enabled then ok () else fail ()
@@ -341,6 +356,8 @@ let finish () =
             let stats2 = get_stats2 cfg.iterations_count v in
             printfn "\\def\\m%s%s{%d}" lname "samples" tk.tk_ex_count;
             printfn "\\def\\m%s%s{%d}" lname "answers" found_anwsers_count;
+            printfn "\\def\\m%s%s{%d}" lname "bestAnswerSize"
+              tk.tk_best_answer_size;
             printfn "\\def\\m%s%s{%a}" lname "totalAvg" pp_float_time stats2.avg;
             printfn "\\def\\m%s%s{%a}" lname "totalMin" pp_float_time stats2.min;
             printfn "\\def\\m%s%s{%a}" lname "totalMax" pp_float_time stats2.max;
