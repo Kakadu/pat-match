@@ -26,6 +26,7 @@ type test_key = {
   tk_clauses : GT.string;
   tk_ex_count : GT.int;
   mutable tk_best_answer_size : GT.int;
+  mutable tk_first_answer_size : GT.int;
 }
 [@@deriving gt ~options:{ compare }]
 
@@ -36,6 +37,7 @@ let make_key tk_name tk_prunes tk_answers tk_clauses tk_ex_count =
     tk_answers;
     tk_clauses;
     tk_ex_count;
+    tk_first_answer_size = 0;
     tk_best_answer_size = 0;
   }
 
@@ -253,6 +255,11 @@ let set_best_answer_size n =
     cfg.cur_key.tk_best_answer_size <- n
   else assert (cfg.cur_key.tk_best_answer_size = n)
 
+let set_first_answer_size n =
+  if cfg.cur_key.tk_first_answer_size <= 0 then
+    cfg.cur_key.tk_first_answer_size <- n
+  else assert (cfg.cur_key.tk_first_answer_size = n)
+
 (* ************************************************************************ *)
 let when_enabled ~fail ok = if cfg.is_enabled then ok () else fail ()
 
@@ -357,6 +364,8 @@ let finish () =
             let stats2 = get_stats2 cfg.iterations_count v in
             printfn "\\def\\m%s%s{%d}" lname "samples" tk.tk_ex_count;
             printfn "\\def\\m%s%s{%d}" lname "answers" found_anwsers_count;
+            printfn "\\def\\m%s%s{%d}" lname "firstAnswerSize"
+              tk.tk_first_answer_size;
             printfn "\\def\\m%s%s{%d}" lname "bestAnswerSize"
               tk.tk_best_answer_size;
             printfn "\\def\\m%s%s{%a}" lname "totalAvg" pp_float_time stats2.avg;

@@ -458,7 +458,7 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
                   Mybench.add_nomore span;
                   Mybench.set_best_answer_size !max_ifs_count;
                   no_bench (fun () ->
-                      Format.printf "Got MO MORE_ANSWERS in %a\n%!"
+                      Format.printf "Got NO MORE_ANSWERS in %a\n%!"
                         Mybench.pp_span span)
               | span, Some (ir, tl) ->
                   no_bench (fun () ->
@@ -469,7 +469,9 @@ module Make (W : WORK) (Arg : ARG_FINAL) = struct
 
                   Mybench.when_enabled
                     ~fail:(fun () -> ())
-                    (fun () -> Mybench.add_answer ~size:nextn i span);
+                    (fun () ->
+                      Mybench.add_answer ~size:nextn i span;
+                      if i = 0 then Mybench.set_first_answer_size nextn);
 
                   let repr =
                     Format.asprintf "%a with ifs_low='%d'\n" IR.fmt_logic ir
