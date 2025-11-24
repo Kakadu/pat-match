@@ -56,7 +56,9 @@ let extend k v =
 [%%define Tuple5]
 [%%undef Tuple5]
 [%%define PCF]
+
 (*[%% undef  PCF]*)
+[%%define PCF2]
 
 (* ************************************************************************** *)
 
@@ -223,6 +225,28 @@ let pcf () =
   M.test Format.std_formatter ~print_examples:q (-1) ~prunes_period:(Some 777)
 
 let () = extend "pcf" pcf
+
+[%%endif]
+
+(* ************************************************************************** *)
+[%%if defined PCF2]
+
+let pcf2 () =
+  let (module Algo) = algo in
+  let (module Work) = work in
+  let module M =
+    Algo_fair.Make
+      (Work)
+      (struct
+        include ArgMake (ArgPCF2)
+
+        let max_examples_count = 10
+      end)
+  in
+  let q = not config.quiet in
+  M.test Format.std_formatter ~print_examples:q (-1) ~prunes_period:(Some 777)
+
+let () = extend "pcf2" pcf2
 
 [%%endif]
 

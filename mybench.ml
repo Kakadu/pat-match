@@ -215,7 +215,6 @@ let latex_name name prunes =
   in
   match name with
   | "A|B|C" -> "ABC"
-  | "BIG (no cons -- use WCs)" -> "BIG"
   | "bool" -> "BOOL"
   | "bool*bool" -> "BoolII"
   | "bool*bool*bool (Maranget;page1)" -> "BoolIII" ^ suffix
@@ -223,6 +222,8 @@ let latex_name name prunes =
   | "simple nats (a la Maranget2008)" -> "NatI"
   | "two-nil lists (with cons)" -> "ListII"
   | "two-nil lists (with cons; simplified RHS)" -> "ListIII" ^ suffix
+  | "BIG (no cons -- use WCs)" -> "BIG"
+  | "PCF (three clauses)" -> "BIGII"
   | s -> failwithf "No latex name specified: %s" s
 
 let set_start_info s ~n prunes ~clauses ~examples =

@@ -996,7 +996,6 @@ module ArgPCF : ARG0 = struct
   type g
   type l
   type qtyp_injected
-  (* = (g, l) OCanren.injected *)
 
   let info = "BIG (no cons -- use WCs)"
 
@@ -1116,6 +1115,31 @@ module ArgPCF : ARG0 = struct
       (fun i e -> Printf.printf "\t%d: %s\n" i (Expr.show_logic e))
       xs;
     Printf.printf "</examples>\n%!"
+
+  let initial_trie = Pats_tree.build clauses typs
+  let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
+  let optimize = optimize_pair
+  let shortcut0 = simple_shortcut0
+  let shortcut = simple_shortcut
+  let shortcut_tag = simple_shortcut_tag
+  let try_compile_naively = false
+end
+
+module ArgPCF2 : ARG0 = struct
+  include ArgPCF
+
+  let info = "PCF (three clauses)"
+  let pldi x = pconstr "Ldi" [ x ]
+  let ppush = pconstr "Push" []
+  let pInt x = pconstr "Int" [ x ]
+  let piop x = pconstr "IOp" [ x ]
+
+  let clauses =
+    [
+      (ptriple __ __ (pcons (pldi __) __), IR.eint 1);
+      (ptriple __ __ (pcons ppush __), IR.eint 2);
+      (ptriple (pInt __) __ (pcons (piop __) __), IR.eint 3);
+    ]
 
   let initial_trie = Pats_tree.build clauses typs
   let inhabit = inhabit_by_trie (Typs.inject typs) initial_trie
