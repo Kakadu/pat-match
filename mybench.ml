@@ -16,7 +16,8 @@ let rec to_roman = function
   | x -> failwithf "%s: not implemented %d" __FUNCTION__ x
 
 let pp_float_time ppf timems =
-  if timems < 1000. then Format.fprintf ppf "%10.1f\\ms{}" timems
+  if timems < 1. then Format.fprintf ppf "<1\\ms{}"
+  else if timems < 1000. then Format.fprintf ppf "%10.1f\\ms{}" timems
   else Format.fprintf ppf "%10.1f\\s{}" (timems /. 1000.0)
 
 type test_key = {
